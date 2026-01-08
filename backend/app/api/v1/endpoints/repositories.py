@@ -103,3 +103,40 @@ def delete_repository(
         raise HTTPException(status_code=404, detail="Repository not found")
 
     return None
+
+
+@router.post("/{repository_id}/scan")
+async def scan_repository(
+    repository_id: int,
+    db: Session = Depends(get_db),
+):
+    """Trigger a scan for a repository.
+
+    This will clone the repository, analyze the code, and extract authorization policies.
+    """
+    logger.info("api_scan_repository", repository_id=repository_id)
+
+    from app.services.scanner_service import ScannerService
+
+    # Verify repository exists
+    service = RepositoryService(db)
+    repository = service.get_repository(repository_id)
+
+    if not repository:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    # Only scan git repositories for now
+    if repository.repository_type.value != "git":
+        raise HTTPException(
+            status_code=400,
+            detail="Only Git repositories are supported for scanning currently",
+        )
+
+    # Start scan
+    scanner = ScannerService(db)
+    try:
+        result = await scanner.scan_repository(repository_id)
+        return result
+    except Exception as e:
+        logger.error("scan_failed", repository_id=repository_id, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Scan failed: {str(e)}")
