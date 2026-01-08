@@ -1,12 +1,10 @@
 """Repository model."""
-
 from datetime import UTC, datetime
 from enum import Enum
 
 from sqlalchemy import JSON, Column, DateTime, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
@@ -26,15 +24,6 @@ class RepositoryStatus(str, Enum):
     CONNECTED = "connected"
     FAILED = "failed"
     SCANNING = "scanning"
-
-
-class DatabaseType(str, Enum):
-    """Supported database types."""
-
-    POSTGRESQL = "postgresql"
-    SQLSERVER = "sqlserver"
-    ORACLE = "oracle"
-    MYSQL = "mysql"
 
 
 class Repository(Base):

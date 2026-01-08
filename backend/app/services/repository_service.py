@@ -1,17 +1,13 @@
 """Repository service for managing repository operations."""
-
 import shutil
 import tempfile
 
-import psycopg2
-import pymysql
-import pyodbc
 import structlog
 from git import GitCommandError, Repo
-from sqlalchemy import create_engine, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.repository import DatabaseType, Repository, RepositoryStatus
+from app.models.repository import Repository, RepositoryStatus
 from app.schemas.repository import RepositoryCreate, RepositoryUpdate
 
 logger = structlog.get_logger()
@@ -26,9 +22,7 @@ class RepositoryService:
 
     def create_repository(self, repository_data: RepositoryCreate) -> Repository:
         """Create a new repository."""
-        logger.info(
-            "creating_repository", name=repository_data.name, type=repository_data.repository_type
-        )
+        logger.info("creating_repository", name=repository_data.name, type=repository_data.repository_type)
 
         repository = Repository(
             name=repository_data.name,
@@ -108,9 +102,7 @@ class RepositoryService:
 
     def verify_git_connection(self, repository: Repository) -> bool:
         """Verify Git repository connection by attempting to clone/fetch."""
-        logger.info(
-            "verifying_git_connection", repository_id=repository.id, url=repository.source_url
-        )
+        logger.info("verifying_git_connection", repository_id=repository.id, url=repository.source_url)
 
         if not repository.source_url:
             logger.error("no_source_url", repository_id=repository.id)
@@ -182,104 +174,4 @@ class RepositoryService:
                     shutil.rmtree(temp_dir)
                     logger.debug("cleaned_temp_dir", temp_dir=temp_dir)
                 except Exception as cleanup_err:
-                    logger.warning(
-                        "temp_dir_cleanup_failed", temp_dir=temp_dir, error=str(cleanup_err)
-                    )
-
-    def verify_database_connection(self, repository: Repository) -> bool:
-        """Verify database connection by attempting to connect."""
-        logger.info(
-            "verifying_database_connection",
-            repository_id=repository.id,
-            connection_config=repository.connection_config,
-        )
-
-        if not repository.connection_config:
-            logger.error("no_connection_config", repository_id=repository.id)
-            repository.status = RepositoryStatus.FAILED
-            self.db.commit()
-            return False
-
-        config = repository.connection_config
-        db_type = config.get("database_type")
-        host = config.get("host")
-        port = config.get("port")
-        database = config.get("database")
-        username = config.get("username")
-        password = config.get("password")
-
-        if not all([db_type, host, database, username, password]):
-            logger.error("missing_required_fields", repository_id=repository.id)
-            repository.status = RepositoryStatus.FAILED
-            self.db.commit()
-            return False
-
-        try:
-            if db_type == DatabaseType.POSTGRESQL.value:
-                # Test PostgreSQL connection
-                conn = psycopg2.connect(
-                    host=host,
-                    port=port or 5432,
-                    database=database,
-                    user=username,
-                    password=password,
-                )
-                conn.close()
-                logger.info("postgresql_connection_verified", repository_id=repository.id)
-
-            elif db_type == DatabaseType.MYSQL.value:
-                # Test MySQL connection
-                conn = pymysql.connect(
-                    host=host,
-                    port=port or 3306,
-                    database=database,
-                    user=username,
-                    password=password,
-                )
-                conn.close()
-                logger.info("mysql_connection_verified", repository_id=repository.id)
-
-            elif db_type == DatabaseType.SQLSERVER.value:
-                # Test SQL Server connection
-                conn_str = (
-                    f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-                    f"SERVER={host},{port or 1433};DATABASE={database};"
-                    f"UID={username};PWD={password}"
-                )
-                conn = pyodbc.connect(conn_str)
-                conn.close()
-                logger.info("sqlserver_connection_verified", repository_id=repository.id)
-
-            elif db_type == DatabaseType.ORACLE.value:
-                # Test Oracle connection using SQLAlchemy
-                # Format: oracle+cx_oracle://user:pass@host:port/database
-                conn_str = (
-                    f"oracle+cx_oracle://{username}:{password}@{host}:{port or 1521}/{database}"
-                )
-                engine = create_engine(conn_str)
-                conn = engine.connect()
-                conn.close()
-                logger.info("oracle_connection_verified", repository_id=repository.id)
-
-            else:
-                logger.error(
-                    "unsupported_database_type", repository_id=repository.id, db_type=db_type
-                )
-                repository.status = RepositoryStatus.FAILED
-                self.db.commit()
-                return False
-
-            repository.status = RepositoryStatus.CONNECTED
-            self.db.commit()
-            return True
-
-        except Exception as e:
-            logger.error(
-                "database_connection_failed",
-                repository_id=repository.id,
-                db_type=db_type,
-                error=str(e),
-            )
-            repository.status = RepositoryStatus.FAILED
-            self.db.commit()
-            return False
+                    logger.warning("temp_dir_cleanup_failed", temp_dir=temp_dir, error=str(cleanup_err))
