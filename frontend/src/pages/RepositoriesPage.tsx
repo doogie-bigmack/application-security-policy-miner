@@ -24,7 +24,7 @@ export default function RepositoriesPage() {
     try {
       setIsLoading(true)
       setError(null)
-      const response = await fetch('http://localhost:7777/api/v1/repositories/')
+      const response = await fetch('/api/v1/repositories/')
 
       if (!response.ok) {
         throw new Error('Failed to fetch repositories')
