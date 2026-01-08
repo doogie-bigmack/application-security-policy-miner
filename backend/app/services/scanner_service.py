@@ -118,19 +118,23 @@ class ScannerService:
         else:
             return SourceType.UNKNOWN
 
-    async def scan_repository(self, repository_id: int) -> dict[str, Any]:
+    async def scan_repository(self, repository_id: int, tenant_id: str | None = None) -> dict[str, Any]:
         """Scan a repository and extract policies.
 
         Args:
             repository_id: ID of the repository to scan
+            tenant_id: Optional tenant ID for multi-tenancy
 
         Returns:
             Dictionary with scan results
         """
-        logger.info(f"Starting scan for repository {repository_id}")
+        logger.info(f"Starting scan for repository {repository_id}", tenant_id=tenant_id)
 
-        # Get repository from database
-        repo = self.db.query(Repository).filter(Repository.id == repository_id).first()
+        # Get repository from database with tenant filtering
+        query = self.db.query(Repository).filter(Repository.id == repository_id)
+        if tenant_id:
+            query = query.filter(Repository.tenant_id == tenant_id)
+        repo = query.first()
         if not repo:
             raise ValueError(f"Repository {repository_id} not found")
 

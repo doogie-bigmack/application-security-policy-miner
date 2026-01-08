@@ -1,9 +1,12 @@
 """Repository API endpoints."""
+from typing import Annotated
+
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.dependencies import get_tenant_id
 from app.schemas.repository import (
     RepositoryCreate,
     RepositoryListResponse,
@@ -20,13 +23,14 @@ router = APIRouter()
 @router.post("/", response_model=RepositoryResponse, status_code=201)
 def create_repository(
     repository: RepositoryCreate,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
+    tenant_id: Annotated[str | None, Depends(get_tenant_id)],
 ):
     """Create a new repository."""
-    logger.info("api_create_repository", name=repository.name)
+    logger.info("api_create_repository", name=repository.name, tenant_id=tenant_id)
 
     service = RepositoryService(db)
-    created_repo = service.create_repository(repository)
+    created_repo = service.create_repository(repository, tenant_id=tenant_id)
 
     # Verify the connection based on repository type
     if created_repo.repository_type.value == "git" and created_repo.source_url:
@@ -39,10 +43,10 @@ def create_repository(
 
 @router.get("/", response_model=RepositoryListResponse)
 def list_repositories(
+    db: Annotated[Session, Depends(get_db)],
+    tenant_id: Annotated[str | None, Depends(get_tenant_id)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    tenant_id: str | None = None,
-    db: Session = Depends(get_db),
 ):
     """List all repositories."""
     logger.info("api_list_repositories", skip=skip, limit=limit, tenant_id=tenant_id)
@@ -56,13 +60,14 @@ def list_repositories(
 @router.get("/{repository_id}", response_model=RepositoryResponse)
 def get_repository(
     repository_id: int,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
+    tenant_id: Annotated[str | None, Depends(get_tenant_id)],
 ):
     """Get a repository by ID."""
-    logger.info("api_get_repository", repository_id=repository_id)
+    logger.info("api_get_repository", repository_id=repository_id, tenant_id=tenant_id)
 
     service = RepositoryService(db)
-    repository = service.get_repository(repository_id)
+    repository = service.get_repository(repository_id, tenant_id=tenant_id)
 
     if not repository:
         raise HTTPException(status_code=404, detail="Repository not found")
@@ -74,13 +79,14 @@ def get_repository(
 def update_repository(
     repository_id: int,
     repository_data: RepositoryUpdate,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
+    tenant_id: Annotated[str | None, Depends(get_tenant_id)],
 ):
     """Update a repository."""
-    logger.info("api_update_repository", repository_id=repository_id)
+    logger.info("api_update_repository", repository_id=repository_id, tenant_id=tenant_id)
 
     service = RepositoryService(db)
-    repository = service.update_repository(repository_id, repository_data)
+    repository = service.update_repository(repository_id, repository_data, tenant_id=tenant_id)
 
     if not repository:
         raise HTTPException(status_code=404, detail="Repository not found")
@@ -91,13 +97,14 @@ def update_repository(
 @router.delete("/{repository_id}", status_code=204)
 def delete_repository(
     repository_id: int,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
+    tenant_id: Annotated[str | None, Depends(get_tenant_id)],
 ):
     """Delete a repository."""
-    logger.info("api_delete_repository", repository_id=repository_id)
+    logger.info("api_delete_repository", repository_id=repository_id, tenant_id=tenant_id)
 
     service = RepositoryService(db)
-    deleted = service.delete_repository(repository_id)
+    deleted = service.delete_repository(repository_id, tenant_id=tenant_id)
 
     if not deleted:
         raise HTTPException(status_code=404, detail="Repository not found")
@@ -108,19 +115,20 @@ def delete_repository(
 @router.post("/{repository_id}/scan")
 async def scan_repository(
     repository_id: int,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
+    tenant_id: Annotated[str | None, Depends(get_tenant_id)],
 ):
     """Trigger a scan for a repository.
 
     This will clone the repository, analyze the code, and extract authorization policies.
     """
-    logger.info("api_scan_repository", repository_id=repository_id)
+    logger.info("api_scan_repository", repository_id=repository_id, tenant_id=tenant_id)
 
     from app.services.scanner_service import ScannerService
 
     # Verify repository exists
     service = RepositoryService(db)
-    repository = service.get_repository(repository_id)
+    repository = service.get_repository(repository_id, tenant_id=tenant_id)
 
     if not repository:
         raise HTTPException(status_code=404, detail="Repository not found")
@@ -135,7 +143,7 @@ async def scan_repository(
     # Start scan
     scanner = ScannerService(db)
     try:
-        result = await scanner.scan_repository(repository_id)
+        result = await scanner.scan_repository(repository_id, tenant_id=tenant_id)
         return result
     except Exception as e:
         logger.error("scan_failed", repository_id=repository_id, error=str(e))

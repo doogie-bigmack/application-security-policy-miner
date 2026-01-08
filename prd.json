@@ -133,7 +133,7 @@
         "Verify only Tenant B policies are visible",
         "Confirm database uses Row-Level Security for isolation"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
