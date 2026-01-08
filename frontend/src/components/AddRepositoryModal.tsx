@@ -38,7 +38,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
         connectionConfig.password = password
       }
 
-      const response = await fetch('http://localhost:7777/api/v1/repositories/', {
+      const response = await fetch('/api/v1/repositories/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
