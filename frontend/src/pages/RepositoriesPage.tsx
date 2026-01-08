@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { GitBranch, Database, Server, ExternalLink } from 'lucide-react'
+import { GitBranch, Database, Server, ExternalLink, Play } from 'lucide-react'
 import logger from '../lib/logger'
 import AddRepositoryModal from '../components/AddRepositoryModal'
 
@@ -49,6 +49,32 @@ export default function RepositoriesPage() {
 
   const handleSuccess = () => {
     fetchRepositories()
+  }
+
+  const handleScan = async (repositoryId: number) => {
+    try {
+      logger.info('Starting scan', { repositoryId })
+      const response = await fetch(`/api/v1/repositories/${repositoryId}/scan`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'Failed to start scan')
+      }
+
+      const result = await response.json()
+      logger.info('Scan completed', { result })
+
+      // Refresh repositories to show updated status
+      await fetchRepositories()
+
+      alert(`Scan complete! Extracted ${result.policies_extracted} policies from ${result.files_scanned} files.`)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      logger.error('Scan failed', { error: errorMessage })
+      alert(`Scan failed: ${errorMessage}`)
+    }
   }
 
   const getTypeIcon = (type: string) => {
@@ -150,7 +176,18 @@ export default function RepositoriesPage() {
                     </div>
                   </div>
                 </div>
-                <div>{getStatusBadge(repo.status)}</div>
+                <div className="flex items-center space-x-3">
+                  {getStatusBadge(repo.status)}
+                  {repo.repository_type === 'git' && repo.status === 'connected' && (
+                    <button
+                      onClick={() => handleScan(repo.id)}
+                      className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm"
+                    >
+                      <Play size={16} />
+                      <span>Start Scan</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
