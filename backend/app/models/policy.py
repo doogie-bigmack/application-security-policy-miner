@@ -54,6 +54,7 @@ class Policy(Base):
     complexity_score = Column(Float, nullable=True)
     impact_score = Column(Float, nullable=True)
     confidence_score = Column(Float, nullable=True)
+    historical_score = Column(Float, nullable=True)  # Historical change frequency score
 
     # Status and metadata
     status = Column(SAEnum(PolicyStatus), default=PolicyStatus.PENDING)

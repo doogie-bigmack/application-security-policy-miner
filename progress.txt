@@ -230,3 +230,71 @@
 ✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
 ✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
 ✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+
+## 2026-01-08 - Risk Scoring Multi-Dimensional Analysis Complete
+
+### Completed
+- Backend risk scoring implementation:
+  - Added historical_score field to Policy model
+  - Created RiskScoringService with multi-dimensional calculation:
+    - Complexity Score (0-100): Measures policy and code complexity
+      - Factors: conditions length, logical operators, nesting depth, code lines
+    - Impact Score (0-100): Measures potential damage if policy is wrong
+      - Factors: resource sensitivity (PII, financial), action destructiveness (delete, modify), subject privilege
+    - Confidence Score (0-100): Measures extraction confidence
+      - Factors: evidence count, authorization keywords, field specificity
+    - Historical Score (0-100): Placeholder for future change tracking (returns 0 for now)
+  - Overall Risk Score calculation with weighted formula:
+    - Impact (40%) + Complexity (30%) + Inverted Confidence (20%) + Historical (10%)
+  - Updated scanner to use RiskScoringService for all extracted policies
+  - Removed fake AI-generated risk scores from prompts
+
+- Backend API updates:
+  - Added historical_score to PolicyCreate and Policy schemas
+  - All risk scores properly returned in API responses
+  - OpenAPI schema validated with historical_score field
+
+- Frontend implementation:
+  - Added historical_score to Policy interface
+  - Created expandable risk breakdown UI on policy cards
+  - Click on risk score to see detailed breakdown:
+    - Complexity, Impact, Confidence, Historical scores displayed in grid
+    - Each score shows description of what it measures
+    - Formula explanation shown at bottom
+  - Clean, professional card design matching design system
+
+- Database migration:
+  - Added historical_score column to policies table
+  - Dropped and recreated tables with new schema
+  - All containers restarted with updated schema
+
+- Testing:
+  - Created comprehensive unit tests for RiskScoringService
+  - 9 test cases covering all scoring dimensions:
+    - Simple and complex complexity scoring
+    - Low and high impact scoring
+    - Strong and weak confidence scoring
+    - Historical score (placeholder)
+    - Overall risk score calculations
+  - All tests passing
+
+### Implementation Details
+- Risk scoring is now calculated programmatically, not by AI
+- Scores are deterministic and explainable
+- Weighted formula ensures impact is most important factor
+- High confidence reduces risk (inverted in formula)
+- Historical score ready for future implementation with change tracking
+- Frontend shows scores on demand (click to expand)
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
+
+### Next Steps
+- Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
+- Story 8: Conflict Resolution - Flag conflicts and AI recommendations
+- Story 9: Multi-tenancy - Tenant-aware policy mining
