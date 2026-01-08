@@ -118,7 +118,7 @@
         "Apply resolution",
         "Verify conflict is resolved"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
