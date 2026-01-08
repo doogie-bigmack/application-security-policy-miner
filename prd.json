@@ -43,7 +43,7 @@
         "Verify extracted policies contain conditions (When)",
         "Confirm each policy has associated evidence (code snippets)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
