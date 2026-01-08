@@ -12,7 +12,7 @@
         "Verify repository connection is successful",
         "Confirm repository appears in repository list"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
@@ -27,7 +27,7 @@
         "Test database connection",
         "Verify database appears in repository list"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

@@ -11,7 +11,8 @@ RUN apk add --no-cache \
     musl-dev \
     libffi-dev \
     git \
-    make
+    make \
+    unixodbc-dev
 
 # Install Python dependencies
 COPY requirements.txt .
