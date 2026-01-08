@@ -1,6 +1,8 @@
 """AI-powered code scanning service."""
 import logging
+import math
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.policy import Evidence, Policy, RiskLevel, SourceType
 from app.models.repository import Repository, RepositoryStatus
+from app.models.scan_progress import ScanProgress, ScanStatus
 from app.services.risk_scoring_service import RiskScoringService
 
 logger = logging.getLogger(__name__)
@@ -138,7 +141,18 @@ class ScannerService:
         if not repo:
             raise ValueError(f"Repository {repository_id} not found")
 
-        # Update status to scanning
+        # Create scan progress tracker
+        scan_progress = ScanProgress(
+            repository_id=repository_id,
+            tenant_id=tenant_id,
+            status=ScanStatus.QUEUED,
+            started_at=datetime.utcnow(),
+        )
+        self.db.add(scan_progress)
+        self.db.commit()
+        self.db.refresh(scan_progress)
+
+        # Update repository status to scanning
         repo.status = RepositoryStatus.SCANNING
         self.db.commit()
 
@@ -151,33 +165,92 @@ class ScannerService:
 
             logger.info(f"Found {len(auth_files)} files with potential authorization code")
 
-            # Extract policies from each file
+            # Calculate batches
+            total_files = len(auth_files)
+            total_batches = math.ceil(total_files / settings.BATCH_SIZE)
+
+            # Update scan progress with totals
+            scan_progress.total_files = total_files
+            scan_progress.total_batches = total_batches
+            scan_progress.status = ScanStatus.PROCESSING
+            self.db.commit()
+
+            # Process ALL files in batches
             policies_created = 0
-            for file_info in auth_files[:settings.BATCH_SIZE]:  # Process in batches
-                try:
-                    policies = await self._extract_policies_from_file(
-                        repo, file_info["path"], file_info["content"], file_info["matches"]
-                    )
-                    policies_created += len(policies)
-                except Exception as e:
-                    logger.error(f"Error processing file {file_info['path']}: {e}")
-                    continue
+            errors_count = 0
+
+            for batch_num in range(total_batches):
+                start_idx = batch_num * settings.BATCH_SIZE
+                end_idx = min((batch_num + 1) * settings.BATCH_SIZE, total_files)
+                batch_files = auth_files[start_idx:end_idx]
+
+                logger.info(
+                    f"Processing batch {batch_num + 1}/{total_batches} "
+                    f"({len(batch_files)} files)"
+                )
+
+                # Update progress for current batch
+                scan_progress.current_batch = batch_num + 1
+                self.db.commit()
+
+                # Process each file in the batch
+                for file_info in batch_files:
+                    try:
+                        policies = await self._extract_policies_from_file(
+                            repo, file_info["path"], file_info["content"], file_info["matches"]
+                        )
+                        policies_created += len(policies)
+
+                        # Update progress
+                        scan_progress.processed_files += 1
+                        scan_progress.policies_extracted = policies_created
+                        self.db.commit()
+
+                    except Exception as e:
+                        logger.error(f"Error processing file {file_info['path']}: {e}")
+                        errors_count += 1
+                        scan_progress.errors_count = errors_count
+                        self.db.commit()
+                        continue
+
+                logger.info(
+                    f"Batch {batch_num + 1} complete: "
+                    f"{scan_progress.processed_files}/{total_files} files processed, "
+                    f"{policies_created} policies extracted"
+                )
+
+            # Update scan progress to completed
+            scan_progress.status = ScanStatus.COMPLETED
+            scan_progress.completed_at = datetime.utcnow()
+            scan_progress.policies_extracted = policies_created
+            scan_progress.errors_count = errors_count
+            self.db.commit()
 
             # Update repository status
             repo.status = RepositoryStatus.CONNECTED
+            repo.last_scan_at = datetime.utcnow()
             self.db.commit()
 
-            logger.info(f"Scan complete: extracted {policies_created} policies")
+            logger.info(
+                f"Scan complete: processed {total_files} files in {total_batches} batches, "
+                f"extracted {policies_created} policies, {errors_count} errors"
+            )
 
             return {
                 "status": "completed",
-                "files_scanned": len(auth_files),
+                "scan_id": scan_progress.id,
+                "files_scanned": total_files,
                 "policies_extracted": policies_created,
+                "errors_count": errors_count,
+                "batches_processed": total_batches,
             }
 
         except Exception as e:
             logger.error(f"Scan failed: {e}")
             repo.status = RepositoryStatus.FAILED
+            scan_progress.status = ScanStatus.FAILED
+            scan_progress.error_message = str(e)
+            scan_progress.completed_at = datetime.utcnow()
             self.db.commit()
             raise
 
