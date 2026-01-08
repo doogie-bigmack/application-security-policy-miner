@@ -1,6 +1,5 @@
 """Tests for risk scoring service."""
 
-import pytest
 
 from app.services.risk_scoring_service import RiskScoringService
 

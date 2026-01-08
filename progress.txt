@@ -294,7 +294,57 @@
 ✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
 ✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
 
+## 2026-01-08 - Conflict Resolution Complete
+
+### Completed
+- Backend conflict detection implementation:
+  - Created PolicyConflict model with ConflictType, ConflictStatus enums
+  - Implemented ConflictDetectionService with AI-powered conflict analysis
+  - Pre-filter policies by resource/subject overlap for efficiency
+  - Uses Claude Sonnet 4 to analyze policy pairs for conflicts
+  - Detects three conflict types: contradictory, overlapping, inconsistent
+  - Generates AI recommendations for conflict resolution
+  - Severity scoring (low/medium/high)
+
+- Backend API endpoints:
+  - POST /api/v1/conflicts/detect - Trigger conflict detection
+  - GET /api/v1/conflicts/ - List all conflicts with optional filtering
+  - GET /api/v1/conflicts/{id} - Get single conflict details
+  - PUT /api/v1/conflicts/{id}/resolve - Resolve a conflict
+  - DELETE /api/v1/conflicts/{id} - Delete a conflict
+  - Support for repository_id and status filtering
+
+- Frontend ConflictsPage implementation:
+  - Clean, professional UI matching design system
+  - Filter buttons: All, Pending, Resolved
+  - "Detect Conflicts" button to trigger AI analysis
+  - Side-by-side policy comparison cards
+  - AI recommendation display with blue highlight
+  - Resolution actions: Keep Policy A, Keep Policy B, Merge, Custom
+  - Resolution notes capture via prompt
+  - Status badges and severity color coding
+  - Empty state with green checkmark when no conflicts
+
+- Testing:
+  - Created 10 comprehensive unit tests for conflict detection
+  - All tests passing: overlap detection, AI response parsing, conflict analysis
+  - Mocked Anthropic API for reliable testing
+  - Verified API endpoints work correctly
+
+- Bug fixes:
+  - Fixed import path: app.database → app.core.database
+  - Added trailing slash to API calls to prevent redirect issues
+  - Verified Vite proxy configuration works correctly
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
+✅ Story 8: "Conflict Resolution - Flag conflicts and AI recommendations" - PASSES
+
 ### Next Steps
 - Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
-- Story 8: Conflict Resolution - Flag conflicts and AI recommendations
 - Story 9: Multi-tenancy - Tenant-aware policy mining
