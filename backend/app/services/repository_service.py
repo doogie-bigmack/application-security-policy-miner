@@ -20,9 +20,9 @@ class RepositoryService:
         """Initialize service with database session."""
         self.db = db
 
-    def create_repository(self, repository_data: RepositoryCreate) -> Repository:
+    def create_repository(self, repository_data: RepositoryCreate, tenant_id: str | None = None) -> Repository:
         """Create a new repository."""
-        logger.info("creating_repository", name=repository_data.name, type=repository_data.repository_type)
+        logger.info("creating_repository", name=repository_data.name, type=repository_data.repository_type, tenant_id=tenant_id)
 
         repository = Repository(
             name=repository_data.name,
@@ -30,7 +30,7 @@ class RepositoryService:
             repository_type=repository_data.repository_type,
             source_url=repository_data.source_url,
             connection_config=repository_data.connection_config,
-            tenant_id=repository_data.tenant_id,
+            tenant_id=tenant_id or repository_data.tenant_id,
             status=RepositoryStatus.PENDING,
         )
 
@@ -38,12 +38,14 @@ class RepositoryService:
         self.db.commit()
         self.db.refresh(repository)
 
-        logger.info("repository_created", repository_id=repository.id, name=repository.name)
+        logger.info("repository_created", repository_id=repository.id, name=repository.name, tenant_id=repository.tenant_id)
         return repository
 
-    def get_repository(self, repository_id: int) -> Repository | None:
-        """Get a repository by ID."""
+    def get_repository(self, repository_id: int, tenant_id: str | None = None) -> Repository | None:
+        """Get a repository by ID, optionally filtered by tenant."""
         stmt = select(Repository).where(Repository.id == repository_id)
+        if tenant_id:
+            stmt = stmt.where(Repository.tenant_id == tenant_id)
         return self.db.scalars(stmt).first()
 
     def list_repositories(
@@ -68,14 +70,14 @@ class RepositoryService:
         return list(repositories), total
 
     def update_repository(
-        self, repository_id: int, repository_data: RepositoryUpdate
+        self, repository_id: int, repository_data: RepositoryUpdate, tenant_id: str | None = None
     ) -> Repository | None:
         """Update a repository."""
-        repository = self.get_repository(repository_id)
+        repository = self.get_repository(repository_id, tenant_id=tenant_id)
         if not repository:
             return None
 
-        logger.info("updating_repository", repository_id=repository_id)
+        logger.info("updating_repository", repository_id=repository_id, tenant_id=tenant_id)
 
         update_data = repository_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
@@ -87,13 +89,13 @@ class RepositoryService:
         logger.info("repository_updated", repository_id=repository.id)
         return repository
 
-    def delete_repository(self, repository_id: int) -> bool:
+    def delete_repository(self, repository_id: int, tenant_id: str | None = None) -> bool:
         """Delete a repository."""
-        repository = self.get_repository(repository_id)
+        repository = self.get_repository(repository_id, tenant_id=tenant_id)
         if not repository:
             return False
 
-        logger.info("deleting_repository", repository_id=repository_id)
+        logger.info("deleting_repository", repository_id=repository_id, tenant_id=tenant_id)
         self.db.delete(repository)
         self.db.commit()
 
