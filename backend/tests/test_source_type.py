@@ -1,5 +1,4 @@
 """Tests for source type classification."""
-import pytest
 
 from app.models.policy import SourceType
 from app.services.scanner_service import ScannerService

@@ -73,6 +73,17 @@ class Policy(PolicyBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PolicyUpdate(BaseModel):
+    """Schema for updating a policy."""
+
+    subject: str | None = None
+    resource: str | None = None
+    action: str | None = None
+    conditions: str | None = None
+    description: str | None = None
+    source_type: SourceType | None = None
+
+
 class PolicyList(BaseModel):
     """Schema for listing policies."""
 

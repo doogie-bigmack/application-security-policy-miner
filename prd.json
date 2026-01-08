@@ -88,7 +88,7 @@
         "Approve or reject policy",
         "Verify policy status updates"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

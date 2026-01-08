@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.policy import Policy, SourceType
 from app.schemas.policy import Policy as PolicySchema
-from app.schemas.policy import PolicyList
+from app.schemas.policy import PolicyList, PolicyUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,38 @@ async def get_policy(policy_id: int, db: Session = Depends(get_db)) -> PolicySch
 
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
+
+    return policy
+
+
+@router.put("/{policy_id}", response_model=PolicySchema)
+async def update_policy(
+    policy_id: int, policy_update: PolicyUpdate, db: Session = Depends(get_db)
+) -> PolicySchema:
+    """Update a policy.
+
+    Args:
+        policy_id: Policy ID
+        policy_update: Updated policy data
+        db: Database session
+
+    Returns:
+        Updated policy
+    """
+    policy = db.query(Policy).filter(Policy.id == policy_id).first()
+
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    # Update only provided fields
+    update_data = policy_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(policy, field, value)
+
+    db.commit()
+    db.refresh(policy)
+
+    logger.info(f"Policy {policy_id} updated", extra={"policy_id": policy_id})
 
     return policy
 

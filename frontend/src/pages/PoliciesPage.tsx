@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter } from 'lucide-react'
+import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit } from 'lucide-react'
 import logger from '../lib/logger'
+import PolicyDetailModal from '../components/PolicyDetailModal'
 
 interface Evidence {
   id: number
@@ -37,6 +38,7 @@ export default function PoliciesPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null)
   const [sourceTypeFilter, setSourceTypeFilter] = useState<SourceType | 'all'>('all')
+  const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null)
 
   const fetchPolicies = async (sourceType?: SourceType | 'all') => {
     try {
@@ -300,25 +302,46 @@ export default function PoliciesPage() {
                 </div>
               )}
 
-              {policy.status === 'pending' && (
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border flex items-center space-x-3">
-                  <button
-                    onClick={() => handleApprove(policy.id)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-sm"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => handleReject(policy.id)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-sm"
-                  >
-                    Reject
-                  </button>
-                </div>
-              )}
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border flex items-center space-x-3">
+                <button
+                  onClick={() => setEditingPolicy(policy)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm inline-flex items-center space-x-2"
+                >
+                  <Edit size={16} />
+                  <span>Edit</span>
+                </button>
+                {policy.status === 'pending' && (
+                  <>
+                    <button
+                      onClick={() => handleApprove(policy.id)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-sm"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleReject(policy.id)}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-sm"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>
+      )}
+
+      {/* Policy Detail Modal */}
+      {editingPolicy && (
+        <PolicyDetailModal
+          policy={editingPolicy}
+          onClose={() => setEditingPolicy(null)}
+          onSave={() => {
+            setEditingPolicy(null)
+            fetchPolicies(sourceTypeFilter)
+          }}
+        />
       )}
     </div>
   )

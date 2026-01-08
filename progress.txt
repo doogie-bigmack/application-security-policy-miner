@@ -180,4 +180,53 @@
 
 ### Next Steps
 - Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
-- Story 6: Policy Review UI with Monaco editor
+- Story 7: Risk Scoring - Multi-dimensional risk analysis
+
+## 2026-01-08 - Policy Review UI Complete
+
+### Completed
+- Backend API enhancements:
+  - Added PolicyUpdate schema for partial policy updates
+  - Implemented PUT /api/v1/policies/{policy_id} endpoint
+  - Supports updating subject, resource, action, conditions, description, source_type
+  - Only updates provided fields (partial updates)
+
+- Frontend Monaco editor integration:
+  - Installed @monaco-editor/react package
+  - Created PolicyDetailModal component with Monaco editor
+  - JSON editing with syntax highlighting
+  - Dark mode support (automatically detects system theme)
+  - Editor features: line numbers, auto-layout, 14px font
+  - Read-only evidence display within modal
+  - Read-only risk score display (overall, complexity, impact, confidence)
+
+- UI/UX improvements:
+  - Added "Edit" button to all policy cards (not just pending)
+  - Modal overlay with large viewport (max-w-6xl)
+  - Clean, professional layout matching design system
+  - Error handling with user-friendly messages
+  - Loading states during save operation
+  - Automatic refresh after successful save
+
+- Testing:
+  - Verified modal opens with policy data in JSON format
+  - Tested editing policy fields (changed "Manager" to "Senior Manager")
+  - Verified API update endpoint works correctly
+  - Confirmed policy list refreshes with updated data
+  - Validated evidence and risk scores display correctly
+  - Tested in browser with visual verification
+
+### Implementation Details
+- Monaco editor uses JSON language mode with validation
+- Policy data serialized to JSON for editing, parsed on save
+- Required fields validated client-side (subject, resource, action)
+- Evidence and risk scores remain read-only (as designed)
+- Modal state managed in PoliciesPage component
+- Fetches updated policies after successful save
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
