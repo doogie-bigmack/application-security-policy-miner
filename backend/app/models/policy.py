@@ -25,6 +25,15 @@ class RiskLevel(str, Enum):
     HIGH = "high"
 
 
+class SourceType(str, Enum):
+    """Source type for policies."""
+
+    FRONTEND = "frontend"
+    BACKEND = "backend"
+    DATABASE = "database"
+    UNKNOWN = "unknown"
+
+
 class Policy(Base):
     """Policy model for storing extracted authorization policies."""
 
@@ -49,6 +58,7 @@ class Policy(Base):
     # Status and metadata
     status = Column(SAEnum(PolicyStatus), default=PolicyStatus.PENDING)
     description = Column(Text, nullable=True)  # AI-generated description
+    source_type = Column(SAEnum(SourceType), default=SourceType.UNKNOWN, nullable=False)  # Frontend/Backend/Database
 
     # Relationships
     evidence = relationship("Evidence", back_populates="policy", cascade="all, delete-orphan")

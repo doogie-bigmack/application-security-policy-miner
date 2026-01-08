@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.policy import Policy
+from app.models.policy import Policy, SourceType
 from app.schemas.policy import Policy as PolicySchema
 from app.schemas.policy import PolicyList
 
@@ -17,6 +17,7 @@ router = APIRouter()
 @router.get("/", response_model=PolicyList)
 async def list_policies(
     repository_id: int | None = None,
+    source_type: SourceType | None = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
@@ -25,6 +26,7 @@ async def list_policies(
 
     Args:
         repository_id: Filter by repository ID
+        source_type: Filter by source type (frontend/backend/database/unknown)
         skip: Number of records to skip
         limit: Maximum number of records to return
         db: Database session
@@ -36,6 +38,9 @@ async def list_policies(
 
     if repository_id:
         query = query.filter(Policy.repository_id == repository_id)
+
+    if source_type:
+        query = query.filter(Policy.source_type == source_type)
 
     total = query.count()
     policies = query.offset(skip).limit(limit).all()

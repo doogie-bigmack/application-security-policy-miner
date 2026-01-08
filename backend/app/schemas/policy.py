@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.policy import PolicyStatus, RiskLevel
+from app.models.policy import PolicyStatus, RiskLevel, SourceType
 
 
 class EvidenceBase(BaseModel):
@@ -39,6 +39,7 @@ class PolicyBase(BaseModel):
     action: str = Field(..., description="How - the action being performed")
     conditions: str | None = Field(None, description="When - conditions for the policy")
     description: str | None = Field(None, description="Policy description")
+    source_type: SourceType = Field(SourceType.UNKNOWN, description="Source type (frontend/backend/database)")
 
 
 class PolicyCreate(PolicyBase):

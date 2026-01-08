@@ -9,7 +9,7 @@ from git import Repo
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.models.policy import Evidence, Policy, RiskLevel
+from app.models.policy import Evidence, Policy, RiskLevel, SourceType
 from app.models.repository import Repository, RepositoryStatus
 
 logger = logging.getLogger(__name__)
@@ -45,6 +45,20 @@ SUPPORTED_EXTENSIONS = {
     ".kt",
 }
 
+# Frontend indicators
+FRONTEND_INDICATORS = {
+    "path_patterns": ["frontend", "client", "ui", "src/components", "src/pages", "src/views", "public", "web"],
+    "file_patterns": [".tsx", ".jsx", ".vue"],
+    "content_patterns": ["React", "Vue", "Angular", "useState", "useEffect", "@Component", "component:", "render()", "return ("],
+}
+
+# Backend indicators
+BACKEND_INDICATORS = {
+    "path_patterns": ["backend", "server", "api", "services", "controllers", "routes", "handlers"],
+    "file_patterns": [".py", ".java", ".cs", ".go", ".rb", ".php", ".scala", ".kt"],
+    "content_patterns": ["@RestController", "@Controller", "@app.route", "@api_view", "router.", "app.get", "app.post", "FastAPI", "Express", "Flask", "Spring"],
+}
+
 
 class ScannerService:
     """Service for scanning repositories and extracting policies."""
@@ -53,6 +67,55 @@ class ScannerService:
         """Initialize scanner service."""
         self.db = db
         self.client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+    def _classify_source_type(self, file_path: str, content: str) -> SourceType:
+        """Classify whether code is frontend, backend, or database.
+
+        Args:
+            file_path: Path to the file
+            content: File content
+
+        Returns:
+            SourceType classification
+        """
+        file_path_lower = file_path.lower()
+        frontend_score = 0
+        backend_score = 0
+
+        # Check path patterns
+        for pattern in FRONTEND_INDICATORS["path_patterns"]:
+            if pattern in file_path_lower:
+                frontend_score += 3
+
+        for pattern in BACKEND_INDICATORS["path_patterns"]:
+            if pattern in file_path_lower:
+                backend_score += 3
+
+        # Check file extensions
+        for ext in FRONTEND_INDICATORS["file_patterns"]:
+            if file_path.endswith(ext):
+                frontend_score += 5
+
+        for ext in BACKEND_INDICATORS["file_patterns"]:
+            if file_path.endswith(ext):
+                backend_score += 2
+
+        # Check content patterns
+        for pattern in FRONTEND_INDICATORS["content_patterns"]:
+            if pattern in content:
+                frontend_score += 1
+
+        for pattern in BACKEND_INDICATORS["content_patterns"]:
+            if pattern in content:
+                backend_score += 1
+
+        # Determine source type
+        if frontend_score > backend_score:
+            return SourceType.FRONTEND
+        elif backend_score > frontend_score:
+            return SourceType.BACKEND
+        else:
+            return SourceType.UNKNOWN
 
     async def scan_repository(self, repository_id: int) -> dict[str, Any]:
         """Scan a repository and extract policies.
@@ -348,6 +411,9 @@ Return ONLY the JSON array, no other text."""
 
             policy_data = json.loads(json_str)
 
+            # Classify source type for this file
+            source_type = self._classify_source_type(file_path, content)
+
             for item in policy_data:
                 # Determine risk level from score
                 risk_score = item.get("risk_score", 50)
@@ -372,6 +438,7 @@ Return ONLY the JSON array, no other text."""
                     impact_score=item.get("impact_score"),
                     confidence_score=item.get("confidence_score"),
                     tenant_id=repo.tenant_id,
+                    source_type=source_type,
                 )
 
                 # Add evidence

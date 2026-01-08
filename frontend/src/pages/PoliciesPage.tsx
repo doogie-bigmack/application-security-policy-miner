@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Shield, FileCode, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter } from 'lucide-react'
 import logger from '../lib/logger'
 
 interface Evidence {
@@ -9,6 +9,8 @@ interface Evidence {
   line_end: number
   code_snippet: string
 }
+
+type SourceType = 'frontend' | 'backend' | 'database' | 'unknown'
 
 interface Policy {
   id: number
@@ -24,6 +26,7 @@ interface Policy {
   impact_score: number | null
   confidence_score: number | null
   status: 'pending' | 'approved' | 'rejected'
+  source_type: SourceType
   evidence: Evidence[]
   created_at: string
 }
@@ -33,12 +36,20 @@ export default function PoliciesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null)
+  const [sourceTypeFilter, setSourceTypeFilter] = useState<SourceType | 'all'>('all')
 
-  const fetchPolicies = async () => {
+  const fetchPolicies = async (sourceType?: SourceType | 'all') => {
     try {
       setIsLoading(true)
       setError(null)
-      const response = await fetch('/api/v1/policies/')
+
+      const params = new URLSearchParams()
+      if (sourceType && sourceType !== 'all') {
+        params.append('source_type', sourceType)
+      }
+
+      const url = `/api/v1/policies/${params.toString() ? `?${params.toString()}` : ''}`
+      const response = await fetch(url)
 
       if (!response.ok) {
         throw new Error('Failed to fetch policies')
@@ -46,7 +57,7 @@ export default function PoliciesPage() {
 
       const data = await response.json()
       setPolicies(data.policies)
-      logger.info('Policies fetched', { count: data.total })
+      logger.info('Policies fetched', { count: data.total, sourceType })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
       logger.error('Failed to fetch policies', { error: errorMessage })
@@ -58,8 +69,26 @@ export default function PoliciesPage() {
 
   useEffect(() => {
     logger.info('PoliciesPage mounted')
-    fetchPolicies()
-  }, [])
+    fetchPolicies(sourceTypeFilter)
+  }, [sourceTypeFilter])
+
+  const handleSourceTypeFilterChange = (newFilter: SourceType | 'all') => {
+    setSourceTypeFilter(newFilter)
+  }
+
+  const getSourceTypeBadge = (sourceType: SourceType) => {
+    const baseClasses = 'px-2 py-1 rounded text-xs font-medium'
+    switch (sourceType) {
+      case 'frontend':
+        return <span className={`${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400`}>Frontend</span>
+      case 'backend':
+        return <span className={`${baseClasses} bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400`}>Backend</span>
+      case 'database':
+        return <span className={`${baseClasses} bg-cyan-100 text-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-400`}>Database</span>
+      default:
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400`}>Unknown</span>
+    }
+  }
 
   const getRiskBadge = (riskLevel: string | null) => {
     const baseClasses = 'px-2 py-1 rounded text-xs font-medium'
@@ -136,6 +165,27 @@ export default function PoliciesPage() {
         </div>
       </div>
 
+      {/* Source Type Filter */}
+      <div className="flex items-center space-x-3">
+        <Filter size={20} className="text-gray-600 dark:text-gray-400" />
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by Source:</span>
+        <div className="flex space-x-2">
+          {(['all', 'frontend', 'backend', 'database', 'unknown'] as const).map((type) => (
+            <button
+              key={type}
+              onClick={() => handleSourceTypeFilterChange(type)}
+              className={`px-3 py-1 rounded text-sm font-medium transition ${
+                sourceTypeFilter === type
+                  ? 'bg-blue-600 text-white dark:bg-blue-500'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+              }`}
+            >
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-800 dark:text-red-200">
           {error}
@@ -197,13 +247,18 @@ export default function PoliciesPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  {getRiskBadge(policy.risk_level)}
-                  {policy.risk_score !== null && (
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      Score: {Math.round(policy.risk_score)}
-                    </span>
-                  )}
+                <div className="flex flex-col items-end space-y-2">
+                  <div className="flex items-center space-x-2">
+                    {getSourceTypeBadge(policy.source_type)}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {getRiskBadge(policy.risk_level)}
+                    {policy.risk_score !== null && (
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Score: {Math.round(policy.risk_score)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -117,6 +117,7 @@
 ✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
 ✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
 ✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
 
 ### Notes
 - To use the scanning feature, set ANTHROPIC_API_KEY in .env file
@@ -126,5 +127,57 @@
 - Supports JavaScript, TypeScript, Python, Java, C#, Go, Ruby, PHP, Scala, Kotlin
 
 ### Next Steps
-- Story 4: Frontend + Backend Authorization scanning (multi-language support)
 - Story 5: Mainframe Support
+- Story 6: Policy Review UI
+
+## 2026-01-08 - Frontend + Backend Authorization Complete
+
+### Completed
+- Backend source type classification:
+  - Added SourceType enum (frontend, backend, database, unknown)
+  - Added source_type field to Policy model with SQLAlchemy enum
+  - Implemented intelligent classification based on:
+    - File path patterns (frontend/, backend/, client/, server/, etc.)
+    - File extensions (.tsx, .jsx for frontend; .py, .java for backend)
+    - Content patterns (React, Vue, Angular for frontend; FastAPI, Spring, Express for backend)
+  - Scoring system to determine most likely source type
+
+- Backend API updates:
+  - Added source_type to PolicyBase schema
+  - Added source_type filtering to GET /api/v1/policies/ endpoint
+  - Supports filtering by: frontend, backend, database, unknown
+
+- Frontend UI enhancements:
+  - Added source type filter buttons (All, Frontend, Backend, Database, Unknown)
+  - Added source type badges to policy cards with color coding:
+    - Frontend: Blue
+    - Backend: Purple
+    - Database: Cyan
+    - Unknown: Gray
+  - Filter state management and URL query parameter support
+
+- Database migration:
+  - Added source_type column to policies table
+  - Recreated tables with new schema
+
+- Testing:
+  - Created comprehensive unit tests for source type classification
+  - Verified classification for React, Vue, Python FastAPI, Java Spring
+  - All 5 test cases passing
+  - Verified API filtering works correctly
+
+### Implementation Details
+- Scanner automatically classifies each file during policy extraction
+- Classification happens in _classify_source_type() method
+- Uses weighted scoring system for accurate classification
+- Default value is SourceType.UNKNOWN for ambiguous cases
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+
+### Next Steps
+- Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
+- Story 6: Policy Review UI with Monaco editor
