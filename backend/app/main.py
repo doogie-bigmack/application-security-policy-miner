@@ -1,13 +1,12 @@
 """
 Main FastAPI application entry point.
 """
-import logging
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
 from app.api.v1 import api_router
+from app.core.config import settings
 
 # Configure structured logging
 structlog.configure(
@@ -52,6 +51,14 @@ async def health_check():
 async def startup_event():
     """Run on application startup."""
     logger.info("application_starting", version="0.1.0")
+
+    # Create database tables
+    from app.core.database import engine
+    from app.models.repository import Base
+
+    logger.info("creating_database_tables")
+    Base.metadata.create_all(bind=engine)
+    logger.info("database_tables_created")
 
 
 @app.on_event("shutdown")
