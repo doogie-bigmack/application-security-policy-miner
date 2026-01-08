@@ -25,9 +25,40 @@
   - Created private repository with fake token - status: failed (expected)
   - List repositories API returns all repos correctly
 
+## 2026-01-08 - Database Connection Integration Complete
+
+### Completed
+- Backend database connection support:
+  - Added DatabaseType enum (PostgreSQL, SQL Server, Oracle, MySQL)
+  - Implemented database_connection_verification service in repository_service.py
+  - Supports all major database types with proper connection string building
+  - Tests connection with SELECT 1 query before marking as connected
+  - Updated API endpoint to call verify_database_connection for database repos
+
+- Frontend database connection form:
+  - Updated AddRepositoryModal with complete database connection UI
+  - Database type selector (4 options: PostgreSQL, SQL Server, Oracle, MySQL)
+  - Host and Port fields with proper placeholders per database type
+  - Database name, username, and password fields with validation
+  - All fields properly integrated with form submission
+
+- Database drivers installed:
+  - psycopg2-binary (PostgreSQL) - already installed
+  - pymysql (MySQL/MariaDB)
+  - pyodbc (SQL Server) - required unixodbc-dev system package
+  - cx-oracle (Oracle)
+  - Updated Dockerfile to include unixodbc-dev dependency
+
+- Tested end-to-end:
+  - Created database repository with wrong credentials → status: failed ✓
+  - Created database repository with correct credentials → status: connected ✓
+  - Database repository appears in list with proper metadata ✓
+  - Connection verification working for PostgreSQL ✓
+
 ### User Story Status
 ✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
 
 ### Next Steps
-- Story 2: Database connections
 - Story 3: AI Rule Mining - code scanning
+- Story 4: Frontend + Backend Authorization scanning

@@ -27,7 +27,7 @@
         "Test database connection",
         "Verify database appears in repository list"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

@@ -4,10 +4,10 @@ import tempfile
 
 import structlog
 from git import GitCommandError, Repo
-from sqlalchemy import select
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session
 
-from app.models.repository import Repository, RepositoryStatus
+from app.models.repository import DatabaseType, Repository, RepositoryStatus
 from app.schemas.repository import RepositoryCreate, RepositoryUpdate
 
 logger = structlog.get_logger()
@@ -175,3 +175,97 @@ class RepositoryService:
                     logger.debug("cleaned_temp_dir", temp_dir=temp_dir)
                 except Exception as cleanup_err:
                     logger.warning("temp_dir_cleanup_failed", temp_dir=temp_dir, error=str(cleanup_err))
+
+    def verify_database_connection(self, repository: Repository) -> bool:
+        """Verify database connection by attempting to connect and execute a simple query."""
+        logger.info("verifying_database_connection", repository_id=repository.id)
+
+        if not repository.connection_config:
+            logger.error("no_connection_config", repository_id=repository.id)
+            repository.status = RepositoryStatus.FAILED
+            self.db.commit()
+            return False
+
+        try:
+            # Extract connection details
+            config = repository.connection_config
+            db_type = config.get("database_type")
+            host = config.get("host")
+            port = config.get("port")
+            database = config.get("database")
+            username = config.get("username")
+            password = config.get("password")
+
+            if not all([db_type, host, database, username, password]):
+                logger.error(
+                    "missing_connection_details",
+                    repository_id=repository.id,
+                    has_db_type=bool(db_type),
+                    has_host=bool(host),
+                    has_database=bool(database),
+                    has_username=bool(username),
+                    has_password=bool(password),
+                )
+                repository.status = RepositoryStatus.FAILED
+                self.db.commit()
+                return False
+
+            # Build connection string based on database type
+            connection_string = self._build_database_connection_string(
+                db_type, host, port, database, username, password
+            )
+
+            logger.debug("attempting_database_connection", repository_id=repository.id, db_type=db_type)
+
+            # Attempt to connect and execute a simple query
+            engine = create_engine(connection_string, pool_pre_ping=True, connect_args={"connect_timeout": 10})
+
+            # Test the connection with a simple query
+            with engine.connect() as connection:
+                result = connection.execute(text("SELECT 1"))
+                result.fetchone()
+
+            logger.info("database_connection_verified", repository_id=repository.id)
+            repository.status = RepositoryStatus.CONNECTED
+            self.db.commit()
+            engine.dispose()
+            return True
+
+        except Exception as e:
+            logger.error(
+                "database_connection_failed",
+                repository_id=repository.id,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            repository.status = RepositoryStatus.FAILED
+            self.db.commit()
+            return False
+
+    def _build_database_connection_string(
+        self, db_type: str, host: str, port: int | None, database: str, username: str, password: str
+    ) -> str:
+        """Build database connection string based on database type."""
+        # Set default ports if not provided
+        if not port:
+            default_ports = {
+                DatabaseType.POSTGRESQL.value: 5432,
+                DatabaseType.MYSQL.value: 3306,
+                DatabaseType.SQLSERVER.value: 1433,
+                DatabaseType.ORACLE.value: 1521,
+            }
+            port = default_ports.get(db_type, 5432)
+
+        # Build connection string based on database type
+        if db_type == DatabaseType.POSTGRESQL.value:
+            return f"postgresql://{username}:{password}@{host}:{port}/{database}"
+        elif db_type == DatabaseType.MYSQL.value:
+            return f"mysql+pymysql://{username}:{password}@{host}:{port}/{database}"
+        elif db_type == DatabaseType.SQLSERVER.value:
+            # SQL Server uses different connection string format
+            return f"mssql+pyodbc://{username}:{password}@{host}:{port}/{database}?driver=ODBC+Driver+17+for+SQL+Server"
+        elif db_type == DatabaseType.ORACLE.value:
+            return f"oracle+cx_oracle://{username}:{password}@{host}:{port}/?service_name={database}"
+        else:
+            msg = f"Unsupported database type: {db_type}"
+            raise ValueError(msg)

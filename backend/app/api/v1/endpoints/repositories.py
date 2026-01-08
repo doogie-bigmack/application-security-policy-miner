@@ -28,9 +28,11 @@ def create_repository(
     service = RepositoryService(db)
     created_repo = service.create_repository(repository)
 
-    # If it's a Git repository, verify the connection
+    # Verify the connection based on repository type
     if created_repo.repository_type.value == "git" and created_repo.source_url:
         service.verify_git_connection(created_repo)
+    elif created_repo.repository_type.value == "database" and created_repo.connection_config:
+        service.verify_database_connection(created_repo)
 
     return created_repo
 

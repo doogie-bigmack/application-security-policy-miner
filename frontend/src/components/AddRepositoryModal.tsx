@@ -20,6 +20,14 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Database-specific fields
+  const [databaseType, setDatabaseType] = useState<'postgresql' | 'sqlserver' | 'oracle' | 'mysql'>('postgresql')
+  const [dbHost, setDbHost] = useState('')
+  const [dbPort, setDbPort] = useState('')
+  const [dbName, setDbName] = useState('')
+  const [dbUsername, setDbUsername] = useState('')
+  const [dbPassword, setDbPassword] = useState('')
+
   if (!isOpen) return null
 
   const handleSubmit = async (e: FormEvent) => {
@@ -30,12 +38,24 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
     logger.info('Submitting repository', { name, sourceType, gitUrl })
 
     try {
-      const connectionConfig: Record<string, string> = {}
-      if (authType === 'token' && token) {
-        connectionConfig.token = token
-      } else if (authType === 'usernamepassword' && username && password) {
-        connectionConfig.username = username
-        connectionConfig.password = password
+      let connectionConfig: Record<string, string | number> = {}
+
+      if (sourceType === 'git') {
+        if (authType === 'token' && token) {
+          connectionConfig.token = token
+        } else if (authType === 'usernamepassword' && username && password) {
+          connectionConfig.username = username
+          connectionConfig.password = password
+        }
+      } else if (sourceType === 'database') {
+        connectionConfig = {
+          database_type: databaseType,
+          host: dbHost,
+          port: dbPort ? parseInt(dbPort, 10) : 0,
+          database: dbName,
+          username: dbUsername,
+          password: dbPassword,
+        }
       }
 
       const response = await fetch('/api/v1/repositories/', {
@@ -69,6 +89,12 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
       setUsername('')
       setPassword('')
       setSourceType('git')
+      setDatabaseType('postgresql')
+      setDbHost('')
+      setDbPort('')
+      setDbName('')
+      setDbUsername('')
+      setDbPassword('')
 
       onSuccess()
       onClose()
@@ -258,11 +284,122 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
             </>
           )}
 
-          {/* Database-specific placeholder */}
+          {/* Database-specific fields */}
           {sourceType === 'database' && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-amber-800 dark:text-amber-200">
-              Database connection configuration will be available in a future update.
-            </div>
+            <>
+              {/* Database Type */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Database Type</label>
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { value: 'postgresql', label: 'PostgreSQL' },
+                    { value: 'sqlserver', label: 'SQL Server' },
+                    { value: 'oracle', label: 'Oracle' },
+                    { value: 'mysql', label: 'MySQL' },
+                  ].map((type) => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => setDatabaseType(type.value as typeof databaseType)}
+                      className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                        databaseType === type.value
+                          ? 'bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500'
+                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400'
+                      }`}
+                    >
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Host and Port */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2">
+                  <label htmlFor="dbHost" className="block text-sm font-medium mb-2">
+                    Host <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="dbHost"
+                    value={dbHost}
+                    onChange={(e) => setDbHost(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="localhost or db.example.com"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="dbPort" className="block text-sm font-medium mb-2">
+                    Port
+                  </label>
+                  <input
+                    type="number"
+                    id="dbPort"
+                    value={dbPort}
+                    onChange={(e) => setDbPort(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder={
+                      databaseType === 'postgresql'
+                        ? '5432'
+                        : databaseType === 'mysql'
+                          ? '3306'
+                          : databaseType === 'sqlserver'
+                            ? '1433'
+                            : '1521'
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Database Name */}
+              <div>
+                <label htmlFor="dbName" className="block text-sm font-medium mb-2">
+                  Database Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="dbName"
+                  value={dbName}
+                  onChange={(e) => setDbName(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="myapp_db"
+                />
+              </div>
+
+              {/* Username */}
+              <div>
+                <label htmlFor="dbUsername" className="block text-sm font-medium mb-2">
+                  Username <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="dbUsername"
+                  value={dbUsername}
+                  onChange={(e) => setDbUsername(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="db_user"
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label htmlFor="dbPassword" className="block text-sm font-medium mb-2">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  id="dbPassword"
+                  value={dbPassword}
+                  onChange={(e) => setDbPassword(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="••••••••"
+                />
+              </div>
+            </>
           )}
 
           {/* Mainframe-specific placeholder */}

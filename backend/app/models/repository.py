@@ -17,6 +17,15 @@ class RepositoryType(str, Enum):
     MAINFRAME = "mainframe"
 
 
+class DatabaseType(str, Enum):
+    """Database types for database repositories."""
+
+    POSTGRESQL = "postgresql"
+    SQLSERVER = "sqlserver"
+    ORACLE = "oracle"
+    MYSQL = "mysql"
+
+
 class RepositoryStatus(str, Enum):
     """Repository status."""
 

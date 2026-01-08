@@ -16,6 +16,9 @@ for ((i=1; i<=$ITERATIONS; i++)); do
     # Create temp output file
     TEMP_OUTPUT=$(mktemp)
 
+    echo "🤖 Starting Claude (this may take 10-30 seconds before output appears)..."
+    echo ""
+
     # Run claude with heredoc (like test_claude.sh does)
     claude --dangerously-skip-permissions -p "@prd.json @progress.txt" << 'PROMPT' | tee "$TEMP_OUTPUT"
 You are an autonomous software engineer. You have access to the browser, terminal, and file system.
