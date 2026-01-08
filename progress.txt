@@ -348,3 +348,84 @@
 ### Next Steps
 - Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
 - Story 9: Multi-tenancy - Tenant-aware policy mining
+
+## 2026-01-08 - Multi-tenancy Complete
+
+### Completed
+- Backend authentication and tenant isolation:
+  - Created Tenant and User models with proper relationships
+  - Implemented JWT authentication with python-jose
+  - Created auth service with bcrypt password hashing (direct bcrypt, not passlib due to Alpine compatibility)
+  - Built authentication endpoints:
+    - POST /api/v1/auth/register - User registration
+    - POST /api/v1/auth/login - Login with JWT token
+    - GET /api/v1/auth/me - Get current user
+    - POST /api/v1/auth/tenants - Create tenant (for testing)
+  - Created auth dependencies for protecting endpoints
+
+- Tenant isolation enforcement:
+  - Updated all repository endpoints with authentication requirement
+  - Updated all policy endpoints with tenant filtering
+  - Updated all conflict endpoints with tenant isolation
+  - All queries join through repository.tenant_id for isolation
+  - Automatic tenant_id assignment on resource creation
+
+- Database schema updates:
+  - Added tenants table with id, name, description, is_active
+  - Added users table with email, hashed_password, full_name, tenant_id
+  - tenant_id already existed on repositories, policies, conflicts tables
+  - Foreign key relationships: User → Tenant, Repository → Tenant
+
+- Dependencies added:
+  - email-validator==2.2.0 (for EmailStr validation in Pydantic)
+  - bcrypt==5.0.0 (already in passlib dependencies)
+  - python-jose[cryptography]==3.3.0 (already installed)
+
+- Testing:
+  - Created two tenants (Tenant A and Tenant B)
+  - Registered users for each tenant
+  - Verified JWT login works
+  - Created repositories for each tenant
+  - **VERIFIED**: Tenant A cannot see Tenant B's repositories ✓
+  - **VERIFIED**: Tenant B cannot see Tenant A's repositories ✓
+  - Full tenant isolation working at API level
+
+### Implementation Details
+- Authentication uses JWT with user_id and tenant_id in token
+- Tokens expire after 30 minutes (configurable via settings)
+- Password hashing uses bcrypt with salt
+  - Initially tried passlib with CryptContext but had Alpine compatibility issues
+  - Switched to direct bcrypt calls for reliability
+- All protected endpoints require Bearer token in Authorization header
+- Tenant isolation enforced through SQL joins, not query parameters
+  - Prevents users from accessing other tenants' data via URL manipulation
+  - All resource access checked against current_user.tenant_id
+
+### Security Features
+- Passwords hashed with bcrypt before storage
+- JWT tokens signed with SECRET_KEY (HS256 algorithm)
+- Email validation using pydantic EmailStr
+- Inactive users cannot login
+- 404 errors returned for unauthorized access (not 403, to prevent information leakage)
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
+✅ Story 8: "Conflict Resolution - Flag conflicts and AI recommendations" - PASSES
+✅ Story 9: "Multi-tenancy - Tenant-aware policy mining with full isolation" - PASSES
+
+### Known Limitations
+- Frontend login UI not yet implemented (API fully functional)
+- Row-Level Security (RLS) in PostgreSQL not configured (using application-level enforcement)
+- No user management UI yet (can register/login via API)
+- Superuser functionality defined but not implemented
+
+### Next Steps
+- Story 10: Unlimited Repository Size - Streaming analysis
+- Story 11: Change Detection - Auto-create work items
+- Frontend: Login/Logout UI components
+- Frontend: User/Tenant management pages

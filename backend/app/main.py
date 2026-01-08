@@ -54,6 +54,9 @@ async def startup_event():
 
     # Create database tables
     from app.core.database import engine
+
+    # Import all models to ensure they're registered with SQLAlchemy
+    from app.models import conflict, policy, user  # noqa: F401
     from app.models.repository import Base
 
     logger.info("creating_database_tables")

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models.conflict import ConflictType, PolicyConflict
 from app.models.policy import Policy
+from app.models.repository import Repository
 
 logger = logging.getLogger(__name__)
 
@@ -19,18 +20,25 @@ class ConflictDetectionService:
         self.db = db
         self.client = Anthropic(api_key=anthropic_api_key)
 
-    def detect_conflicts(self, repository_id: int | None = None) -> list[PolicyConflict]:
+    def detect_conflicts(
+        self, repository_id: int | None = None, tenant_id: str | None = None
+    ) -> list[PolicyConflict]:
         """
         Detect conflicts between policies.
 
         Args:
             repository_id: Optional repository ID to limit conflict detection
+            tenant_id: Optional tenant ID for tenant isolation
 
         Returns:
             List of detected conflicts
         """
-        # Get all policies
-        query = self.db.query(Policy)
+        # Get all policies for the tenant
+        query = self.db.query(Policy).join(Repository, Policy.repository_id == Repository.id)
+
+        if tenant_id:
+            query = query.filter(Repository.tenant_id == tenant_id)
+
         if repository_id:
             query = query.filter(Policy.repository_id == repository_id)
 
