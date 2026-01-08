@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.policy import Evidence, Policy, RiskLevel, SourceType
 from app.models.repository import Repository, RepositoryStatus
+from app.services.risk_scoring_service import RiskScoringService
 
 logger = logging.getLogger(__name__)
 
@@ -350,10 +351,7 @@ IMPORTANT:
 - Extract EVERY distinct policy, even if similar
 - Quote EXACT code snippets with line numbers
 - If a policy has no conditions, set conditions to null
-- Estimate a risk score (0-100) based on:
-  - Complexity: How complex is the logic?
-  - Impact: What's the blast radius if wrong?
-  - Confidence: How confident are you this is correct?
+- Provide a brief description of what the policy does
 
 Return your response as a JSON array of policies:
 ```json
@@ -364,10 +362,6 @@ Return your response as a JSON array of policies:
     "action": "approve",
     "conditions": "amount < 5000",
     "description": "Managers can approve expense reports under $5000",
-    "risk_score": 45,
-    "complexity_score": 30,
-    "impact_score": 60,
-    "confidence_score": 90,
     "evidence": [
       {{
         "line_start": 42,
@@ -415,8 +409,34 @@ Return ONLY the JSON array, no other text."""
             source_type = self._classify_source_type(file_path, content)
 
             for item in policy_data:
-                # Determine risk level from score
-                risk_score = item.get("risk_score", 50)
+                subject = item.get("subject", "Unknown")
+                resource = item.get("resource", "Unknown")
+                action = item.get("action", "Unknown")
+                conditions = item.get("conditions")
+
+                # Get first evidence item for risk scoring
+                evidence_items = item.get("evidence", [])
+                first_evidence = evidence_items[0] if evidence_items else {}
+                code_snippet = first_evidence.get("code_snippet", "")
+
+                # Calculate multi-dimensional risk scores
+                complexity_score = RiskScoringService.calculate_complexity_score(
+                    subject, resource, action, conditions, code_snippet
+                )
+                impact_score = RiskScoringService.calculate_impact_score(
+                    subject, resource, action, conditions
+                )
+                confidence_score = RiskScoringService.calculate_confidence_score(
+                    len(evidence_items), code_snippet, subject, resource, action
+                )
+                historical_score = RiskScoringService.calculate_historical_score()
+
+                # Calculate overall risk score
+                risk_score = RiskScoringService.calculate_overall_risk_score(
+                    complexity_score, impact_score, confidence_score, historical_score
+                )
+
+                # Determine risk level from overall score
                 if risk_score >= 70:
                     risk_level = RiskLevel.HIGH
                 elif risk_score >= 40:
@@ -427,22 +447,23 @@ Return ONLY the JSON array, no other text."""
                 # Create policy
                 policy = Policy(
                     repository_id=repo.id,
-                    subject=item.get("subject", "Unknown"),
-                    resource=item.get("resource", "Unknown"),
-                    action=item.get("action", "Unknown"),
-                    conditions=item.get("conditions"),
+                    subject=subject,
+                    resource=resource,
+                    action=action,
+                    conditions=conditions,
                     description=item.get("description"),
                     risk_score=risk_score,
                     risk_level=risk_level,
-                    complexity_score=item.get("complexity_score"),
-                    impact_score=item.get("impact_score"),
-                    confidence_score=item.get("confidence_score"),
+                    complexity_score=complexity_score,
+                    impact_score=impact_score,
+                    confidence_score=confidence_score,
+                    historical_score=historical_score,
                     tenant_id=repo.tenant_id,
                     source_type=source_type,
                 )
 
                 # Add evidence
-                for ev in item.get("evidence", []):
+                for ev in evidence_items:
                     evidence = Evidence(
                         file_path=file_path,
                         line_start=ev.get("line_start", 0),

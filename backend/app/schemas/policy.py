@@ -51,6 +51,7 @@ class PolicyCreate(PolicyBase):
     complexity_score: float | None = None
     impact_score: float | None = None
     confidence_score: float | None = None
+    historical_score: float | None = None
     evidence: list[EvidenceCreate] = Field(default_factory=list)
 
 
@@ -65,6 +66,7 @@ class Policy(PolicyBase):
     complexity_score: float | None = None
     impact_score: float | None = None
     confidence_score: float | None = None
+    historical_score: float | None = None
     evidence: list[Evidence] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime

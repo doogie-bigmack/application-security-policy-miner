@@ -103,7 +103,7 @@
         "Verify historical score is displayed",
         "Confirm overall risk score (0-100) is calculated"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

@@ -26,6 +26,7 @@ interface Policy {
   complexity_score: number | null
   impact_score: number | null
   confidence_score: number | null
+  historical_score: number | null
   status: 'pending' | 'approved' | 'rejected'
   source_type: SourceType
   evidence: Evidence[]
@@ -39,6 +40,7 @@ export default function PoliciesPage() {
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null)
   const [sourceTypeFilter, setSourceTypeFilter] = useState<SourceType | 'all'>('all')
   const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null)
+  const [expandedRiskPolicy, setExpandedRiskPolicy] = useState<number | null>(null)
 
   const fetchPolicies = async (sourceType?: SourceType | 'all') => {
     try {
@@ -256,13 +258,63 @@ export default function PoliciesPage() {
                   <div className="flex items-center space-x-2">
                     {getRiskBadge(policy.risk_level)}
                     {policy.risk_score !== null && (
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                      <button
+                        onClick={() => setExpandedRiskPolicy(expandedRiskPolicy === policy.id ? null : policy.id)}
+                        className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 underline"
+                      >
                         Score: {Math.round(policy.risk_score)}
-                      </span>
+                      </button>
                     )}
                   </div>
                 </div>
               </div>
+
+              {expandedRiskPolicy === policy.id && (
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border">
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Risk Score Breakdown</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Complexity Score</div>
+                      <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        {policy.complexity_score !== null ? Math.round(policy.complexity_score) : 'N/A'}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        How complex is the logic
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Impact Score</div>
+                      <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        {policy.impact_score !== null ? Math.round(policy.impact_score) : 'N/A'}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        Potential damage if wrong
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Confidence Score</div>
+                      <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        {policy.confidence_score !== null ? Math.round(policy.confidence_score) : 'N/A'}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        Extraction confidence
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Historical Score</div>
+                      <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        {policy.historical_score !== null ? Math.round(policy.historical_score) : '0'}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        Change frequency
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xs text-gray-500 dark:text-gray-500">
+                    Overall risk = Impact (40%) + Complexity (30%) + Inverted Confidence (20%) + Historical (10%)
+                  </div>
+                </div>
+              )}
 
               {policy.evidence.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border">
