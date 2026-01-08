@@ -1,0 +1,1194 @@
+{
+  "stories": [
+    {
+      "category": "functional",
+      "description": "Discovery Initiation - Integrate with asset management and accept Git repositories",
+      "steps": [
+        "Navigate to repository management interface",
+        "Click 'Add Repository' button",
+        "Select 'Git Repository' as source type",
+        "Enter Git repository URL (GitHub/GitLab/Bitbucket/Azure)",
+        "Configure authentication credentials",
+        "Verify repository connection is successful",
+        "Confirm repository appears in repository list"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Discovery Initiation - Accept database connections",
+      "steps": [
+        "Navigate to repository management interface",
+        "Click 'Add Repository' button",
+        "Select 'Database' as source type",
+        "Choose database type (PostgreSQL/SQL Server/Oracle/MySQL)",
+        "Enter connection details (host, port, database name)",
+        "Provide authentication credentials",
+        "Test database connection",
+        "Verify database appears in repository list"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "AI Rule Mining - Scan code and extract Who/What/How/When with evidence",
+      "steps": [
+        "Select a registered Git repository",
+        "Click 'Start Scan' button",
+        "Wait for scan to complete",
+        "Navigate to policies view",
+        "Verify extracted policies contain subject (Who)",
+        "Verify extracted policies contain resource (What)",
+        "Verify extracted policies contain action (How)",
+        "Verify extracted policies contain conditions (When)",
+        "Confirm each policy has associated evidence (code snippets)"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Frontend + Backend Authorization - Scan UI components and backend APIs",
+      "steps": [
+        "Upload repository with frontend code (React/Angular/Vue)",
+        "Upload repository with backend code (Java/Python/C#)",
+        "Initiate scan on repository",
+        "Navigate to extracted policies",
+        "Filter policies by 'Frontend Authorization'",
+        "Verify UI authorization rules are extracted",
+        "Filter policies by 'Backend Authorization'",
+        "Verify API authorization rules are extracted"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Mainframe Support - COBOL with RACF and Top Secret/ACF2",
+      "steps": [
+        "Navigate to repository management",
+        "Add Mainframe repository",
+        "Configure mainframe connection (TN3270)",
+        "Select security system (RACF/Top Secret/ACF2)",
+        "Upload or connect to COBOL source files",
+        "Initiate mainframe scan",
+        "Verify COBOL authorization calls are detected",
+        "Confirm policies are mapped to modern PBAC format"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Policy Review UI - Web interface for app owners and PBAC admins",
+      "steps": [
+        "Navigate to Policy Review page",
+        "Verify list of extracted policies is displayed",
+        "Click on a policy to view details",
+        "Review policy subject, resource, action, conditions",
+        "View associated evidence with code snippets",
+        "Edit policy details using Monaco editor",
+        "Approve or reject policy",
+        "Verify policy status updates"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Risk Scoring - Multi-dimensional risk analysis",
+      "steps": [
+        "Navigate to policy list",
+        "View risk score for each policy",
+        "Click on a policy to see risk breakdown",
+        "Verify complexity score is displayed",
+        "Verify impact score is displayed",
+        "Verify confidence score is displayed",
+        "Verify historical score is displayed",
+        "Confirm overall risk score (0-100) is calculated"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Conflict Resolution - Flag conflicts and AI recommendations",
+      "steps": [
+        "Navigate to Conflicts view",
+        "Verify conflicting policies are flagged",
+        "Select a conflict to review details",
+        "View conflicting policy pairs",
+        "Review AI-generated resolution recommendations",
+        "Choose a resolution strategy",
+        "Apply resolution",
+        "Verify conflict is resolved"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Multi-tenancy - Tenant-aware policy mining with full isolation",
+      "steps": [
+        "Login as Tenant A user",
+        "Upload repository and scan for policies",
+        "Verify policies are visible",
+        "Logout and login as Tenant B user",
+        "Verify Tenant A policies are NOT visible",
+        "Upload Tenant B repository",
+        "Verify only Tenant B policies are visible",
+        "Confirm database uses Row-Level Security for isolation"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Unlimited Repository Size - Streaming analysis with batching",
+      "steps": [
+        "Upload repository with 100K+ lines of code",
+        "Initiate scan",
+        "Monitor scan progress in real-time",
+        "Verify files are processed in batches (50 files per batch)",
+        "Confirm scan completes without timeout",
+        "Verify all files are analyzed",
+        "Check that memory usage remains within limits"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Change Detection - Auto-create work items and diff visualization",
+      "steps": [
+        "Perform initial repository scan",
+        "Record extracted policies",
+        "Make changes to repository code (add/modify authorization rules)",
+        "Trigger incremental scan",
+        "Navigate to Changes view",
+        "Verify changed policies are detected",
+        "View diff visualization showing before/after",
+        "Confirm work items are automatically created for changes"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Change Detection - Git integration and PBAC sync",
+      "steps": [
+        "Configure git webhook for repository",
+        "Make commit with authorization changes",
+        "Verify webhook triggers automatic scan",
+        "Review detected policy changes",
+        "Approve changes",
+        "Verify changes are synced to PBAC platform",
+        "Confirm PBAC platform reflects updated policies"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Policy Provisioning - Auto-provision to OPA",
+      "steps": [
+        "Navigate to Provisioning settings",
+        "Add OPA as target PBAC platform",
+        "Configure OPA connection details",
+        "Select policies to provision",
+        "Click 'Provision to OPA'",
+        "Verify policies are converted to Rego format",
+        "Confirm policies are pushed to OPA",
+        "Test policies in OPA to verify functionality"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Policy Provisioning - Auto-provision to AWS Verified Permissions",
+      "steps": [
+        "Navigate to Provisioning settings",
+        "Add AWS Verified Permissions as target",
+        "Configure AWS credentials and policy store",
+        "Select policies to provision",
+        "Click 'Provision to AWS'",
+        "Verify policies are converted to Cedar format",
+        "Confirm policies are created in AWS Verified Permissions",
+        "Validate policies in AWS console"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Policy Provisioning - Auto-provision to Axiomatics/PlainID",
+      "steps": [
+        "Navigate to Provisioning settings",
+        "Add Axiomatics or PlainID as target",
+        "Configure API endpoint and credentials",
+        "Select policies to provision",
+        "Click 'Provision'",
+        "Verify policies are converted to platform-specific format",
+        "Confirm policies are pushed via REST API",
+        "Validate policies in target platform"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Code Change Advisory - AI generates refactoring code",
+      "steps": [
+        "Select a policy to externalize",
+        "Navigate to Code Change Advisory",
+        "Click 'Generate Refactoring Code'",
+        "Review AI-generated code changes",
+        "View diff showing original vs suggested code",
+        "Review explanation of changes",
+        "Verify suggested code calls PBAC platform instead of inline checks",
+        "Download or apply suggested changes"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Code Change Advisory - Generate test cases for validation",
+      "steps": [
+        "Select a code change advisory",
+        "View generated test cases",
+        "Verify test cases cover all policy scenarios",
+        "Run test cases against original code",
+        "Verify original code passes tests",
+        "Run test cases against refactored code",
+        "Confirm refactored code maintains behavioral equivalence",
+        "Mark advisory as validated"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "AI Learning - Auto-approve low-risk policies based on history",
+      "steps": [
+        "Navigate to Auto-Approval settings",
+        "Enable AI learning mode",
+        "Review historical approval patterns",
+        "Run new scan on repository",
+        "Verify low-risk policies are auto-approved",
+        "Check auto-approval reasoning",
+        "Confirm auto-approved policies match historical patterns",
+        "Review metrics showing auto-approval rate (target >30%)"
+      ],
+      "passes": false
+    },
+    {
+      "category": "security",
+      "description": "Pre-scan secret detection - No credentials sent to LLM",
+      "steps": [
+        "Upload repository containing API keys and passwords",
+        "Initiate scan",
+        "Verify secret scanner runs before AI analysis",
+        "Check that secrets are detected (API keys, AWS keys, passwords)",
+        "Confirm secrets are redacted in code sent to LLM",
+        "Review audit log to verify no secrets in prompts",
+        "Verify extracted policies do not contain actual secret values"
+      ],
+      "passes": false
+    },
+    {
+      "category": "security",
+      "description": "Private LLM endpoints - AWS Bedrock or Azure OpenAI only",
+      "steps": [
+        "Navigate to AI Configuration settings",
+        "Verify LLM endpoint is set to AWS Bedrock or Azure OpenAI",
+        "Confirm endpoint uses private VPC connection",
+        "Attempt to change to public Claude.ai endpoint (should be blocked)",
+        "Review configuration to ensure no data training on customer data",
+        "Verify all AI requests go through private endpoint",
+        "Check network logs to confirm private routing"
+      ],
+      "passes": false
+    },
+    {
+      "category": "security",
+      "description": "Encryption at rest and in transit",
+      "steps": [
+        "Verify database uses encryption at rest (PostgreSQL encryption)",
+        "Check that object storage (MinIO/S3) uses encryption",
+        "Confirm all API endpoints use HTTPS/TLS",
+        "Verify Redis connections use TLS",
+        "Check database connection strings use SSL",
+        "Confirm secrets are encrypted in database using HashiCorp Vault",
+        "Review security audit showing all data encrypted"
+      ],
+      "passes": false
+    },
+    {
+      "category": "security",
+      "description": "Full audit logging - All prompts, responses, decisions",
+      "steps": [
+        "Perform policy scan operation",
+        "Navigate to Audit Logs",
+        "Verify AI prompts are logged",
+        "Verify AI responses are logged",
+        "Check user approval/rejection decisions are logged",
+        "Verify provisioning actions are logged",
+        "Search logs by tenant, user, timestamp",
+        "Export audit logs for compliance review"
+      ],
+      "passes": false
+    },
+    {
+      "category": "security",
+      "description": "Evidence-based output - Quote exact code lines",
+      "steps": [
+        "Run policy extraction on repository",
+        "Select an extracted policy",
+        "View evidence section",
+        "Verify each evidence item shows file path",
+        "Verify line numbers (start and end) are displayed",
+        "Confirm exact code snippet is quoted",
+        "Click evidence link to navigate to source file",
+        "Verify evidence matches actual code in repository"
+      ],
+      "passes": false
+    },
+    {
+      "category": "technical",
+      "description": "Support Java language scanning with tree-sitter",
+      "steps": [
+        "Upload Java repository with authorization code",
+        "Configure scanner to analyze Java files",
+        "Initiate scan",
+        "Verify Java files are detected",
+        "Confirm tree-sitter-java parser is used",
+        "Review extracted policies from Java code",
+        "Verify Spring Security, Apache Shiro patterns detected",
+        "Check evidence points to correct Java files"
+      ],
+      "passes": false
+    },
+    {
+      "category": "technical",
+      "description": "Support C#/.NET language scanning with tree-sitter",
+      "steps": [
+        "Upload C#/.NET repository",
+        "Configure scanner for C# analysis",
+        "Initiate scan",
+        "Verify .cs files are detected",
+        "Confirm tree-sitter-c-sharp parser is used",
+        "Review extracted policies from C# code",
+        "Verify ASP.NET authorization attributes detected",
+        "Check evidence includes C# code snippets"
+      ],
+      "passes": false
+    },
+    {
+      "category": "technical",
+      "description": "Support Python language scanning",
+      "steps": [
+        "Upload Python repository with authorization code",
+        "Configure scanner for Python analysis",
+        "Initiate scan",
+        "Verify .py files are detected",
+        "Confirm Python AST parser is used",
+        "Review extracted policies from Python code",
+        "Verify Flask/Django/FastAPI decorators detected",
+        "Check evidence shows Python code snippets"
+      ],
+      "passes": false
+    },
+    {
+      "category": "technical",
+      "description": "Support JavaScript/TypeScript scanning",
+      "steps": [
+        "Upload JavaScript/TypeScript repository",
+        "Configure scanner for JS/TS analysis",
+        "Initiate scan",
+        "Verify .js and .ts files are detected",
+        "Confirm tree-sitter-javascript parser is used",
+        "Review extracted policies from frontend and backend JS",
+        "Verify Express.js, NestJS middleware detected",
+        "Check evidence includes JS/TS code snippets"
+      ],
+      "passes": false
+    },
+    {
+      "category": "technical",
+      "description": "Database stored procedure analysis - PostgreSQL",
+      "steps": [
+        "Connect to PostgreSQL database",
+        "Navigate to Database Analysis",
+        "Select database to scan",
+        "Initiate stored procedure scan",
+        "Verify stored procedures are enumerated",
+        "Review extracted policies from procedures",
+        "Confirm Row-Level Security policies detected",
+        "Verify triggers with authorization logic are found"
+      ],
+      "passes": false
+    },
+    {
+      "category": "technical",
+      "description": "Database stored procedure analysis - SQL Server",
+      "steps": [
+        "Connect to SQL Server database",
+        "Navigate to Database Analysis",
+        "Select database to scan",
+        "Initiate stored procedure scan",
+        "Verify T-SQL procedures are analyzed",
+        "Review extracted authorization policies",
+        "Confirm security predicates detected",
+        "Check evidence shows SQL code snippets"
+      ],
+      "passes": false
+    },
+    {
+      "category": "technical",
+      "description": "Database stored procedure analysis - Oracle",
+      "steps": [
+        "Connect to Oracle database",
+        "Navigate to Database Analysis",
+        "Select schema to scan",
+        "Initiate PL/SQL analysis",
+        "Verify packages and procedures analyzed",
+        "Review extracted policies",
+        "Confirm VPD (Virtual Private Database) policies detected",
+        "Check evidence includes PL/SQL code"
+      ],
+      "passes": false
+    },
+    {
+      "category": "technical",
+      "description": "Database stored procedure analysis - MySQL/MariaDB",
+      "steps": [
+        "Connect to MySQL or MariaDB database",
+        "Navigate to Database Analysis",
+        "Select database to scan",
+        "Initiate stored procedure scan",
+        "Verify MySQL procedures are parsed",
+        "Review extracted authorization logic",
+        "Confirm user permission checks detected",
+        "Verify evidence shows MySQL code snippets"
+      ],
+      "passes": false
+    },
+    {
+      "category": "technical",
+      "description": "OPA Rego policy format generation",
+      "steps": [
+        "Extract policies from repository",
+        "Select a policy to export",
+        "Choose 'OPA Rego' as export format",
+        "Generate Rego policy",
+        "Verify Rego syntax is valid",
+        "Confirm policy contains package declaration",
+        "Verify allow/deny rules match original policy",
+        "Test Rego policy in OPA playground"
+      ],
+      "passes": false
+    },
+    {
+      "category": "technical",
+      "description": "Custom JSON Schema policy format generation",
+      "steps": [
+        "Extract policies from repository",
+        "Select a policy to export",
+        "Choose 'JSON Schema' as export format",
+        "Generate JSON policy",
+        "Verify JSON structure matches schema",
+        "Confirm subject, resource, action, conditions are present",
+        "Validate JSON against defined schema",
+        "Export JSON for use with custom PBAC platform"
+      ],
+      "passes": false
+    },
+    {
+      "category": "deployment",
+      "description": "Docker containerization with docker-compose",
+      "steps": [
+        "Navigate to project root directory",
+        "Review docker-compose.yml file",
+        "Run 'docker-compose up'",
+        "Verify all services start (frontend, backend, PostgreSQL, Redis, MinIO)",
+        "Check service health endpoints",
+        "Access application via browser",
+        "Verify inter-service communication works",
+        "Run 'docker-compose down' to stop services"
+      ],
+      "passes": false
+    },
+    {
+      "category": "deployment",
+      "description": "Cloud SaaS deployment support",
+      "steps": [
+        "Review Kubernetes manifests",
+        "Configure cloud provider (AWS/Azure)",
+        "Deploy to Kubernetes cluster",
+        "Verify pods are running",
+        "Check load balancer configuration",
+        "Access application via cloud endpoint",
+        "Verify auto-scaling is configured",
+        "Test high availability failover"
+      ],
+      "passes": false
+    },
+    {
+      "category": "deployment",
+      "description": "On-premises deployment support",
+      "steps": [
+        "Set up on-premises Docker host",
+        "Configure docker-compose for on-prem",
+        "Set up NGINX reverse proxy",
+        "Configure SSL certificates",
+        "Deploy using docker-compose",
+        "Verify all services accessible",
+        "Test integration with on-prem Git server",
+        "Confirm no external dependencies required"
+      ],
+      "passes": false
+    },
+    {
+      "category": "performance",
+      "description": "Streaming file processing for large repositories",
+      "steps": [
+        "Upload repository with 10,000+ files",
+        "Initiate scan with streaming enabled",
+        "Monitor memory usage during scan",
+        "Verify files processed in batches of 50",
+        "Confirm results saved incrementally",
+        "Check that memory usage stays below threshold",
+        "Verify scan completes successfully",
+        "Review performance metrics"
+      ],
+      "passes": false
+    },
+    {
+      "category": "performance",
+      "description": "Incremental scanning with git diff",
+      "steps": [
+        "Perform full repository scan",
+        "Record scan duration",
+        "Make small change to repository (modify 5 files)",
+        "Trigger incremental scan",
+        "Verify only changed files are rescanned",
+        "Confirm incremental scan is faster than full scan",
+        "Check that unchanged policies remain intact",
+        "Verify new/modified policies are detected"
+      ],
+      "passes": false
+    },
+    {
+      "category": "integration",
+      "description": "GitHub integration for repository scanning",
+      "steps": [
+        "Navigate to Add Repository",
+        "Select GitHub as source",
+        "Authenticate with GitHub OAuth",
+        "Select repository from list",
+        "Grant necessary permissions",
+        "Clone repository for scanning",
+        "Verify repository metadata is stored",
+        "Initiate scan on GitHub repository"
+      ],
+      "passes": false
+    },
+    {
+      "category": "integration",
+      "description": "GitLab integration for repository scanning",
+      "steps": [
+        "Navigate to Add Repository",
+        "Select GitLab as source",
+        "Provide GitLab personal access token",
+        "Enter GitLab project URL",
+        "Test connection",
+        "Clone repository for scanning",
+        "Verify repository is accessible",
+        "Initiate scan on GitLab repository"
+      ],
+      "passes": false
+    },
+    {
+      "category": "integration",
+      "description": "Bitbucket integration for repository scanning",
+      "steps": [
+        "Navigate to Add Repository",
+        "Select Bitbucket as source",
+        "Authenticate with Bitbucket",
+        "Select repository from workspace",
+        "Grant access permissions",
+        "Clone repository for scanning",
+        "Verify repository metadata stored",
+        "Initiate scan on Bitbucket repository"
+      ],
+      "passes": false
+    },
+    {
+      "category": "integration",
+      "description": "Azure DevOps integration for repository scanning",
+      "steps": [
+        "Navigate to Add Repository",
+        "Select Azure DevOps as source",
+        "Provide Azure DevOps PAT",
+        "Enter organization and project details",
+        "Test connection",
+        "Clone repository for scanning",
+        "Verify repository accessible",
+        "Initiate scan on Azure DevOps repository"
+      ],
+      "passes": false
+    },
+    {
+      "category": "quality",
+      "description": "Evidence validation - Prevent AI hallucination",
+      "steps": [
+        "Run policy extraction on repository",
+        "Review extracted policies",
+        "For each policy, verify evidence exists",
+        "Click evidence link to view source code",
+        "Confirm quoted code matches actual file",
+        "Verify line numbers are accurate",
+        "Check that evidence supports extracted policy",
+        "Reject policies without valid evidence"
+      ],
+      "passes": false
+    },
+    {
+      "category": "quality",
+      "description": "Achieve >85% accuracy in policy extraction",
+      "steps": [
+        "Prepare test repository with known policies",
+        "Document all authorization rules manually",
+        "Run Policy Miner extraction",
+        "Compare extracted policies to documented policies",
+        "Calculate precision (correct extractions / total extractions)",
+        "Calculate recall (extracted policies / total known policies)",
+        "Verify accuracy metric is >85%",
+        "Document any false positives or missed policies"
+      ],
+      "passes": false
+    },
+    {
+      "category": "quality",
+      "description": "Extract policies from 10+ different application types",
+      "steps": [
+        "Prepare 10+ repositories (Java Spring, .NET, Django, Flask, Express, etc.)",
+        "Run policy extraction on each application",
+        "Verify policies extracted from Java/Spring application",
+        "Verify policies extracted from .NET application",
+        "Verify policies extracted from Python/Django application",
+        "Verify policies extracted from Python/Flask application",
+        "Verify policies extracted from Node.js/Express application",
+        "Verify policies extracted from React frontend",
+        "Verify policies extracted from Angular frontend",
+        "Verify policies extracted from Vue frontend",
+        "Confirm success rate across all application types"
+      ],
+      "passes": false
+    },
+    {
+      "category": "monitoring",
+      "description": "Prometheus metrics collection",
+      "steps": [
+        "Configure Prometheus scraping",
+        "Navigate to /metrics endpoint",
+        "Verify metrics are exposed",
+        "Check scan duration metrics",
+        "Check policy extraction count metrics",
+        "Check error rate metrics",
+        "View metrics in Prometheus UI",
+        "Create alerts based on metrics"
+      ],
+      "passes": false
+    },
+    {
+      "category": "monitoring",
+      "description": "Grafana dashboard for visualization",
+      "steps": [
+        "Configure Grafana data source (Prometheus)",
+        "Import Policy Miner dashboard",
+        "View real-time scan statistics",
+        "Check policy extraction trends over time",
+        "Monitor system resource usage",
+        "View error rates and failures",
+        "Set up alerting rules",
+        "Export dashboard for sharing"
+      ],
+      "passes": false
+    },
+    {
+      "category": "ui",
+      "description": "Repository management interface",
+      "steps": [
+        "Navigate to Repositories page",
+        "View list of registered repositories",
+        "Filter repositories by type (Git/Database/Mainframe)",
+        "Sort repositories by last scan date",
+        "Click repository to view details",
+        "View scan history for repository",
+        "Edit repository configuration",
+        "Delete repository and associated policies"
+      ],
+      "passes": false
+    },
+    {
+      "category": "ui",
+      "description": "Policy review interface with Monaco editor",
+      "steps": [
+        "Navigate to Policy Review page",
+        "Select a policy to review",
+        "View policy in Monaco editor",
+        "Verify syntax highlighting for Rego/JSON",
+        "Edit policy content",
+        "Save changes",
+        "View policy change history",
+        "Approve or reject policy with comments"
+      ],
+      "passes": false
+    },
+    {
+      "category": "ui",
+      "description": "Risk visualization dashboard",
+      "steps": [
+        "Navigate to Risk Dashboard",
+        "View chart showing risk distribution",
+        "Filter policies by risk level (high/medium/low)",
+        "Click on risk score to see breakdown",
+        "View complexity, impact, confidence, historical scores",
+        "Export risk report as PDF",
+        "Set custom risk thresholds",
+        "Receive alerts for high-risk policies"
+      ],
+      "passes": false
+    },
+    {
+      "category": "ui",
+      "description": "Conflict resolution interface",
+      "steps": [
+        "Navigate to Conflicts page",
+        "View list of policy conflicts",
+        "Click conflict to see details",
+        "View conflicting policy pairs side-by-side",
+        "Review AI-generated resolution recommendation",
+        "Choose resolution strategy (keep policy A, keep policy B, merge)",
+        "Apply resolution",
+        "Verify conflict is marked as resolved"
+      ],
+      "passes": false
+    },
+    {
+      "category": "ui",
+      "description": "Provisioning interface for PBAC platforms",
+      "steps": [
+        "Navigate to Provisioning page",
+        "View configured PBAC platforms",
+        "Add new PBAC platform (OPA/AVP/Axiomatics)",
+        "Select policies to provision",
+        "Click 'Provision' button",
+        "Monitor provisioning progress",
+        "View provisioning status (success/failure)",
+        "Review provisioning logs for errors"
+      ],
+      "passes": false
+    },
+    {
+      "category": "ui",
+      "description": "Code change advisory viewer with diff",
+      "steps": [
+        "Navigate to Code Advisories page",
+        "Select an advisory to review",
+        "View original code in left pane",
+        "View suggested code in right pane",
+        "Review side-by-side diff with highlighting",
+        "Read AI explanation of changes",
+        "Review generated test cases",
+        "Download patch file or apply changes"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Organization Management - Create organization with divisions and business units",
+      "steps": [
+        "Login as system administrator",
+        "Create new organization (BigCorp)",
+        "Add divisions (Finance, Manufacturing, IT, Regional)",
+        "Add business units within divisions",
+        "Configure organizational hierarchy",
+        "Verify hierarchy is displayed in tree view",
+        "Assign users to divisions with appropriate roles",
+        "Test data isolation between organizations"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Application Management - Register 5,000+ applications across organization",
+      "steps": [
+        "Navigate to Applications page",
+        "Import application inventory from CSV (5,000+ apps)",
+        "Assign applications to business units",
+        "Set application metadata (criticality, tech stack, owner)",
+        "Tag critical applications (top 100)",
+        "Filter applications by division, tech stack, criticality",
+        "Verify all 5,000 applications are registered",
+        "View application hierarchy by organization"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Application-Policy Relationship - View policies grouped by application",
+      "steps": [
+        "Navigate to Applications page",
+        "Select an application (e.g., ExpenseApp)",
+        "View all policies belonging to this application",
+        "Verify policies are grouped by source (code, database, frontend)",
+        "Filter policies by risk level within application",
+        "Export application-specific policy report",
+        "Compare policies across multiple applications",
+        "View policy count per application in dashboard"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Policy Translation - Claude Agent SDK translates Java code to OPA Rego",
+      "steps": [
+        "Extract policy from Java code (inline if-statement)",
+        "Navigate to Policy Translation",
+        "Select target format: OPA Rego",
+        "Click 'Translate with Claude Agent SDK'",
+        "Verify Claude Agent SDK analyzes semantic intent",
+        "Review generated Rego policy with package declaration",
+        "Verify translation preserves logic (Who/What/How/When)",
+        "Confirm allow/deny rules match original authorization",
+        "Test both original Java and translated Rego produce same decisions"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Policy Translation - Claude Agent SDK translates C# to Cedar format",
+      "steps": [
+        "Extract policy from C# ASP.NET authorization attribute",
+        "Select target format: AWS Cedar",
+        "Click 'Translate with Claude Agent SDK'",
+        "Verify Claude Agent SDK understands C# authorization semantics",
+        "Review generated Cedar policy with permit/forbid statements",
+        "Confirm Cedar policy matches original C# logic",
+        "Validate Cedar policy syntax",
+        "Test behavioral equivalence between C# and Cedar"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Policy Translation - Multi-format translation for single policy",
+      "steps": [
+        "Extract policy from Python Flask decorator",
+        "Translate to OPA Rego using Claude Agent SDK",
+        "Translate same policy to Cedar using Claude Agent SDK",
+        "Translate same policy to custom JSON using Claude Agent SDK",
+        "Verify all three translations are semantically equivalent",
+        "Test all three formats produce same authorization decisions",
+        "Document translation mappings for audit trail",
+        "Verify all formats can be provisioned to respective platforms"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Cross-Application Normalization - Detect and normalize equivalent roles",
+      "steps": [
+        "Scan 10 applications with different role naming conventions",
+        "Identify App1 uses 'admin', App2 uses 'administrator', App3 uses 'sysadmin'",
+        "Claude Agent SDK detects semantic equivalence across apps",
+        "Navigate to Normalization Dashboard",
+        "Review AI-suggested role mapping (admin ↔ administrator ↔ sysadmin)",
+        "Approve normalization to standard taxonomy (ADMIN)",
+        "Verify all policies are updated to use standard role names",
+        "Confirm mapping is documented in audit trail"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Translation Quality - Verify semantic equivalence of translated policies",
+      "steps": [
+        "Extract complex policy with nested conditions from Java",
+        "Translate to OPA Rego using Claude Agent SDK",
+        "Generate test cases covering all decision paths",
+        "Run test cases against original Java code",
+        "Run same test cases against translated Rego policy",
+        "Verify 100% match in authorization decisions",
+        "Document any edge cases where translation differs",
+        "Mark translation as semantically verified"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Policy Fixing - Detect and fix incomplete authorization logic",
+      "steps": [
+        "Extract policy with incomplete logic (e.g., if (user.isManager()) { approve(); })",
+        "Claude Agent SDK analyzes policy for gaps",
+        "Identify missing checks (suspended user, approval limits, department matching)",
+        "Review AI-generated fix with complete logic",
+        "Compare original vs fixed policy side-by-side",
+        "View AI explanation of what was missing",
+        "Approve AI fix",
+        "Verify fixed policy includes all necessary checks",
+        "Generate test cases to prove fix prevents security gaps"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Policy Fixing - Detect and flag privilege escalation risks",
+      "steps": [
+        "Extract policy with privilege escalation vulnerability",
+        "Claude Agent SDK performs security analysis",
+        "Detect missing role check in critical operation",
+        "Flag policy as HIGH RISK with detailed explanation",
+        "Review AI recommendation to add authorization check",
+        "View example attack scenario that would exploit vulnerability",
+        "Apply suggested fix",
+        "Verify vulnerability is closed",
+        "Add to security audit report"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Policy Fixing - Detect always-true conditions and overly permissive policies",
+      "steps": [
+        "Extract policy with always-true condition (e.g., if (true || user.hasRole('ADMIN')))",
+        "Claude Agent SDK detects logical error",
+        "Flag policy as defective with explanation",
+        "Review AI explanation of why condition is always-true",
+        "Review AI-suggested fix (remove always-true condition)",
+        "Apply fix",
+        "Verify policy now has meaningful authorization check",
+        "Log fix in audit trail with before/after comparison"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Policy Fixing - Detect and fix inconsistent enforcement across applications",
+      "steps": [
+        "Scan 5 applications that protect same resource type (e.g., customer PII)",
+        "Claude Agent SDK detects inconsistent authorization rules",
+        "App1: Requires ADMIN role",
+        "App2: Requires MANAGER role",
+        "App3: No authorization check (security gap!)",
+        "Flag inconsistency as HIGH RISK across applications",
+        "Review AI recommendation to standardize",
+        "Apply standardized policy across all 5 apps",
+        "Verify consistent enforcement organization-wide"
+      ],
+      "passes": false
+    },
+    {
+      "category": "performance",
+      "description": "Parallel Scanning - Scan 50 applications simultaneously",
+      "steps": [
+        "Register 50 applications across different tech stacks",
+        "Navigate to Bulk Scan interface",
+        "Select all 50 applications",
+        "Click 'Start Parallel Scan'",
+        "Verify 50 containerized workers are spawned",
+        "Monitor parallel scan progress dashboard",
+        "Verify scans complete in parallel (not sequential)",
+        "Confirm total time < 2x single app scan time",
+        "Review resource usage (CPU, memory, network)",
+        "Verify all 50 scans complete successfully"
+      ],
+      "passes": false
+    },
+    {
+      "category": "performance",
+      "description": "Enterprise-Scale Scanning - Process 1,000 applications in batches",
+      "steps": [
+        "Register 1,000 applications",
+        "Configure scan orchestrator for batch processing (50 apps per batch)",
+        "Start bulk scan",
+        "Verify applications are scanned in batches of 50",
+        "Monitor queue depth and worker utilization",
+        "Confirm all 1,000 apps are scanned",
+        "Review total scan duration (target: < 1 week)",
+        "Verify no timeouts or worker crashes",
+        "Check policy extraction count across all apps"
+      ],
+      "passes": false
+    },
+    {
+      "category": "performance",
+      "description": "Distributed Worker Management - Scale workers based on load",
+      "steps": [
+        "Start with 10 worker containers",
+        "Submit 100 application scans",
+        "Verify auto-scaling triggers when queue depth > threshold",
+        "Confirm workers scale to 50 containers",
+        "Monitor worker health and task distribution",
+        "Verify failed workers are automatically restarted",
+        "Confirm queue drains efficiently",
+        "Verify workers scale down when queue empties",
+        "Review auto-scaling metrics and logs"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Cross-Application Conflicts - Detect contradictory policies across apps",
+      "steps": [
+        "Scan ExpenseApp v1 (extracted policy: Managers approve < $5000)",
+        "Scan ExpenseApp v2 (extracted policy: Only Directors approve)",
+        "Scan FinancePortal (extracted policy: Managers approve < $10000)",
+        "Navigate to Cross-Application Conflicts",
+        "Verify conflict is detected across all 3 applications",
+        "Review AI analysis explaining contradiction",
+        "Review AI-recommended unified policy",
+        "Apply unified policy to all 3 applications",
+        "Verify conflict is resolved organization-wide"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Cross-Application Duplication - Detect duplicate policies across apps",
+      "steps": [
+        "Scan 20 applications",
+        "Claude Agent SDK detects 5 applications have identical expense approval logic",
+        "Navigate to Duplicate Policies Dashboard",
+        "Review list of duplicate policies",
+        "View similarity scores between policies",
+        "Select duplicates to consolidate",
+        "Create single centralized policy",
+        "Link all 5 applications to centralized policy",
+        "Verify deduplication reduces policy count by 80%"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Lasagna Architecture - Verify application calls centralized PBAC",
+      "steps": [
+        "Identify application with inline authorization checks (spaghetti)",
+        "Extract policies and provision to OPA",
+        "Generate refactored code using Claude Agent SDK",
+        "Apply refactoring to replace inline checks with OPA calls",
+        "Deploy refactored application",
+        "Trigger authorization check in application",
+        "Verify application calls OPA (not inline code)",
+        "Confirm OPA returns authorization decision",
+        "Verify application enforces OPA decision",
+        "Measure latency of centralized check vs inline check"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Spaghetti Reduction Metrics - Measure inline authorization elimination",
+      "steps": [
+        "Scan application before migration (count inline auth checks)",
+        "Record baseline: 150 inline authorization checks",
+        "Centralize policies to OPA using Claude Agent SDK translation",
+        "Refactor application to call OPA",
+        "Rescan application after migration",
+        "Verify inline checks reduced to 0",
+        "Calculate spaghetti reduction: 100%",
+        "Display reduction metrics on dashboard",
+        "Export spaghetti-to-lasagna migration report"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Continuous Governance - Detect new spaghetti code being added",
+      "steps": [
+        "Configure git webhook for repository monitoring",
+        "Developer commits new code with inline authorization check",
+        "Git webhook triggers Policy Miner incremental scan",
+        "Incremental scan detects new inline authorization",
+        "System flags as 'NEW SPAGHETTI DETECTED'",
+        "Create work item for security team review",
+        "Notify developer: 'Use centralized PBAC instead'",
+        "Provide refactoring suggestion using Claude Agent SDK",
+        "Track spaghetti prevention metrics on dashboard"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Phased Rollout - Prioritize top 100 critical applications",
+      "steps": [
+        "Navigate to Applications page (5,000 apps registered)",
+        "Filter by criticality: HIGH",
+        "Review top 100 critical applications (Finance, HR, customer-facing)",
+        "Create migration wave: 'Phase 1 - Critical Apps'",
+        "Add top 100 apps to Phase 1",
+        "Start bulk scan for Phase 1 apps only",
+        "Monitor Phase 1 progress dashboard",
+        "Provision Phase 1 policies to OPA",
+        "Track Phase 1 completion: 100/100 apps migrated",
+        "Generate Phase 1 completion report"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Phased Rollout - Group applications by business unit",
+      "steps": [
+        "Create migration wave: 'Phase 2 - Finance Division'",
+        "Add all Finance Division applications (200 apps)",
+        "Start bulk scan for Phase 2",
+        "Claude Agent SDK translates all Finance policies",
+        "Provision Finance policies to OPA",
+        "Validate policies with Finance team stakeholders",
+        "Approve for production rollout",
+        "Track Phase 2 completion",
+        "Create Phase 3 for Manufacturing Division",
+        "Compare migration velocity across phases"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Bulk Policy Approval - Approve 10,000 low-risk policies at once",
+      "steps": [
+        "Navigate to Policy Review page",
+        "Filter by risk level: LOW (showing 10,000 policies)",
+        "Verify AI auto-approval recommendations",
+        "Select all low-risk policies",
+        "Click 'Bulk Approve'",
+        "Confirm bulk approval operation",
+        "Monitor progress (10,000 policies being approved)",
+        "Verify all 10,000 policies status = APPROVED",
+        "Review bulk approval audit log",
+        "Verify approval time < 5 minutes for 10K policies"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Bulk Provisioning - Provision 5,000 policies to OPA in batch",
+      "steps": [
+        "Select 5,000 approved policies",
+        "Click 'Bulk Provision to OPA'",
+        "Verify policies are translated in parallel batches using Claude Agent SDK",
+        "Monitor provisioning progress dashboard",
+        "Confirm all 5,000 policies pushed to OPA",
+        "Verify OPA policy bundle updated",
+        "Test sample policies in OPA for correctness",
+        "Review provisioning duration (target: < 1 hour)",
+        "Check error rate (target: < 1%)"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "description": "Similar Policy Detection - Find policies semantically similar to current policy",
+      "steps": [
+        "Select a policy to review",
+        "Click 'Find Similar Policies'",
+        "System uses pgvector embeddings to search across all applications",
+        "Review list of similar policies with similarity scores",
+        "Verify similarity scores are displayed (0-100%)",
+        "Compare similar policies side-by-side",
+        "Identify candidates for consolidation",
+        "Mark policies as duplicates for deduplication",
+        "Track policy consolidation savings"
+      ],
+      "passes": false
+    }
+  ]
+}
