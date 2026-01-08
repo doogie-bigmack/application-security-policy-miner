@@ -8,11 +8,16 @@ REPO="https://github.com/doogie-bigmack/application-security-policy-miner"
 
 for ((i=1; i<=$ITERATIONS; i++)); do
     echo ""
-    echo "========================================" 
+    echo "========================================"
     echo "Iteration $i of $ITERATIONS"
     echo "========================================"
-    
-    claude --dangerously-skip-permissions -p "@prd.json @progress.txt" << 'PROMPT' | tee /dev/tty | grep -q "<promise>COMPLETE</promise>"
+    echo ""
+
+    # Create temp output file
+    TEMP_OUTPUT=$(mktemp)
+
+    # Run claude with heredoc (like test_claude.sh does)
+    claude --dangerously-skip-permissions -p "@prd.json @progress.txt" << 'PROMPT' | tee "$TEMP_OUTPUT"
 You are an autonomous software engineer. You have access to the browser, terminal, and file system.
 
 ## REPO
@@ -68,14 +73,21 @@ When ALL tasks in prd.json have passes: true, output exactly: <promise>COMPLETE<
 
 Now start working.
 PROMPT
-    
-    if [ $? -eq 0 ]; then
+
+    # Check if complete
+    if grep -q "<promise>COMPLETE</promise>" "$TEMP_OUTPUT"; then
+        echo ""
         echo "🎉 PRD COMPLETE after $i iterations!"
+        rm -f "$TEMP_OUTPUT"
         osascript -e 'display notification "Damonnator finished the PRD!" with title "Damonnator" sound name "Glass"'
         exit 0
     fi
 
+    # Clean up temp file
+    rm -f "$TEMP_OUTPUT"
+
 done
 
+echo ""
 echo "Finished $ITERATIONS iterations"
 osascript -e 'display notification "Damonnator completed all iterations" with title "Damonnator" sound name "Ping"'

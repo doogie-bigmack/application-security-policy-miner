@@ -1,7 +1,7 @@
 """
 Application configuration using Pydantic settings.
 """
-from typing import List
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     MINIO_SECURE: bool = False
 
     # CORS
-    CORS_ORIGINS: List[str] = [
+    CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:5173",
     ]
