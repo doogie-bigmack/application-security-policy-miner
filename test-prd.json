@@ -454,7 +454,7 @@
         "Add data-testid='provisioning-select-target-format' to format dropdown (OPA/Cedar/ALFA)",
         "Add data-testid='provisioning-status' to provisioning status indicator"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "ProvisioningPage has 8+ data-testid attributes",
         "Provider management identifiable",
