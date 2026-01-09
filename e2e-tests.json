@@ -1,0 +1,482 @@
+{
+  "schema_version": "1.0",
+  "description": "E2E test suite for Policy Miner application",
+  "test_suites": [
+    {
+      "suite_id": "repository_management",
+      "name": "Repository Management Tests",
+      "description": "Tests for adding, scanning, and managing repositories",
+      "tests": [
+        {
+          "test_id": "test_add_github_repository",
+          "prd_story_id": "FUNC-001",
+          "name": "Add GitHub Repository",
+          "priority": "critical",
+          "description": "Test adding a GitHub repository and verifying it appears in the repository list",
+          "prerequisites": {
+            "services": ["frontend", "backend", "postgres"],
+            "test_data": {
+              "github_token": "GITHUB_TEST_TOKEN",
+              "repository_url": "https://github.com/test-org/test-repo"
+            }
+          },
+          "steps": [
+            {
+              "action": "navigate",
+              "target": "http://localhost:3333/repositories",
+              "description": "Navigate to repositories page"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "button[data-testid='add-repository-btn']",
+              "timeout_ms": 5000,
+              "description": "Wait for add repository button to be visible"
+            },
+            {
+              "action": "click",
+              "selector": "button[data-testid='add-repository-btn']",
+              "description": "Click the Add Repository button"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "button[data-testid='github-integration']",
+              "timeout_ms": 3000,
+              "description": "Wait for GitHub integration option"
+            },
+            {
+              "action": "click",
+              "selector": "button[data-testid='github-integration']",
+              "description": "Select GitHub as repository source"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "input[name='github_token']",
+              "timeout_ms": 3000,
+              "description": "Wait for GitHub token input field"
+            },
+            {
+              "action": "fill",
+              "selector": "input[name='github_token']",
+              "value": "${GITHUB_TEST_TOKEN}",
+              "description": "Fill in GitHub token from environment variable"
+            },
+            {
+              "action": "fill",
+              "selector": "input[name='repository_url']",
+              "value": "https://github.com/test-org/test-repo",
+              "description": "Enter test repository URL"
+            },
+            {
+              "action": "click",
+              "selector": "button[data-testid='connect-repository-btn']",
+              "description": "Click Connect button"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "[data-testid='success-message']",
+              "timeout_ms": 10000,
+              "description": "Wait for success message"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "[data-testid='repository-list']",
+              "description": "Verify repository list is visible"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "[data-repository-name='test-repo']",
+              "description": "Verify test repository appears in the list"
+            }
+          ],
+          "expected_outcomes": [
+            "Repository is successfully added",
+            "Success message is displayed",
+            "Repository appears in the repository list with correct name",
+            "Repository status shows as 'Connected'"
+          ],
+          "cleanup": [
+            {
+              "action": "api_call",
+              "method": "DELETE",
+              "endpoint": "/api/v1/repositories/${CREATED_REPOSITORY_ID}",
+              "description": "Delete test repository via API"
+            }
+          ]
+        },
+        {
+          "test_id": "test_scan_repository",
+          "prd_story_id": "AI-001",
+          "name": "Scan Repository and Extract Policies",
+          "priority": "critical",
+          "description": "Test scanning a repository and verifying policies are extracted",
+          "prerequisites": {
+            "services": ["frontend", "backend", "postgres", "redis"],
+            "test_data": {
+              "repository_id": "EXISTING_REPOSITORY_ID"
+            }
+          },
+          "steps": [
+            {
+              "action": "navigate",
+              "target": "http://localhost:3333/repositories/${REPOSITORY_ID}",
+              "description": "Navigate to repository detail page"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "button[data-testid='start-scan-btn']",
+              "timeout_ms": 5000,
+              "description": "Wait for Start Scan button"
+            },
+            {
+              "action": "click",
+              "selector": "button[data-testid='start-scan-btn']",
+              "description": "Click Start Scan button"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "[data-testid='scan-status'][data-status='running']",
+              "timeout_ms": 5000,
+              "description": "Wait for scan to start"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "[data-testid='scan-status'][data-status='completed']",
+              "timeout_ms": 120000,
+              "description": "Wait for scan to complete (up to 2 minutes)"
+            },
+            {
+              "action": "navigate",
+              "target": "http://localhost:3333/policies",
+              "description": "Navigate to policies page"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "[data-testid='policies-table']",
+              "timeout_ms": 5000,
+              "description": "Wait for policies table to load"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "[data-testid='policy-row']",
+              "description": "Verify at least one policy was extracted"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "[data-testid='policy-subject']",
+              "description": "Verify policy has subject (Who)"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "[data-testid='policy-resource']",
+              "description": "Verify policy has resource (What)"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "[data-testid='policy-action']",
+              "description": "Verify policy has action (How)"
+            }
+          ],
+          "expected_outcomes": [
+            "Scan starts successfully",
+            "Scan completes within timeout",
+            "At least one policy is extracted",
+            "Extracted policy contains Who/What/How fields",
+            "Evidence links are present for each policy"
+          ],
+          "cleanup": []
+        }
+      ]
+    },
+    {
+      "suite_id": "policy_viewing",
+      "name": "Policy Viewing and Filtering Tests",
+      "description": "Tests for viewing, filtering, and sorting policies",
+      "tests": [
+        {
+          "test_id": "test_view_policies",
+          "prd_story_id": "UI-001",
+          "name": "View and Filter Policies",
+          "priority": "critical",
+          "description": "Test viewing policies list and applying filters",
+          "prerequisites": {
+            "services": ["frontend", "backend", "postgres"],
+            "test_data": {
+              "policies_exist": true
+            }
+          },
+          "steps": [
+            {
+              "action": "navigate",
+              "target": "http://localhost:3333/policies",
+              "description": "Navigate to policies page"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "[data-testid='policies-table']",
+              "timeout_ms": 5000,
+              "description": "Wait for policies table to load"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "th[data-column='subject']",
+              "description": "Verify Subject (Who) column exists"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "th[data-column='resource']",
+              "description": "Verify Resource (What) column exists"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "th[data-column='action']",
+              "description": "Verify Action (How) column exists"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "th[data-column='conditions']",
+              "description": "Verify Conditions (When) column exists"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "th[data-column='evidence']",
+              "description": "Verify Evidence column exists"
+            },
+            {
+              "action": "fill",
+              "selector": "input[data-testid='filter-subject']",
+              "value": "admin",
+              "description": "Filter policies by subject containing 'admin'"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "[data-testid='policy-row']",
+              "timeout_ms": 3000,
+              "description": "Wait for filtered results"
+            },
+            {
+              "action": "click",
+              "selector": "[data-testid='policy-row']:first-child",
+              "description": "Click first policy to view details"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "[data-testid='policy-detail-modal']",
+              "timeout_ms": 3000,
+              "description": "Wait for policy detail modal"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "[data-testid='policy-evidence-section']",
+              "description": "Verify evidence section is visible"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "[data-testid='code-snippet']",
+              "description": "Verify code snippet is displayed"
+            }
+          ],
+          "expected_outcomes": [
+            "Policies table displays all required columns",
+            "Filter by subject works correctly",
+            "Clicking policy opens detail view",
+            "Policy detail shows code evidence",
+            "Evidence includes file path and line numbers"
+          ],
+          "cleanup": []
+        }
+      ]
+    },
+    {
+      "suite_id": "pbac_integration",
+      "name": "PBAC Integration Tests",
+      "description": "Tests for PBAC provider configuration and policy provisioning",
+      "tests": [
+        {
+          "test_id": "test_add_pbac_provider",
+          "prd_story_id": "PROV-001",
+          "name": "Add PBAC Provider (OPA)",
+          "priority": "critical",
+          "description": "Test adding an OPA provider and testing connection",
+          "prerequisites": {
+            "services": ["frontend", "backend", "postgres"],
+            "test_data": {
+              "opa_endpoint": "http://localhost:8181",
+              "opa_api_key": "test-api-key"
+            }
+          },
+          "steps": [
+            {
+              "action": "navigate",
+              "target": "http://localhost:3333/provisioning/providers",
+              "description": "Navigate to PBAC providers page"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "button[data-testid='add-provider-btn']",
+              "timeout_ms": 5000,
+              "description": "Wait for Add Provider button"
+            },
+            {
+              "action": "click",
+              "selector": "button[data-testid='add-provider-btn']",
+              "description": "Click Add Provider button"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "select[name='provider_type']",
+              "timeout_ms": 3000,
+              "description": "Wait for provider type dropdown"
+            },
+            {
+              "action": "fill",
+              "selector": "select[name='provider_type']",
+              "value": "OPA",
+              "description": "Select OPA as provider type"
+            },
+            {
+              "action": "fill",
+              "selector": "input[name='provider_name']",
+              "value": "Test OPA Instance",
+              "description": "Enter provider name"
+            },
+            {
+              "action": "fill",
+              "selector": "input[name='endpoint']",
+              "value": "http://localhost:8181",
+              "description": "Enter OPA endpoint"
+            },
+            {
+              "action": "fill",
+              "selector": "input[name='api_key']",
+              "value": "test-api-key",
+              "description": "Enter API key"
+            },
+            {
+              "action": "click",
+              "selector": "button[data-testid='test-connection-btn']",
+              "description": "Click Test Connection button"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "[data-testid='connection-status'][data-status='success']",
+              "timeout_ms": 10000,
+              "description": "Wait for successful connection test"
+            },
+            {
+              "action": "click",
+              "selector": "button[data-testid='save-provider-btn']",
+              "description": "Click Save button"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "[data-testid='provider-list']",
+              "timeout_ms": 5000,
+              "description": "Wait for provider list to reload"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "[data-provider-name='Test OPA Instance']",
+              "description": "Verify provider appears in list"
+            }
+          ],
+          "expected_outcomes": [
+            "Provider form opens successfully",
+            "Connection test succeeds",
+            "Provider is saved",
+            "Provider appears in provider list",
+            "Provider shows as 'Connected' status"
+          ],
+          "cleanup": [
+            {
+              "action": "api_call",
+              "method": "DELETE",
+              "endpoint": "/api/v1/provisioning/providers/${CREATED_PROVIDER_ID}",
+              "description": "Delete test provider via API"
+            }
+          ]
+        },
+        {
+          "test_id": "test_provision_policy",
+          "prd_story_id": "PROV-002",
+          "name": "Provision Policy to PBAC Provider",
+          "priority": "critical",
+          "description": "Test provisioning a policy to OPA in Rego format",
+          "prerequisites": {
+            "services": ["frontend", "backend", "postgres"],
+            "test_data": {
+              "policy_id": "EXISTING_POLICY_ID",
+              "provider_id": "EXISTING_PROVIDER_ID"
+            }
+          },
+          "steps": [
+            {
+              "action": "navigate",
+              "target": "http://localhost:3333/policies/${POLICY_ID}",
+              "description": "Navigate to policy detail page"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "button[data-testid='provision-btn']",
+              "timeout_ms": 5000,
+              "description": "Wait for Provision button"
+            },
+            {
+              "action": "click",
+              "selector": "button[data-testid='provision-btn']",
+              "description": "Click Provision button"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "select[name='target_provider']",
+              "timeout_ms": 3000,
+              "description": "Wait for provider dropdown"
+            },
+            {
+              "action": "fill",
+              "selector": "select[name='target_provider']",
+              "value": "${PROVIDER_ID}",
+              "description": "Select target PBAC provider"
+            },
+            {
+              "action": "fill",
+              "selector": "select[name='target_format']",
+              "value": "OPA_REGO",
+              "description": "Select OPA Rego as target format"
+            },
+            {
+              "action": "click",
+              "selector": "button[data-testid='confirm-provision-btn']",
+              "description": "Click Provision button to confirm"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "[data-testid='provisioning-status'][data-status='in_progress']",
+              "timeout_ms": 5000,
+              "description": "Wait for provisioning to start"
+            },
+            {
+              "action": "wait_for_element",
+              "selector": "[data-testid='provisioning-status'][data-status='success']",
+              "timeout_ms": 60000,
+              "description": "Wait for provisioning to complete"
+            },
+            {
+              "action": "assert_element_visible",
+              "selector": "[data-testid='provisioned-policy-link']",
+              "description": "Verify link to provisioned policy is visible"
+            }
+          ],
+          "expected_outcomes": [
+            "Provisioning dialog opens",
+            "Provider and format can be selected",
+            "Provisioning starts successfully",
+            "Provisioning completes within timeout",
+            "Policy is visible in target PBAC platform",
+            "Provisioned policy is in correct format (Rego)"
+          ],
+          "cleanup": []
+        }
+      ]
+    }
+  ]
+}
