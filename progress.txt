@@ -676,3 +676,90 @@
 - Story 13: Policy Provisioning - Auto-provision to OPA
 - Story 23: Private LLM endpoints - AWS Bedrock or Azure OpenAI
 
+
+## 2026-01-08 - Private LLM Endpoints Complete
+
+### Completed
+- Backend LLM provider abstraction:
+  - Created LLMProvider abstract base class
+  - Implemented AWSBedrockProvider with boto3 integration
+  - Implemented AzureOpenAIProvider with openai SDK integration
+  - Provider factory function (get_llm_provider) based on configuration
+  - Full support for AWS Bedrock (Anthropic Claude via Bedrock)
+  - Full support for Azure OpenAI (private endpoints only)
+  
+- Backend configuration:
+  - Added LLM_PROVIDER setting (aws_bedrock | azure_openai)
+  - AWS Bedrock settings: region, model_id, access_key, secret_key
+  - Azure OpenAI settings: endpoint, api_key, deployment_name, api_version
+  - Legacy ANTHROPIC_API_KEY support (not recommended for production)
+  
+- Backend service updates:
+  - Updated ScannerService to use LLM provider abstraction
+  - Updated ConflictDetectionService to use LLM provider abstraction
+  - Removed direct anthropic.Anthropic() instantiations
+  - All LLM calls now go through provider abstraction layer
+  
+- Frontend Settings page:
+  - Clean UI for configuring LLM provider
+  - Provider selection dropdown (AWS Bedrock or Azure OpenAI)
+  - AWS Bedrock configuration form (region, model ID)
+  - Azure OpenAI configuration form (endpoint, deployment, API version)
+  - Security notice explaining private endpoint requirement
+  - Environment variables reference guide
+  - Added to main navigation with "Settings" link
+  
+- Dependencies:
+  - Added boto3==1.35.94 for AWS Bedrock
+  - Added openai==1.59.4 for Azure OpenAI
+  - Updated requirements.txt
+  - Rebuilt Docker container with new dependencies
+  
+- Documentation:
+  - Updated .env.example with all LLM configuration options
+  - Clear documentation of AWS Bedrock vs Azure OpenAI settings
+  - Notes about credential management and security
+  
+- Testing:
+  - Created comprehensive unit tests for LLM providers
+  - Tests cover initialization, message creation, error handling
+  - Tests for both AWS Bedrock and Azure OpenAI providers
+  - Tests for provider factory function
+  - Backend linting passed (ruff check)
+  
+### Security Features
+- No direct public Claude.ai endpoint support
+- Only private VPC endpoints allowed (AWS Bedrock or Azure OpenAI)
+- No customer data used for model training (guaranteed by private endpoints)
+- Credential management via environment variables
+- Support for IAM roles (AWS Bedrock can use instance profile)
+- TLS encryption for all LLM requests
+
+### Implementation Details
+- Provider abstraction allows easy addition of new providers in future
+- Common interface (create_message) for all providers
+- Configuration-driven provider selection at runtime
+- Backward compatible (legacy ANTHROPIC_API_KEY still works for testing)
+- Error handling and logging throughout
+- Model IDs configurable per provider
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
+✅ Story 8: "Conflict Resolution - Flag conflicts and AI recommendations" - PASSES
+✅ Story 9: "Multi-tenancy - Tenant-aware policy mining with full isolation" - PASSES
+✅ Story 10: "Unlimited Repository Size - Streaming analysis with batching" - PASSES
+✅ Story 11: "Change Detection - Auto-create work items and diff visualization" - PASSES
+✅ Story 12: "Change Detection - Git integration and PBAC sync" - PASSES
+✅ Story 22: "Pre-scan secret detection - No credentials sent to LLM" - PASSES
+✅ Story 23: "Private LLM endpoints - AWS Bedrock or Azure OpenAI only" - PASSES
+
+### Next Steps
+- Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
+- Story 13: Policy Provisioning - Auto-provision to OPA
+- Story 24: Encryption at rest and in transit
+

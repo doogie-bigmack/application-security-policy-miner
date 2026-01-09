@@ -38,9 +38,20 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # AI/LLM
-    ANTHROPIC_API_KEY: str = ""
+    LLM_PROVIDER: str = "aws_bedrock"  # Options: aws_bedrock, azure_openai
+    ANTHROPIC_API_KEY: str = ""  # Legacy - only used for direct Anthropic (not recommended)
+
+    # AWS Bedrock Configuration
     AWS_BEDROCK_REGION: str = "us-east-1"
+    AWS_BEDROCK_MODEL_ID: str = "anthropic.claude-sonnet-4-20250514-v1:0"
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+
+    # Azure OpenAI Configuration
     AZURE_OPENAI_ENDPOINT: str = ""
+    AZURE_OPENAI_API_KEY: str = ""
+    AZURE_OPENAI_DEPLOYMENT_NAME: str = "claude-sonnet-4"
+    AZURE_OPENAI_API_VERSION: str = "2024-10-01-preview"
 
     # Scanning
     BATCH_SIZE: int = 50

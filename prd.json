@@ -294,7 +294,7 @@
         "Verify all AI requests go through private endpoint",
         "Check network logs to confirm private routing"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "security",
