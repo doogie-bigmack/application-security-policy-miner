@@ -902,6 +902,17 @@ class ScannerService:
 
             self.db.commit()
 
+            # Generate embeddings for policies
+            from app.services.similarity_service import similarity_service
+            for policy in policies:
+                try:
+                    embedding = similarity_service.generate_embedding(policy)
+                    policy.embedding = embedding
+                except Exception as e:
+                    logger.error(f"Failed to generate embedding for policy {policy.id}: {e}")
+
+            self.db.commit()
+
             # Validate evidence immediately after extraction
             from app.services.evidence_validation_service import EvidenceValidationService
             validation_service = EvidenceValidationService(self.db)

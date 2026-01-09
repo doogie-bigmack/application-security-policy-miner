@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit, Download, Wrench } from 'lucide-react'
+import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit, Download, Wrench, Link as LinkIcon } from 'lucide-react'
 import logger from '../lib/logger'
 import PolicyDetailModal from '../components/PolicyDetailModal'
 import SourceFileViewer from '../components/SourceFileViewer'
 import PolicyExportModal from '../components/PolicyExportModal'
+import SimilarPoliciesModal from '../components/SimilarPoliciesModal'
 
 interface Evidence {
   id: number
@@ -46,6 +47,7 @@ export default function PoliciesPage() {
   const [viewingSourceEvidenceId, setViewingSourceEvidenceId] = useState<number | null>(null)
   const [exportingPolicyId, setExportingPolicyId] = useState<number | null>(null)
   const [generatingAdvisory, setGeneratingAdvisory] = useState<number | null>(null)
+  const [viewingSimilarPolicyId, setViewingSimilarPolicyId] = useState<number | null>(null)
 
   const fetchPolicies = async (sourceType?: SourceType | 'all') => {
     try {
@@ -405,6 +407,13 @@ export default function PoliciesPage() {
                   <span>Export</span>
                 </button>
                 <button
+                  onClick={() => setViewingSimilarPolicyId(policy.id)}
+                  className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-sm inline-flex items-center space-x-2"
+                >
+                  <LinkIcon size={16} />
+                  <span>Find Similar</span>
+                </button>
+                <button
                   onClick={() => handleGenerateAdvisory(policy.id)}
                   disabled={generatingAdvisory === policy.id}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-sm inline-flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -459,6 +468,14 @@ export default function PoliciesPage() {
         <PolicyExportModal
           policyId={exportingPolicyId}
           onClose={() => setExportingPolicyId(null)}
+        />
+      )}
+
+      {/* Similar Policies Modal */}
+      {viewingSimilarPolicyId && (
+        <SimilarPoliciesModal
+          policyId={viewingSimilarPolicyId}
+          onClose={() => setViewingSimilarPolicyId(null)}
         />
       )}
     </div>

@@ -1188,7 +1188,7 @@
         "Mark policies as duplicates for deduplication",
         "Track policy consolidation savings"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }

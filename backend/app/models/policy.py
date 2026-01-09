@@ -2,6 +2,7 @@
 from datetime import UTC, datetime
 from enum import Enum
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import relationship
@@ -66,6 +67,7 @@ class Policy(Base):
     impact_score = Column(Float, nullable=True)
     confidence_score = Column(Float, nullable=True)
     historical_score = Column(Float, nullable=True)  # Historical change frequency score
+    embedding = Column(Vector(1536), nullable=True)  # Policy embedding for similarity search (1536 dims for Claude embeddings)
 
     # Status and metadata
     status = Column(SAEnum(PolicyStatus), default=PolicyStatus.PENDING)
