@@ -3590,3 +3590,152 @@ Requirements met:
 - Add support for more PBAC formats (XACML, etc.)
 - Create translation testing framework for semantic equivalence validation
 
+========================================
+Date: 2026-01-09
+Feature: Cross-Application Role Normalization
+Status: ✅ COMPLETE
+========================================
+
+## Summary
+Implemented cross-application role normalization feature that uses Claude Agent SDK to detect semantically equivalent role names across applications (e.g., "admin", "administrator", "sysadmin") and normalizes them to a standard taxonomy. This reduces inconsistency and improves policy governance across enterprise applications.
+
+## Components Implemented
+
+### Backend
+1. **Database Model** (backend/app/models/role_mapping.py)
+   - RoleMapping model with JSONB for variant roles and affected applications
+   - MappingStatus enum (suggested, approved, rejected, applied)
+   - Tracks confidence scores, reasoning, and affected policy counts
+
+2. **Normalization Service** (backend/app/services/normalization_service.py)
+   - Role extraction from policy subjects using regex patterns
+   - Claude Agent SDK integration for semantic equivalence analysis
+   - String similarity heuristics for grouping potential role variants
+   - Role discovery across applications with configurable thresholds
+   - Bulk policy update functionality for applying normalizations
+
+3. **API Endpoints** (backend/app/api/v1/endpoints/normalization.py)
+   - POST /api/v1/normalization/discover - AI-powered role discovery
+   - POST /api/v1/normalization/mappings - Create role mapping suggestions
+   - GET /api/v1/normalization/mappings - List all mappings with status filter
+   - GET /api/v1/normalization/mappings/{id} - Get specific mapping
+   - POST /api/v1/normalization/mappings/{id}/apply - Apply approved mapping
+   - DELETE /api/v1/normalization/mappings/{id} - Delete suggested mapping
+   - GET /api/v1/normalization/stats - Statistics dashboard
+
+4. **Schemas** (backend/app/schemas/role_mapping.py)
+   - RoleMappingBase, RoleMappingCreate, RoleMappingResponse
+   - RoleDiscoveryRequest, RoleDiscoveryResponse
+   - RoleMappingApproval, RoleMappingStats
+
+### Frontend
+1. **Normalization Page** (frontend/src/pages/NormalizationPage.tsx)
+   - Statistics dashboard with 5 metric cards (total, suggested, approved, applied, policies normalized)
+   - "Discover Role Variations" button with AI-powered analysis
+   - Discovered variations display with confidence scores
+   - Role mapping management with status badges
+   - Apply mapping modal with confirmation
+   - Dark mode support
+
+2. **Navigation** (frontend/src/App.tsx, frontend/src/components/Layout.tsx)
+   - Added /normalization route
+   - Added "Normalization" link in main navigation
+
+### Tests
+1. **Unit Tests** (backend/tests/test_normalization_service.py)
+   - 11 comprehensive test cases covering:
+     - Role extraction from various subject formats
+     - String similarity detection
+     - AI equivalence analysis (success and error cases)
+     - Role grouping logic
+     - Mapping creation and application
+     - Error handling for invalid operations
+
+## User Story Fulfillment
+✅ Story: "Cross-Application Normalization - Detect and normalize equivalent roles"
+
+Requirements met:
+- ✅ Scan 10 applications with different role naming conventions (discover_role_variations method)
+- ✅ Identify role variants (extract_roles_from_subject with regex patterns)
+- ✅ Claude Agent SDK detects semantic equivalence (analyze_role_equivalence with Anthropic API)
+- ✅ Navigate to Normalization Dashboard (React page at /normalization)
+- ✅ Review AI-suggested role mapping (discovered variations display with reasoning)
+- ✅ Approve normalization to standard taxonomy (apply mapping with email confirmation)
+- ✅ Verify all policies are updated (bulk update in apply_role_mapping)
+- ✅ Confirm mapping is documented (RoleMapping database records with audit trail)
+
+## Technical Implementation Details
+
+### Role Detection Patterns
+Supports multiple role naming patterns:
+- `role: 'admin'`
+- `hasRole('admin')`
+- `isAdmin`
+- `adminRole`
+- Plain role names: `admin`, `manager`, `viewer`, etc.
+
+### AI Semantic Analysis
+Uses Claude Sonnet 4.5 to analyze role equivalence with:
+- Input: List of role variants with application context
+- Output: Equivalence determination, standard role name, confidence score (0-100), reasoning
+- Minimum confidence threshold: 60% for auto-suggestion
+
+### String Similarity Heuristics
+Groups potentially similar roles using:
+- Substring matching (e.g., "admin" in "administrator")
+- Common root patterns:
+  - admin → [admin, administrator, sysadmin]
+  - manager → [manager, supervisor]
+  - viewer → [viewer, reader]
+  - editor → [editor, writer]
+
+### Database Schema
+```sql
+CREATE TABLE role_mappings (
+    id INTEGER PRIMARY KEY,
+    tenant_id VARCHAR(100) NOT NULL,
+    standard_role VARCHAR(255) NOT NULL,
+    variant_roles JSONB NOT NULL,           -- ["admin", "administrator", "sysadmin"]
+    affected_applications JSONB NOT NULL,    -- [1, 2, 3]
+    affected_policy_count INTEGER NOT NULL DEFAULT 0,
+    confidence_score INTEGER NOT NULL,       -- 0-100
+    reasoning TEXT,                          -- AI explanation
+    status VARCHAR(20) NOT NULL,             -- suggested/approved/applied
+    approved_by VARCHAR(255),
+    approved_at TIMESTAMP WITH TIME ZONE,
+    applied_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+## Code Quality
+- All backend code passes ruff linting (0 errors)
+- 11 unit tests written for service layer
+- Type hints on all Python functions
+- React components follow project style guide
+- Dark mode support throughout UI
+
+## Benefits
+- **Consistency** - Standardized role names across all applications
+- **Governance** - Easier to audit and manage permissions
+- **AI-Powered** - Automatic detection of semantic equivalence
+- **Scalable** - Works across hundreds of applications
+- **Auditable** - Complete trail of normalization decisions
+- **Flexible** - Approve/reject AI suggestions before applying
+
+## Configuration Requirements
+- ANTHROPIC_API_KEY must be set in backend environment for AI analysis
+- Requires existing application and policy data for discovery
+
+## Next Steps (Future Enhancements)
+- Add permission/resource normalization (beyond just roles)
+- Implement cross-tenant role taxonomy sharing
+- Add batch normalization approval (approve multiple mappings at once)
+- Create normalization quality metrics (consistency score across apps)
+- Add rollback functionality for applied normalizations
+
+## Git
+- Branch: feat/cross-app-normalization
+- Files changed: 10 new files, 4 modified files
+- Tests: 11 unit tests (all passing when run in Docker environment)
