@@ -1,4 +1,5 @@
 """Database models."""
+from app.models.application import Application, CriticalityLevel
 from app.models.audit_log import AuditEventType, AuditLog
 from app.models.auto_approval import AutoApprovalDecision, AutoApprovalSettings
 from app.models.code_advisory import AdvisoryStatus, CodeAdvisory
@@ -58,4 +59,6 @@ __all__ = [
     "Organization",
     "Division",
     "BusinessUnit",
+    "Application",
+    "CriticalityLevel",
 ]
