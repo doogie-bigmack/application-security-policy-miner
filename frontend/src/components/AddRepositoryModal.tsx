@@ -4,6 +4,7 @@ import logger from '../lib/logger'
 import GitHubRepositoryBrowser from './GitHubRepositoryBrowser'
 import GitLabRepositoryBrowser from './GitLabRepositoryBrowser'
 import BitbucketRepositoryBrowser from './BitbucketRepositoryBrowser'
+import AzureDevOpsRepositoryBrowser from './AzureDevOpsRepositoryBrowser'
 
 interface AddRepositoryModalProps {
   isOpen: boolean
@@ -39,6 +40,9 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
 
   // Bitbucket browser state
   const [showBitbucketBrowser, setShowBitbucketBrowser] = useState(false)
+
+  // Azure DevOps browser state
+  const [showAzureDevOpsBrowser, setShowAzureDevOpsBrowser] = useState(false)
 
   if (!isOpen) return null
 
@@ -307,6 +311,68 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
     }
   }
 
+  const handleAzureDevOpsRepositorySelect = async (repo: any, organization: string, accessToken: string) => {
+    logger.info('Azure DevOps repository selected', { repo: repo.full_name })
+
+    setShowAzureDevOpsBrowser(false)
+
+    // Pre-fill the form with Azure DevOps repository data
+    setName(repo.name)
+    setDescription(repo.description || '')
+    setGitUrl(repo.clone_url)
+    setAuthType('token')
+    setToken(accessToken)
+    setSourceType('git')
+
+    // Auto-submit the form
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/v1/repositories/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: repo.name,
+          description: repo.description || '',
+          repository_type: 'git',
+          git_provider: 'azure-devops',
+          source_url: repo.clone_url,
+          connection_config: {
+            token: accessToken,
+            organization: organization,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to create repository')
+      }
+
+      const data = await response.json()
+      logger.info('Azure DevOps repository imported successfully', { repositoryId: data.id })
+
+      // Reset form
+      setName('')
+      setDescription('')
+      setGitUrl('')
+      setAuthType('none')
+      setToken('')
+
+      onSuccess()
+      onClose()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      logger.error('Failed to import Azure DevOps repository', { error: errorMessage })
+      setError(errorMessage)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-2xl mx-4">
@@ -386,7 +452,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
             <>
               {/* Git Integration Buttons */}
               <div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setShowGitHubBrowser(true)}
@@ -412,6 +478,16 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
                       <path d="M.778 1.211a.768.768 0 00-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 00.77-.646l3.27-20.03a.768.768 0 00-.768-.891zM14.52 15.528H9.522L8.17 8.464h7.561z"/>
                     </svg>
                     <span>Bitbucket</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAzureDevOpsBrowser(true)}
+                    className="px-4 py-3 bg-sky-600 dark:bg-sky-700 text-white rounded-lg hover:bg-sky-700 dark:hover:bg-sky-600 flex items-center justify-center space-x-2 transition"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M0 10.625v5.584l4.89 2.598V22l6.858-5.03L20.97 20v-7.5l-3.28-1.875V6.25L11.25 2v5.625l-6.36 3.594v5.156l6.36-3.594V8.438L17.69 11.25v5.156l-6.36 3.594V14.844L4.89 12.25V8.438L11.25 11.844V6.25L4.89 2.5V6.25L0 10.625z"/>
+                    </svg>
+                    <span>Azure DevOps</span>
                   </button>
                 </div>
                 <p className="mt-2 text-sm text-gray-600 dark:text-dark-text-secondary text-center">
@@ -694,6 +770,14 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
         <BitbucketRepositoryBrowser
           onSelectRepository={handleBitbucketRepositorySelect}
           onClose={() => setShowBitbucketBrowser(false)}
+        />
+      )}
+
+      {/* Azure DevOps Repository Browser */}
+      {showAzureDevOpsBrowser && (
+        <AzureDevOpsRepositoryBrowser
+          onSelectRepository={handleAzureDevOpsRepositorySelect}
+          onClose={() => setShowAzureDevOpsBrowser(false)}
         />
       )}
     </div>

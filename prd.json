@@ -623,7 +623,7 @@
         "Verify repository accessible",
         "Initiate scan on Azure DevOps repository"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "quality",

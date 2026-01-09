@@ -275,7 +275,7 @@ class ScannerService:
                     for file_info in current_batch:
                         try:
                             policies = await self._extract_policies_from_file(
-                                repo, file_info["path"], file_info["content"], file_info["matches"]
+                                repo, file_info["path"], file_info["content"], file_info["matches"], repo_path
                             )
                             policies_created += len(policies)
 
@@ -316,7 +316,7 @@ class ScannerService:
                 for file_info in current_batch:
                     try:
                         policies = await self._extract_policies_from_file(
-                            repo, file_info["path"], file_info["content"], file_info["matches"]
+                            repo, file_info["path"], file_info["content"], file_info["matches"], repo_path
                         )
                         policies_created += len(policies)
 
@@ -831,7 +831,7 @@ class ScannerService:
         return auth_files
 
     async def _extract_policies_from_file(
-        self, repo: Repository, file_path: str, content: str, matches: list[dict]
+        self, repo: Repository, file_path: str, content: str, matches: list[dict], repo_path: Path
     ) -> list[Policy]:
         """Extract policies from a file using Claude AI.
 
@@ -840,6 +840,7 @@ class ScannerService:
             file_path: Path to the file
             content: File content (should already be redacted)
             matches: Authorization pattern matches
+            repo_path: Path to the repository root (for evidence validation)
 
         Returns:
             List of created Policy objects

@@ -14,6 +14,7 @@ from app.schemas.repository import (
     RepositoryResponse,
     RepositoryUpdate,
 )
+from app.services.azure_devops_service import AzureDevOpsService
 from app.services.bitbucket_service import BitbucketService
 from app.services.evidence_validation_service import EvidenceValidationService
 from app.services.github_service import GitHubService
@@ -443,4 +444,115 @@ async def verify_bitbucket_credentials(
         raise HTTPException(
             status_code=401,
             detail="Invalid Bitbucket credentials",
+        )
+
+
+@router.post("/azure-devops/list")
+async def list_azure_devops_repositories(
+    access_token: str = Query(..., description="Azure DevOps Personal Access Token (PAT)"),
+    organization: str = Query(..., description="Azure DevOps organization name"),
+    project: str | None = Query(None, description="Optional project name to filter repositories"),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(100, ge=1, le=100, description="Results per page"),
+) -> dict:
+    """
+    List Azure DevOps repositories accessible to the user.
+
+    Requires an Azure DevOps Personal Access Token (PAT) with 'Code (Read)' scope.
+    Create one at: https://dev.azure.com/{organization}/_usersSettings/tokens
+
+    Args:
+        access_token: Azure DevOps Personal Access Token
+        organization: Azure DevOps organization name
+        project: Optional project name to filter repositories
+        page: Page number (default: 1)
+        per_page: Results per page (default: 100, max: 100)
+
+    Returns:
+        List of Azure DevOps repositories with metadata
+    """
+    logger.info(
+        "api_list_azure_devops_repositories",
+        page=page,
+        per_page=per_page,
+        organization=organization,
+        project=project,
+    )
+
+    try:
+        azure_service = AzureDevOpsService(access_token, organization)
+        result = await azure_service.list_repositories(project=project, per_page=per_page, page=page)
+
+        logger.info("azure_devops_repositories_listed", count=result.get("total"))
+        return result
+
+    except Exception as e:
+        logger.error("failed_to_list_azure_devops_repositories", error=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to fetch Azure DevOps repositories: {str(e)}",
+        )
+
+
+@router.post("/azure-devops/verify")
+async def verify_azure_devops_token(
+    access_token: str = Query(..., description="Azure DevOps Personal Access Token (PAT)"),
+    organization: str = Query(..., description="Azure DevOps organization name"),
+) -> dict:
+    """
+    Verify Azure DevOps access token and get user information.
+
+    Args:
+        access_token: Azure DevOps Personal Access Token
+        organization: Azure DevOps organization name
+
+    Returns:
+        User information if token is valid
+    """
+    logger.info("api_verify_azure_devops_token", organization=organization)
+
+    try:
+        azure_service = AzureDevOpsService(access_token, organization)
+        user_info = await azure_service.verify_access()
+
+        logger.info("azure_devops_token_verified", user=user_info.get("name"))
+        return user_info
+
+    except Exception as e:
+        logger.error("azure_devops_token_verification_failed", error=str(e))
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Azure DevOps access token",
+        )
+
+
+@router.post("/azure-devops/projects")
+async def list_azure_devops_projects(
+    access_token: str = Query(..., description="Azure DevOps Personal Access Token (PAT)"),
+    organization: str = Query(..., description="Azure DevOps organization name"),
+) -> dict:
+    """
+    List all projects in an Azure DevOps organization.
+
+    Args:
+        access_token: Azure DevOps Personal Access Token
+        organization: Azure DevOps organization name
+
+    Returns:
+        List of projects in the organization
+    """
+    logger.info("api_list_azure_devops_projects", organization=organization)
+
+    try:
+        azure_service = AzureDevOpsService(access_token, organization)
+        result = await azure_service.list_projects()
+
+        logger.info("azure_devops_projects_listed", count=result.get("total"))
+        return result
+
+    except Exception as e:
+        logger.error("failed_to_list_azure_devops_projects", error=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to fetch Azure DevOps projects: {str(e)}",
         )
