@@ -1227,3 +1227,66 @@
 - Story 30: Support JavaScript/TypeScript scanning
 - Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
 - Story 13: Policy Provisioning - Auto-provision to OPA
+
+## 2026-01-08 - JavaScript/TypeScript Language Scanning with Tree-Sitter Complete
+
+### Completed
+- Backend JavaScript/TypeScript scanner service:
+  - Created JavaScriptScannerService using tree-sitter-languages package
+  - Supports detection of NestJS authorization decorators (@UseGuards, @Roles, @Public, @RequireAuth, etc.)
+  - Supports detection of Express.js middleware patterns (requireAuth, checkRole, isAuthenticated, etc.)
+  - Detects authorization method calls (hasRole, hasPermission, canAccess, req.user, req.isAuthenticated, etc.)
+  - Detects authorization conditionals in if-statements (React components, backend logic)
+  - Accurate line number tracking for all detected patterns
+  - Context extraction around authorization code
+
+- Backend scanner integration:
+  - Integrated JavaScriptScannerService into main ScannerService
+  - JavaScript/TypeScript files (.js, .ts, .jsx, .tsx) automatically routed to JS-specific scanner
+  - Enhanced AI prompts with JavaScript-specific context from tree-sitter analysis
+  - Tree-sitter AST traversal for decorator, middleware, method call, and conditional detection
+
+- Testing:
+  - Created 10 comprehensive unit tests for JavaScriptScannerService
+  - All 10 tests passing ✅
+  - Tests cover: NestJS decorators, Express middleware, React authorization patterns, method calls, conditionals, line numbers, prompt enhancement
+  - Created 4 integration tests with real JavaScript/TypeScript repository
+  - All 4 integration tests passing ✅
+  - Tests verify end-to-end JavaScript code analysis with Express.js, NestJS, and React patterns
+
+### Implementation Details
+- Tree-sitter parser initialized once per JavaScriptScannerService instance
+- AST traversal extracts detailed authorization context
+- Decorators detected via decorator nodes (TypeScript/NestJS)
+- Middleware detected via call_expression nodes with middleware patterns
+- Method calls detected via call_expression nodes with authorization methods
+- Conditionals detected via if_statement nodes with authorization keywords
+- Enhanced prompts include JavaScript-specific context (Express.js, NestJS, React, method calls)
+- Full integration with existing scanner batching and progress tracking
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
+✅ Story 8: "Conflict Resolution - Flag conflicts and AI recommendations" - PASSES
+✅ Story 9: "Multi-tenancy - Tenant-aware policy mining with full isolation" - PASSES
+✅ Story 10: "Unlimited Repository Size - Streaming analysis with batching" - PASSES
+✅ Story 11: "Change Detection - Auto-create work items and diff visualization" - PASSES
+✅ Story 12: "Change Detection - Git integration and PBAC sync" - PASSES
+✅ Story 22: "Pre-scan secret detection - No credentials sent to LLM" - PASSES
+✅ Story 23: "Private LLM endpoints - AWS Bedrock or Azure OpenAI only" - PASSES
+✅ Story 24: "Encryption at rest and in transit" - PASSES
+✅ Story 25: "Full audit logging - All prompts, responses, decisions" - PASSES
+✅ Story 26: "Evidence-based output - Quote exact code lines" - PASSES
+✅ Story 27: "Support Java language scanning with tree-sitter" - PASSES
+✅ Story 28: "Support C#/.NET language scanning with tree-sitter" - PASSES
+✅ Story 29: "Support Python language scanning" - PASSES
+✅ Story 30: "Support JavaScript/TypeScript scanning" - PASSES
+
+### Next Steps
+- Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
+- Story 13: Policy Provisioning - Auto-provision to OPA
+- Story 31+: Database stored procedure analysis

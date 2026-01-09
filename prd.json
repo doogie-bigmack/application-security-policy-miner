@@ -398,7 +398,7 @@
         "Verify Express.js, NestJS middleware detected",
         "Check evidence includes JS/TS code snippets"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "technical",
