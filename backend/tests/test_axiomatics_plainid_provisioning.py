@@ -7,20 +7,21 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.models.audit_log import AuditLog  # noqa: F401
+from app.models.conflict import PolicyConflict  # noqa: F401
+
 # Import all models to ensure they're registered with SQLAlchemy
 from app.models.policy import Policy  # noqa: F401
+from app.models.policy_change import PolicyChange, WorkItem  # noqa: F401
 from app.models.provisioning import (
     PBACProvider,
     ProviderType,
     ProvisioningStatus,
 )
 from app.models.repository import Base, Repository  # noqa: F401
+from app.models.scan_progress import ScanProgress  # noqa: F401
 from app.models.secret_detection import SecretDetectionLog  # noqa: F401
 from app.models.tenant import Tenant  # noqa: F401
-from app.models.scan_progress import ScanProgress  # noqa: F401
-from app.models.policy_change import PolicyChange, WorkItem  # noqa: F401
-from app.models.conflict import PolicyConflict  # noqa: F401
-from app.models.audit_log import AuditLog  # noqa: F401
 from app.services.provisioning_service import ProvisioningService
 
 

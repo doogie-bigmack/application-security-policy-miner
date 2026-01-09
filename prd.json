@@ -236,7 +236,7 @@
         "Verify suggested code calls PBAC platform instead of inline checks",
         "Download or apply suggested changes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit, Download } from 'lucide-react'
+import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit, Download, Wrench } from 'lucide-react'
 import logger from '../lib/logger'
 import PolicyDetailModal from '../components/PolicyDetailModal'
 import SourceFileViewer from '../components/SourceFileViewer'
@@ -45,6 +45,7 @@ export default function PoliciesPage() {
   const [expandedRiskPolicy, setExpandedRiskPolicy] = useState<number | null>(null)
   const [viewingSourceEvidenceId, setViewingSourceEvidenceId] = useState<number | null>(null)
   const [exportingPolicyId, setExportingPolicyId] = useState<number | null>(null)
+  const [generatingAdvisory, setGeneratingAdvisory] = useState<number | null>(null)
 
   const fetchPolicies = async (sourceType?: SourceType | 'all') => {
     try {
@@ -159,6 +160,32 @@ export default function PoliciesPage() {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
       logger.error('Failed to reject policy', { error: errorMessage })
       alert(`Failed to reject policy: ${errorMessage}`)
+    }
+  }
+
+  const handleGenerateAdvisory = async (policyId: number) => {
+    try {
+      setGeneratingAdvisory(policyId)
+      const response = await fetch('/api/v1/code-advisories/generate/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ policy_id: policyId, target_platform: 'OPA' }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'Failed to generate advisory')
+      }
+
+      const advisory = await response.json()
+      logger.info('Advisory generated', { advisoryId: advisory.id, policyId })
+      alert('Code advisory generated successfully! Check the Code Advisories page to view it.')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      logger.error('Failed to generate advisory', { error: errorMessage, policyId })
+      alert(`Failed to generate advisory: ${errorMessage}`)
+    } finally {
+      setGeneratingAdvisory(null)
     }
   }
 
@@ -376,6 +403,14 @@ export default function PoliciesPage() {
                 >
                   <Download size={16} />
                   <span>Export</span>
+                </button>
+                <button
+                  onClick={() => handleGenerateAdvisory(policy.id)}
+                  disabled={generatingAdvisory === policy.id}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-sm inline-flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Wrench size={16} />
+                  <span>{generatingAdvisory === policy.id ? 'Generating...' : 'Generate Advisory'}</span>
                 </button>
                 {policy.status === 'pending' && (
                   <>
