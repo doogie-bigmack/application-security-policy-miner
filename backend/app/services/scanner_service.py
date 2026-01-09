@@ -236,6 +236,19 @@ class ScannerService:
                 f"extracted {policies_created} policies, {errors_count} errors"
             )
 
+            # Detect changes if this is not the first scan
+            changes_detected = 0
+            if repo.last_scan_at is not None:
+                try:
+                    from app.services.change_detection_service import ChangeDetectionService
+
+                    change_service = ChangeDetectionService(self.db, settings.ANTHROPIC_API_KEY)
+                    changes = change_service.detect_changes(repo.id, repo.tenant_id)
+                    changes_detected = len(changes)
+                    logger.info(f"Change detection: found {changes_detected} policy changes")
+                except Exception as e:
+                    logger.error(f"Error detecting changes: {e}")
+
             return {
                 "status": "completed",
                 "scan_id": scan_progress.id,
@@ -243,6 +256,7 @@ class ScannerService:
                 "policies_extracted": policies_created,
                 "errors_count": errors_count,
                 "batches_processed": total_batches,
+                "changes_detected": changes_detected,
             }
 
         except Exception as e:
