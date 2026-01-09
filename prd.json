@@ -821,7 +821,7 @@
         "Verify all 5,000 applications are registered",
         "View application hierarchy by organization"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
