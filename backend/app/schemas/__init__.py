@@ -7,6 +7,14 @@ from app.schemas.policy_change import (
     WorkItemCreate,
     WorkItemUpdate,
 )
+from app.schemas.provisioning import (
+    BulkProvisioningRequest,
+    PBACProvider,
+    PBACProviderCreate,
+    PBACProviderUpdate,
+    ProvisioningOperation,
+    ProvisioningOperationCreate,
+)
 
 __all__ = [
     "Evidence",
@@ -19,4 +27,10 @@ __all__ = [
     "WorkItem",
     "WorkItemCreate",
     "WorkItemUpdate",
+    "PBACProvider",
+    "PBACProviderCreate",
+    "PBACProviderUpdate",
+    "ProvisioningOperation",
+    "ProvisioningOperationCreate",
+    "BulkProvisioningRequest",
 ]

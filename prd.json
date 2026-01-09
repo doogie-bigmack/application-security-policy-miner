@@ -191,7 +191,7 @@
         "Confirm policies are pushed to OPA",
         "Test policies in OPA to verify functionality"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

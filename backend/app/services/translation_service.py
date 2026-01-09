@@ -1,0 +1,243 @@
+"""Policy translation service for converting policies to various PBAC formats."""
+
+import json
+
+import structlog
+
+from app.models.policy import Policy
+from app.services.llm_provider import get_llm_provider
+
+logger = structlog.get_logger(__name__)
+
+
+class TranslationService:
+    """Service for translating policies to PBAC platform formats."""
+
+    def __init__(self):
+        """Initialize the translation service."""
+        self.llm_provider = get_llm_provider()
+
+    async def translate_to_rego(self, policy: Policy) -> str:
+        """
+        Translate a policy to OPA Rego format using Claude Agent SDK.
+
+        Args:
+            policy: The policy to translate
+
+        Returns:
+            str: The translated Rego policy
+
+        Raises:
+            ValueError: If translation fails
+        """
+        logger.info("translating_policy_to_rego", policy_id=policy.policy_id)
+
+        # Build the prompt for Claude
+        prompt = self._build_rego_translation_prompt(policy)
+
+        try:
+            # Call Claude Agent SDK via LLM provider
+            response = self.llm_provider.create_message(
+                max_tokens=2000,
+                messages=[{"role": "user", "content": prompt}],
+            )
+
+            # Extract the Rego policy from the response
+            rego_policy = self._extract_rego_from_response(response.content[0].text)
+
+            logger.info(
+                "translation_successful",
+                policy_id=policy.policy_id,
+                rego_length=len(rego_policy),
+            )
+
+            return rego_policy
+
+        except Exception as e:
+            logger.error(
+                "translation_failed",
+                policy_id=policy.policy_id,
+                error=str(e),
+            )
+            raise ValueError(f"Failed to translate policy to Rego: {e}") from e
+
+    async def translate_to_cedar(self, policy: Policy) -> str:
+        """
+        Translate a policy to AWS Cedar format using Claude Agent SDK.
+
+        Args:
+            policy: The policy to translate
+
+        Returns:
+            str: The translated Cedar policy
+
+        Raises:
+            ValueError: If translation fails
+        """
+        logger.info("translating_policy_to_cedar", policy_id=policy.policy_id)
+
+        prompt = self._build_cedar_translation_prompt(policy)
+
+        try:
+            response = self.llm_provider.create_message(
+                max_tokens=2000,
+                messages=[{"role": "user", "content": prompt}],
+            )
+
+            cedar_policy = self._extract_cedar_from_response(response.content[0].text)
+
+            logger.info(
+                "translation_successful",
+                policy_id=policy.policy_id,
+                cedar_length=len(cedar_policy),
+            )
+
+            return cedar_policy
+
+        except Exception as e:
+            logger.error(
+                "translation_failed",
+                policy_id=policy.policy_id,
+                error=str(e),
+            )
+            raise ValueError(f"Failed to translate policy to Cedar: {e}") from e
+
+    async def translate_to_json(self, policy: Policy) -> str:
+        """
+        Translate a policy to custom JSON format.
+
+        Args:
+            policy: The policy to translate
+
+        Returns:
+            str: The translated JSON policy
+
+        Raises:
+            ValueError: If translation fails
+        """
+        logger.info("translating_policy_to_json", policy_id=policy.policy_id)
+
+        # For JSON, we can use a simple structured format
+        json_policy = {
+            "subject": policy.subject,
+            "resource": policy.resource,
+            "action": policy.action,
+            "conditions": policy.conditions,
+            "description": policy.description,
+            "source_type": policy.source_type.value if policy.source_type else "unknown",
+        }
+
+        return json.dumps(json_policy, indent=2)
+
+    def _build_rego_translation_prompt(self, policy: Policy) -> str:
+        """Build the prompt for Rego translation."""
+        return f"""You are an expert in translating authorization policies to OPA Rego format.
+
+Given the following authorization policy extracted from code:
+
+**Subject (Who):** {policy.subject}
+**Resource (What):** {policy.resource}
+**Action (How):** {policy.action}
+**Conditions (When):** {policy.conditions}
+**Description:** {policy.description}
+
+**Task:** Translate this policy into a valid OPA Rego policy.
+
+**Requirements:**
+1. Use package name: `package authz`
+2. Create an `allow` rule that grants access when all conditions are met
+3. Include comments explaining the policy logic
+4. Use semantic intent - preserve the WHO/WHAT/HOW/WHEN logic
+5. Return ONLY the Rego policy code, no explanations before or after
+
+**Example Rego Format:**
+```rego
+package authz
+
+# Allow managers to approve expenses under $5000
+allow {{
+    input.user.role == "manager"
+    input.resource.type == "expense"
+    input.action == "approve"
+    input.resource.amount < 5000
+}}
+```
+
+Translate the policy above to Rego format:
+"""
+
+    def _build_cedar_translation_prompt(self, policy: Policy) -> str:
+        """Build the prompt for Cedar translation."""
+        return f"""You are an expert in translating authorization policies to AWS Cedar format.
+
+Given the following authorization policy extracted from code:
+
+**Subject (Who):** {policy.subject}
+**Resource (What):** {policy.resource}
+**Action (How):** {policy.action}
+**Conditions (When):** {policy.conditions}
+**Description:** {policy.description}
+
+**Task:** Translate this policy into a valid AWS Cedar policy.
+
+**Requirements:**
+1. Use permit/forbid statements
+2. Define principal, action, and resource
+3. Include when clauses for conditions
+4. Preserve the WHO/WHAT/HOW/WHEN logic
+5. Return ONLY the Cedar policy code, no explanations before or after
+
+**Example Cedar Format:**
+```cedar
+permit (
+    principal in Role::"manager",
+    action == Action::"approve",
+    resource in ResourceType::"expense"
+)
+when {{
+    resource.amount < 5000
+}};
+```
+
+Translate the policy above to Cedar format:
+"""
+
+    def _extract_rego_from_response(self, response_text: str) -> str:
+        """Extract Rego policy from Claude's response."""
+        # Remove markdown code blocks if present
+        text = response_text.strip()
+
+        # Find code block
+        if "```rego" in text:
+            start = text.find("```rego") + len("```rego")
+            end = text.find("```", start)
+            if end != -1:
+                return text[start:end].strip()
+
+        if "```" in text:
+            start = text.find("```") + 3
+            end = text.find("```", start)
+            if end != -1:
+                return text[start:end].strip()
+
+        # If no code blocks, return the whole response (assuming it's pure Rego)
+        return text
+
+    def _extract_cedar_from_response(self, response_text: str) -> str:
+        """Extract Cedar policy from Claude's response."""
+        text = response_text.strip()
+
+        # Find code block
+        if "```cedar" in text:
+            start = text.find("```cedar") + len("```cedar")
+            end = text.find("```", start)
+            if end != -1:
+                return text[start:end].strip()
+
+        if "```" in text:
+            start = text.find("```") + 3
+            end = text.find("```", start)
+            if end != -1:
+                return text[start:end].strip()
+
+        return text

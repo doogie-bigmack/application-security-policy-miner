@@ -1,7 +1,15 @@
 """API v1 router."""
 from fastapi import APIRouter
 
-from app.api.v1 import auth, changes, conflicts, scan_progress, security_audit, webhooks
+from app.api.v1 import (
+    auth,
+    changes,
+    conflicts,
+    provisioning,
+    scan_progress,
+    security_audit,
+    webhooks,
+)
 from app.api.v1.endpoints import audit_logs, policies, repositories, secrets
 
 api_router = APIRouter()
@@ -17,3 +25,4 @@ api_router.include_router(secrets.router, prefix="/secrets", tags=["secrets"])
 api_router.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 api_router.include_router(security_audit.router, prefix="/security", tags=["security"])
 api_router.include_router(audit_logs.router, prefix="/audit-logs", tags=["audit-logs"])
+api_router.include_router(provisioning.router, prefix="/provisioning", tags=["provisioning"])

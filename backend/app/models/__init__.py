@@ -9,6 +9,12 @@ from app.models.policy_change import (
     WorkItemPriority,
     WorkItemStatus,
 )
+from app.models.provisioning import (
+    PBACProvider,
+    ProviderType,
+    ProvisioningOperation,
+    ProvisioningStatus,
+)
 from app.models.repository import DatabaseType, Repository, RepositoryStatus, RepositoryType
 from app.models.scan_progress import ScanProgress, ScanStatus
 from app.models.tenant import Tenant
@@ -38,4 +44,8 @@ __all__ = [
     "WorkItemPriority",
     "AuditLog",
     "AuditEventType",
+    "PBACProvider",
+    "ProviderType",
+    "ProvisioningOperation",
+    "ProvisioningStatus",
 ]
