@@ -86,6 +86,9 @@ class TranslationService:
 
             cedar_policy = self._extract_cedar_from_response(response.content[0].text)
 
+            # Validate the Cedar policy structure
+            self._validate_cedar_policy(cedar_policy)
+
             logger.info(
                 "translation_successful",
                 policy_id=policy.policy_id,
@@ -241,3 +244,37 @@ Translate the policy above to Cedar format:
                 return text[start:end].strip()
 
         return text
+
+    def _validate_cedar_policy(self, cedar_policy: str) -> None:
+        """
+        Validate that the Cedar policy has basic structural correctness.
+
+        Args:
+            cedar_policy: The Cedar policy to validate
+
+        Raises:
+            ValueError: If policy is invalid
+        """
+        policy_lower = cedar_policy.lower()
+
+        # Check for permit or forbid statement
+        if "permit" not in policy_lower and "forbid" not in policy_lower:
+            raise ValueError("Cedar policy must contain 'permit' or 'forbid' statement")
+
+        # Check for principal
+        if "principal" not in policy_lower:
+            raise ValueError("Cedar policy must define 'principal'")
+
+        # Check for action
+        if "action" not in policy_lower:
+            raise ValueError("Cedar policy must define 'action'")
+
+        # Check for resource
+        if "resource" not in policy_lower:
+            raise ValueError("Cedar policy must define 'resource'")
+
+        # Check for statement terminator (semicolon)
+        if not cedar_policy.rstrip().endswith(";"):
+            raise ValueError("Cedar policy must end with semicolon")
+
+        logger.debug("cedar_policy_validation_passed", policy_length=len(cedar_policy))

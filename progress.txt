@@ -1403,7 +1403,77 @@
 ✅ Story 29: "Support Python language scanning" - PASSES
 ✅ Story 30: "Support JavaScript/TypeScript scanning" - PASSES
 
+## 2026-01-08 - AWS Verified Permissions Provisioning Complete
+
+### Completed
+- Backend AWS Verified Permissions integration:
+  - Implemented _push_to_aws_verified_permissions() method in ProvisioningService
+  - Uses boto3 client for AWS Verified Permissions API
+  - Supports both explicit credentials (aws_access_key_id, aws_secret_access_key) and IAM role/profile
+  - Region configured via endpoint_url field
+  - Policy store ID configured in JSON configuration field
+  - Creates or updates policies using create_policy / update_policy APIs
+  - Automatic policy translation to Cedar format via TranslationService
+
+- Cedar policy validation:
+  - Added _validate_cedar_policy() method to TranslationService
+  - Validates presence of permit/forbid statement
+  - Validates principal, action, and resource definitions
+  - Validates semicolon terminator
+  - Provides clear error messages for validation failures
+
+- Frontend AWS configuration improvements:
+  - Updated ProvisioningPage with dynamic labels for AWS provider
+  - Shows "AWS Region" instead of "Endpoint URL" for AWS provider type
+  - Added Configuration textarea field with JSON placeholder
+  - Shows help text for AWS-specific configuration (policy_store_id, credentials)
+  - Placeholder example: {"policy_store_id": "PSEXAMPLEabcdefg12345"}
+
+- Testing:
+  - Created 10 comprehensive unit tests for AWS Verified Permissions
+  - Tests cover: explicit credentials, IAM role, missing policy_store_id, API errors, bulk provisioning
+  - Created 5 unit tests for Cedar policy validation
+  - Tests cover: valid policy, missing permit/forbid, missing principal, missing semicolon
+  - All tests passing ✅
+  - Backend linting passed (ruff check --fix)
+
+- Bug fixes:
+  - Fixed missing import in test_python_integration.py (added Policy import)
+
+### Implementation Details
+- AWS Verified Permissions client initialized with region and optional credentials
+- Policy definition uses "static" type with Cedar statement
+- Try update first, fallback to create if ResourceNotFoundException
+- Client token ensures idempotent create operations
+- Configuration JSON format: {"policy_store_id": "...", "aws_access_key_id": "...", "aws_secret_access_key": "..."}
+- Provider selection dropdown already had AWS option (no changes needed)
+- Provider type badge shows amber color for AWS (already configured)
+- Full tenant isolation maintained
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
+✅ Story 8: "Conflict Resolution - Flag conflicts and AI recommendations" - PASSES
+✅ Story 9: "Multi-tenancy - Tenant-aware policy mining with full isolation" - PASSES
+✅ Story 10: "Unlimited Repository Size - Streaming analysis with batching" - PASSES
+✅ Story 11: "Change Detection - Auto-create work items and diff visualization" - PASSES
+✅ Story 12: "Change Detection - Git integration and PBAC sync" - PASSES
+✅ Story 13: "Policy Provisioning - Auto-provision to OPA" - PASSES
+✅ Story 14: "Policy Provisioning - Auto-provision to AWS Verified Permissions" - PASSES
+✅ Story 22: "Pre-scan secret detection - No credentials sent to LLM" - PASSES
+✅ Story 23: "Private LLM endpoints - AWS Bedrock or Azure OpenAI only" - PASSES
+✅ Story 24: "Encryption at rest and in transit" - PASSES
+✅ Story 25: "Full audit logging - All prompts, responses, decisions" - PASSES
+✅ Story 26: "Evidence-based output - Quote exact code lines" - PASSES
+✅ Story 27: "Support Java language scanning with tree-sitter" - PASSES
+✅ Story 28: "Support C#/.NET language scanning with tree-sitter" - PASSES
+✅ Story 29: "Support Python language scanning" - PASSES
+✅ Story 30: "Support JavaScript/TypeScript scanning" - PASSES
+
 ### Next Steps
 - Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
-- Story 14: Policy Provisioning - Auto-provision to AWS Verified Permissions
 - Story 15: Policy Provisioning - Auto-provision to Axiomatics/PlainID
