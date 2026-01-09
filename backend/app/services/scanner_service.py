@@ -17,6 +17,7 @@ from app.models.secret_detection import SecretDetectionLog
 from app.services.audit_service import AuditService
 from app.services.csharp_scanner_service import CSharpScannerService
 from app.services.java_scanner_service import JavaScannerService
+from app.services.javascript_scanner import JavaScriptScannerService
 from app.services.llm_provider import get_llm_provider
 from app.services.python_scanner_service import PythonScannerService
 from app.services.risk_scoring_service import RiskScoringService
@@ -80,6 +81,7 @@ class ScannerService:
         self.java_scanner = JavaScannerService()
         self.csharp_scanner = CSharpScannerService()
         self.python_scanner = PythonScannerService()
+        self.javascript_scanner = JavaScriptScannerService()
 
     def _classify_source_type(self, file_path: str, content: str) -> SourceType:
         """Classify whether code is frontend, backend, or database.
@@ -425,8 +427,51 @@ class ScannerService:
                         ]
                     else:
                         matches = []
+                # Use JavaScript-specific scanner for .js/.ts/.jsx/.tsx files
+                elif file_path.endswith((".js", ".ts", ".jsx", ".tsx")):
+                    patterns = self.javascript_scanner.analyze_file(content, str(relative_path))
+
+                    # Check if any authorization patterns were found
+                    if (patterns["decorators"] or patterns["middleware"] or
+                        patterns["method_calls"] or patterns["conditionals"]):
+                        # Convert to matches format
+                        matches = []
+
+                        for decorator in patterns["decorators"]:
+                            matches.append({
+                                "pattern": f"@{decorator['decorator']}",
+                                "line": decorator["line"],
+                                "text": decorator["context"],
+                                "javascript_detail": decorator,
+                            })
+
+                        for middleware in patterns["middleware"]:
+                            matches.append({
+                                "pattern": middleware["middleware"],
+                                "line": middleware["line"],
+                                "text": middleware["context"],
+                                "javascript_detail": middleware,
+                            })
+
+                        for method_call in patterns["method_calls"]:
+                            matches.append({
+                                "pattern": method_call["method"],
+                                "line": method_call["line"],
+                                "text": method_call["context"],
+                                "javascript_detail": method_call,
+                            })
+
+                        for conditional in patterns["conditionals"]:
+                            matches.append({
+                                "pattern": conditional["condition"],
+                                "line": conditional["line"],
+                                "text": conditional["context"],
+                                "javascript_detail": conditional,
+                            })
+                    else:
+                        matches = []
                 else:
-                    # Search for authorization patterns (non-Java/C# files)
+                    # Search for authorization patterns (other files)
                     matches = []
                     for pattern in AUTH_PATTERNS:
                         for match in re.finditer(pattern, content, re.IGNORECASE):
@@ -575,6 +620,11 @@ class ScannerService:
         if file_path.endswith(".py"):
             python_details = [m.get("python_detail") for m in matches if m.get("python_detail")]
 
+        # Check if this is a JavaScript/TypeScript file with tree-sitter details
+        javascript_details = []
+        if file_path.endswith((".js", ".ts", ".jsx", ".tsx")):
+            javascript_details = [m.get("javascript_detail") for m in matches if m.get("javascript_detail")]
+
         prompt = f"""You are a security policy extraction expert. Analyze the following code file and extract ALL authorization/access control policies.
 
 File: {file_path}
@@ -630,6 +680,12 @@ Return ONLY the JSON array, no other text."""
         # Enhance prompt with Python-specific context if available
         if python_details:
             prompt = self.python_scanner.enhance_prompt_with_python_context(prompt, python_details)
+
+        # Enhance prompt with JavaScript-specific context if available
+        if javascript_details or file_path.endswith((".js", ".ts", ".jsx", ".tsx")):
+            enhancement = self.javascript_scanner.enhance_prompt(content, file_path)
+            if enhancement:
+                prompt += enhancement
 
         return prompt
 
