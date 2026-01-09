@@ -14,6 +14,7 @@ from app.models.policy import Evidence, Policy, RiskLevel, SourceType
 from app.models.repository import Repository, RepositoryStatus
 from app.models.scan_progress import ScanProgress, ScanStatus
 from app.models.secret_detection import SecretDetectionLog
+from app.services.audit_service import AuditService
 from app.services.llm_provider import get_llm_provider
 from app.services.risk_scoring_service import RiskScoringService
 from app.services.secret_detection_service import SecretDetectionService
@@ -410,12 +411,46 @@ class ScannerService:
         # CRITICAL SECURITY CHECK: Validate no secrets in prompt before sending to LLM
         SecretDetectionService.validate_no_secrets_in_prompt(prompt, file_path)
 
+        # Log AI prompt to audit trail
+        import time
+        start_time = time.time()
+
+        AuditService.log_ai_prompt(
+            db=self.db,
+            tenant_id=repo.tenant_id,
+            prompt=prompt,
+            model=self.llm_provider.model_id if hasattr(self.llm_provider, 'model_id') else "unknown",
+            provider=settings.LLM_PROVIDER,
+            repository_id=repo.id,
+            additional_context={
+                "file_path": file_path,
+                "matches_count": len(matches),
+            },
+        )
+
         try:
             # Call LLM provider (AWS Bedrock or Azure OpenAI)
             response_text = self.llm_provider.create_message(
                 prompt=prompt,
                 max_tokens=4096,
                 temperature=0,
+            )
+
+            # Calculate response time
+            response_time_ms = int((time.time() - start_time) * 1000)
+
+            # Log AI response to audit trail
+            AuditService.log_ai_response(
+                db=self.db,
+                tenant_id=repo.tenant_id,
+                response=response_text,
+                model=self.llm_provider.model_id if hasattr(self.llm_provider, 'model_id') else "unknown",
+                provider=settings.LLM_PROVIDER,
+                repository_id=repo.id,
+                response_time_ms=response_time_ms,
+                additional_context={
+                    "file_path": file_path,
+                },
             )
 
             # Parse response

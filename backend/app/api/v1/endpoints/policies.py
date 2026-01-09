@@ -5,9 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.dependencies import get_current_user_email, get_tenant_id
 from app.models.policy import Policy, SourceType
 from app.schemas.policy import Policy as PolicySchema
 from app.schemas.policy import PolicyList, PolicyUpdate
+from app.services.audit_service import AuditService
 
 logger = logging.getLogger(__name__)
 
@@ -100,12 +102,19 @@ async def update_policy(
 
 
 @router.put("/{policy_id}/approve")
-async def approve_policy(policy_id: int, db: Session = Depends(get_db)) -> dict:
+async def approve_policy(
+    policy_id: int,
+    db: Session = Depends(get_db),
+    user_email: str | None = Depends(get_current_user_email),
+    tenant_id: int | None = Depends(get_tenant_id),
+) -> dict:
     """Approve a policy.
 
     Args:
         policy_id: Policy ID
         db: Database session
+        user_email: Authenticated user email
+        tenant_id: Authenticated tenant ID
 
     Returns:
         Success message
@@ -120,16 +129,32 @@ async def approve_policy(policy_id: int, db: Session = Depends(get_db)) -> dict:
     policy.status = PolicyStatus.APPROVED
     db.commit()
 
+    # Log approval decision to audit trail
+    if tenant_id:
+        AuditService.log_policy_approval(
+            db=db,
+            tenant_id=tenant_id,
+            policy_id=policy_id,
+            user_email=user_email or "anonymous",
+        )
+
     return {"status": "success", "message": "Policy approved"}
 
 
 @router.put("/{policy_id}/reject")
-async def reject_policy(policy_id: int, db: Session = Depends(get_db)) -> dict:
+async def reject_policy(
+    policy_id: int,
+    db: Session = Depends(get_db),
+    user_email: str | None = Depends(get_current_user_email),
+    tenant_id: int | None = Depends(get_tenant_id),
+) -> dict:
     """Reject a policy.
 
     Args:
         policy_id: Policy ID
         db: Database session
+        user_email: Authenticated user email
+        tenant_id: Authenticated tenant ID
 
     Returns:
         Success message
@@ -143,6 +168,15 @@ async def reject_policy(policy_id: int, db: Session = Depends(get_db)) -> dict:
 
     policy.status = PolicyStatus.REJECTED
     db.commit()
+
+    # Log rejection decision to audit trail
+    if tenant_id:
+        AuditService.log_policy_rejection(
+            db=db,
+            tenant_id=tenant_id,
+            policy_id=policy_id,
+            user_email=user_email or "anonymous",
+        )
 
     return {"status": "success", "message": "Policy rejected"}
 

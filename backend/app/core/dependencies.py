@@ -57,3 +57,12 @@ async def get_tenant_id(
     if current_user is None:
         return None
     return current_user.tenant_id
+
+
+async def get_current_user_email(
+    current_user: Annotated[User | None, Depends(get_current_user)],
+) -> str | None:
+    """Get the current user's email or None if not authenticated."""
+    if current_user is None:
+        return None
+    return current_user.email

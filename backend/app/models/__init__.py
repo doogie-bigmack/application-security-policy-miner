@@ -1,4 +1,5 @@
 """Database models."""
+from app.models.audit_log import AuditEventType, AuditLog
 from app.models.conflict import ConflictStatus, ConflictType, PolicyConflict
 from app.models.policy import Evidence, Policy, PolicyStatus, RiskLevel, SourceType
 from app.models.policy_change import (
@@ -35,4 +36,6 @@ __all__ = [
     "WorkItem",
     "WorkItemStatus",
     "WorkItemPriority",
+    "AuditLog",
+    "AuditEventType",
 ]
