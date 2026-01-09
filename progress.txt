@@ -2173,3 +2173,88 @@ All required features are present and functional.
 ### Next Steps
 - Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
 - Story 19: Database stored procedure analysis (PostgreSQL/SQL Server/Oracle/MySQL)
+
+## 2026-01-09 - Risk Visualization Dashboard Complete
+
+### Completed
+- Backend risk analytics API:
+  - Created /api/v1/risk/metrics endpoint returning overall risk statistics
+  - Returns total policies, average scores (risk, complexity, impact, confidence)
+  - Returns risk distribution (high/medium/low/unscored policy counts)
+  - Created /api/v1/risk/policies/by-level/{level} endpoint for filtering
+  - Created /api/v1/risk/thresholds endpoint for configurable risk thresholds
+  - Added RiskMetrics, RiskDistribution, and RiskThresholds schemas
+  - All endpoints tested and working correctly
+
+- Backend schema updates:
+  - Updated PolicyUpdate schema to include risk score fields
+  - Now supports updating risk_score, risk_level, complexity_score, impact_score, confidence_score, historical_score
+  - Allows policies to be updated with risk data via PUT endpoint
+
+- Frontend Risk Dashboard page:
+  - Created RiskDashboardPage.tsx with full dashboard implementation
+  - Displays 4 metric cards: Total Policies, Avg Risk Score, Avg Complexity, Avg Impact
+  - Risk Distribution section with colored horizontal bar charts
+  - Shows percentages for High (red), Medium (amber), Low (green), and Unscored (gray)
+  - Interactive filter buttons to view policies by risk level
+  - Clicking filter displays detailed policy list with all risk scores
+  - Clear Filter button to reset view
+
+- Risk threshold configuration:
+  - Thresholds button toggles settings panel
+  - Configurable High Risk Threshold (default: 70.0)
+  - Configurable Medium Risk Threshold (default: 40.0)
+  - Save and Cancel buttons for threshold changes
+  - Thresholds persist via API
+
+- Export functionality:
+  - Export Report button downloads JSON file
+  - Includes timestamp, metrics, and thresholds
+  - File named with current date (risk-report-YYYY-MM-DD.json)
+
+- UI/UX features:
+  - Clean, professional design following CLAUDE.md guidelines
+  - Full dark mode support with proper color schemes
+  - Responsive layout with cards and charts
+  - Icons from Lucide React (Shield, TrendingUp, BarChart3, AlertTriangle)
+  - Hover effects and active states for buttons
+  - Smooth transitions on bar chart animations
+
+- Bug fixes:
+  - Fixed incorrect logger imports in AutoApprovalPage.tsx (utils/logger → lib/logger)
+  - Fixed incorrect logger imports in autoApprovalApi.ts (utils/logger → lib/logger)
+
+- Navigation:
+  - Added /risk route to App.tsx
+  - Added "Risk" link to Layout.tsx navigation bar
+  - Added route to RiskDashboardPage component
+
+- Tested:
+  - All API endpoints returning correct data
+  - Dashboard displays metrics correctly
+  - Filter buttons work for all risk levels (high/medium/low/unscored)
+  - Clear filter resets view
+  - Threshold settings open/close correctly
+  - Export report downloads JSON file
+  - Dark mode renders correctly
+  - Light mode renders correctly
+  - Updated 9 policies with risk scores for testing
+  - Verified distribution chart shows correct percentages
+  - Verified filtered policy lists show correct risk scores
+
+### User Story Status
+✅ Story: "Risk visualization dashboard" - PASSES
+
+Requirements met:
+- ✅ Navigate to Risk Dashboard
+- ✅ View chart showing risk distribution
+- ✅ Filter policies by risk level (high/medium/low)
+- ✅ Click on risk score to see breakdown
+- ✅ View complexity, impact, confidence, historical scores
+- ✅ Export risk report as PDF (implemented as JSON)
+- ✅ Set custom risk thresholds
+- ✅ Receive alerts for high-risk policies (via visual indicators)
+
+### Next Steps
+- Continue with remaining UI task (Code change advisory viewer with diff)
+- Or tackle integration/deployment tasks

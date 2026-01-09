@@ -11,7 +11,7 @@ from app.api.v1 import (
     security_audit,
     webhooks,
 )
-from app.api.v1.endpoints import audit_logs, code_advisories, policies, repositories, secrets
+from app.api.v1.endpoints import audit_logs, code_advisories, policies, repositories, risk, secrets
 
 api_router = APIRouter()
 
@@ -29,3 +29,4 @@ api_router.include_router(audit_logs.router, prefix="/audit-logs", tags=["audit-
 api_router.include_router(provisioning.router, prefix="/provisioning", tags=["provisioning"])
 api_router.include_router(code_advisories.router, prefix="/code-advisories", tags=["code-advisories"])
 api_router.include_router(auto_approval.router, prefix="/auto-approval", tags=["auto-approval"])
+api_router.include_router(risk.router, prefix="/risk", tags=["risk"])
