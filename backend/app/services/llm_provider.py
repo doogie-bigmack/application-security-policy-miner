@@ -167,6 +167,54 @@ class AzureOpenAIProvider(LLMProvider):
             raise
 
 
+class AnthropicProvider(LLMProvider):
+    """Direct Anthropic API provider (legacy - for development only)."""
+
+    def __init__(self):
+        """Initialize Anthropic provider."""
+        try:
+            import anthropic
+
+            if not settings.ANTHROPIC_API_KEY:
+                raise ValueError("ANTHROPIC_API_KEY must be set for direct Anthropic API access")
+
+            self.client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+            logger.info("Direct Anthropic API provider initialized (development only)")
+
+        except ImportError:
+            raise ImportError(
+                "anthropic is required for direct API access. Install with: pip install anthropic"
+            )
+
+    def create_message(self, prompt: str, max_tokens: int = 4096, temperature: float = 0) -> str:
+        """Create a message using Anthropic API.
+
+        Args:
+            prompt: The user prompt
+            max_tokens: Maximum tokens to generate
+            temperature: Temperature for generation
+
+        Returns:
+            The LLM response text
+        """
+        try:
+            message = self.client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=max_tokens,
+                temperature=temperature,
+                messages=[{"role": "user", "content": prompt}],
+            )
+
+            if message.content and len(message.content) > 0:
+                return message.content[0].text
+            else:
+                raise ValueError(f"Unexpected response format: {message}")
+
+        except Exception as e:
+            logger.error(f"Error calling Anthropic API: {e}")
+            raise
+
+
 def get_llm_provider() -> LLMProvider:
     """Get the configured LLM provider.
 
@@ -178,12 +226,22 @@ def get_llm_provider() -> LLMProvider:
     """
     provider_name = settings.LLM_PROVIDER.lower()
 
+    # Fallback to direct Anthropic API if ANTHROPIC_API_KEY is set
+    if settings.ANTHROPIC_API_KEY and provider_name == "aws_bedrock":
+        logger.warning(
+            "Using direct Anthropic API (development only). "
+            "Set LLM_PROVIDER=anthropic explicitly or configure AWS Bedrock for production."
+        )
+        return AnthropicProvider()
+
     if provider_name == "aws_bedrock":
         return AWSBedrockProvider()
     elif provider_name == "azure_openai":
         return AzureOpenAIProvider()
+    elif provider_name == "anthropic":
+        return AnthropicProvider()
     else:
         raise ValueError(
             f"Unsupported LLM provider: {provider_name}. "
-            "Supported providers: aws_bedrock, azure_openai"
+            "Supported providers: aws_bedrock, azure_openai, anthropic"
         )
