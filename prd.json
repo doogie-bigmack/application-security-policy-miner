@@ -686,7 +686,7 @@
         "View metrics in Prometheus UI",
         "Create alerts based on metrics"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "monitoring",

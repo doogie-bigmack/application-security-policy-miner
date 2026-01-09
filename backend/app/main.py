@@ -1,12 +1,15 @@
 """
 Main FastAPI application entry point.
 """
+import time
+
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import api_router
 from app.core.config import settings
+from app.core.metrics import get_metrics, record_api_request
 
 # Configure structured logging
 structlog.configure(
@@ -36,6 +39,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Request metrics middleware
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    """Middleware to track API request metrics."""
+    # Skip metrics for the /metrics endpoint itself
+    if request.url.path == "/metrics":
+        return await call_next(request)
+
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+
+    # Record metrics
+    record_api_request(
+        method=request.method,
+        endpoint=request.url.path,
+        status_code=response.status_code,
+        duration=duration
+    )
+
+    return response
+
+
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
 
@@ -45,6 +72,18 @@ async def health_check():
     """Health check endpoint."""
     logger.info("health_check_called")
     return {"status": "healthy", "service": "policy-miner-api"}
+
+
+@app.get("/metrics")
+async def metrics():
+    """
+    Prometheus metrics endpoint.
+
+    Returns metrics in Prometheus exposition format.
+    """
+    logger.info("metrics_endpoint_called")
+    metrics_data = get_metrics()
+    return Response(content=metrics_data, media_type="text/plain")
 
 
 @app.on_event("startup")
