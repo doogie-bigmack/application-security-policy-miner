@@ -578,7 +578,7 @@
         "Verify repository metadata is stored",
         "Initiate scan on GitHub repository"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "integration",

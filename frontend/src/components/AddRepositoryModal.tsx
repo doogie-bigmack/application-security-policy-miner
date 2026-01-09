@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Github } from 'lucide-react'
 import logger from '../lib/logger'
+import GitHubRepositoryBrowser from './GitHubRepositoryBrowser'
 
 interface AddRepositoryModalProps {
   isOpen: boolean
@@ -27,6 +28,9 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
   const [dbName, setDbName] = useState('')
   const [dbUsername, setDbUsername] = useState('')
   const [dbPassword, setDbPassword] = useState('')
+
+  // GitHub browser state
+  const [showGitHubBrowser, setShowGitHubBrowser] = useState(false)
 
   if (!isOpen) return null
 
@@ -67,6 +71,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
           name,
           description,
           repository_type: sourceType,
+          git_provider: sourceType === 'git' ? 'generic' : null,
           source_url: sourceType === 'git' ? gitUrl : null,
           connection_config: Object.keys(connectionConfig).length > 0 ? connectionConfig : null,
         }),
@@ -101,6 +106,67 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
       logger.error('Failed to create repository', { error: errorMessage })
+      setError(errorMessage)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleGitHubRepositorySelect = async (repo: any, accessToken: string) => {
+    logger.info('GitHub repository selected', { repo: repo.full_name })
+
+    setShowGitHubBrowser(false)
+
+    // Pre-fill the form with GitHub repository data
+    setName(repo.name)
+    setDescription(repo.description || '')
+    setGitUrl(repo.clone_url)
+    setAuthType('token')
+    setToken(accessToken)
+    setSourceType('git')
+
+    // Auto-submit the form
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/v1/repositories/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: repo.name,
+          description: repo.description || '',
+          repository_type: 'git',
+          git_provider: 'github',
+          source_url: repo.clone_url,
+          connection_config: {
+            token: accessToken,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to create repository')
+      }
+
+      const data = await response.json()
+      logger.info('GitHub repository imported successfully', { repositoryId: data.id })
+
+      // Reset form
+      setName('')
+      setDescription('')
+      setGitUrl('')
+      setAuthType('none')
+      setToken('')
+
+      onSuccess()
+      onClose()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      logger.error('Failed to import GitHub repository', { error: errorMessage })
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -184,6 +250,30 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
           {/* Git-specific fields */}
           {sourceType === 'git' && (
             <>
+              {/* GitHub Integration Button */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowGitHubBrowser(true)}
+                  className="w-full px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center space-x-2 transition"
+                >
+                  <Github size={20} />
+                  <span>Import from GitHub</span>
+                </button>
+                <p className="mt-2 text-sm text-gray-600 dark:text-dark-text-secondary text-center">
+                  Or manually enter repository details below
+                </p>
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white dark:bg-dark-surface text-gray-500">or</span>
+                </div>
+              </div>
+
               {/* Git URL */}
               <div>
                 <label htmlFor="gitUrl" className="block text-sm font-medium mb-2">
@@ -428,6 +518,14 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
           </div>
         </form>
       </div>
+
+      {/* GitHub Repository Browser */}
+      {showGitHubBrowser && (
+        <GitHubRepositoryBrowser
+          onSelectRepository={handleGitHubRepositorySelect}
+          onClose={() => setShowGitHubBrowser(false)}
+        />
+      )}
     </div>
   )
 }
