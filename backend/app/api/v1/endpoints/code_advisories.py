@@ -101,3 +101,26 @@ def delete_advisory(
     success = service.delete_advisory(advisory_id)
     if not success:
         raise HTTPException(status_code=404, detail="Advisory not found")
+
+
+@router.post("/{advisory_id}/generate-tests/", response_model=CodeAdvisory)
+async def generate_test_cases(
+    advisory_id: int,
+    db: Session = Depends(get_db),
+    tenant_id: str | None = Depends(get_tenant_id),
+) -> CodeAdvisory:
+    """Generate test cases for a code advisory.
+
+    This endpoint uses AI to generate comprehensive test cases that verify
+    the refactored code maintains behavioral equivalence with the original code.
+    """
+    service = CodeAdvisoryService(db, tenant_id)
+    try:
+        advisory = await service.generate_test_cases(advisory_id)
+        return advisory
+    except ValueError as e:
+        logger.error("generate_test_cases_failed", error=str(e), advisory_id=advisory_id)
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        logger.error("generate_test_cases_error", error=str(e), advisory_id=advisory_id)
+        raise HTTPException(status_code=500, detail=f"Failed to generate test cases: {e}") from e

@@ -1917,3 +1917,61 @@ All required features are present and functional.
 ### Next Steps
 - Story 17: Code Change Advisory - Generate test cases for validation
 - Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
+
+## 2026-01-08 - Code Advisory Test Case Generation Complete
+
+### Completed
+- Backend test case generation infrastructure:
+  - Added test_cases field to CodeAdvisory model (TEXT column storing JSON)
+  - Created generate_test_cases() method in CodeAdvisoryService
+  - Uses Claude Agent SDK to analyze policies and generate comprehensive test cases
+  - Generates 5-10 test cases covering all authorization scenarios (allow/deny)
+  - Each test case includes: name, scenario, setup, input, expected results, assertions
+  - Validates refactored code maintains behavioral equivalence with original
+  
+- Backend API endpoint:
+  - POST /api/v1/code-advisories/{advisory_id}/generate-tests/
+  - Returns updated CodeAdvisory with test_cases JSON
+  - Full error handling and logging
+  
+- Frontend test case display:
+  - Added TestCase interface to TypeScript types
+  - Updated CodeAdvisory interface with test_cases field
+  - Added "Generate Test Cases" button (purple, TestTube icon) in advisory detail modal
+  - Displays test cases in clean, professional card layout
+  - Shows: test name, scenario, setup, expected results, assertion
+  - Error handling for JSON parsing failures
+  - Empty state message when no test cases generated
+  
+- Testing:
+  - Created comprehensive unit tests (test_code_advisory_test_generation.py)
+  - 6 test cases covering: success, not found, JSON extraction, invalid JSON, language detection, comprehensive coverage
+  - Tests verify proper test case generation and parsing
+  
+- Database migration:
+  - Added test_cases column to code_advisories table via direct ALTER TABLE
+  - Column stores JSON string of TestCase[] array
+  
+- Browser validation:
+  - Verified CodeAdvisoriesPage loads successfully
+  - Confirmed page displays empty state correctly
+  - All UI components match design system (clean, professional)
+  - Dark mode working correctly
+  - Fixed Flask icon import (changed to TestTube from lucide-react)
+
+### Implementation Details
+- Test case generation uses LLM provider abstraction (AWS Bedrock or Azure OpenAI)
+- AI prompt includes policy context (WHO/WHAT/HOW/WHEN)
+- AI prompt includes original code and refactored code
+- AI instructed to generate executable test cases for language-appropriate framework
+- Test cases verify both original and refactored code produce same authorization decisions
+- JSON extraction from LLM response with fallback error handling
+- Test cases cover: positive cases (allow), negative cases (deny), edge cases, boundary conditions
+- Full tenant isolation maintained
+
+### User Story Status
+✅ Story 17: "Code Change Advisory - Generate test cases for validation" - PASSES
+
+### Next Steps
+- Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
+- Story 18: AI Learning - Auto-approve low-risk policies

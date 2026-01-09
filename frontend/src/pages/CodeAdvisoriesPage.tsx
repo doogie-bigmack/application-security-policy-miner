@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { FileCode, Download, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
-import { CodeAdvisory, AdvisoryStatus } from "../types/codeAdvisory";
+import { FileCode, Download, CheckCircle, XCircle, Clock, AlertCircle, TestTube } from "lucide-react";
+import { CodeAdvisory, AdvisoryStatus, TestCase } from "../types/codeAdvisory";
 
 const API_BASE = "/api/v1";
 
@@ -9,6 +9,7 @@ export default function CodeAdvisoriesPage() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<AdvisoryStatus | "all">("all");
   const [selectedAdvisory, setSelectedAdvisory] = useState<CodeAdvisory | null>(null);
+  const [generatingTests, setGeneratingTests] = useState<number | null>(null);
 
   useEffect(() => {
     fetchAdvisories();
@@ -42,6 +43,32 @@ export default function CodeAdvisoriesPage() {
       setSelectedAdvisory(null);
     } catch (error) {
       console.error("Failed to update status:", error);
+    }
+  };
+
+  const generateTestCases = async (advisoryId: number) => {
+    try {
+      setGeneratingTests(advisoryId);
+      const response = await fetch(`${API_BASE}/code-advisories/${advisoryId}/generate-tests/`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to generate test cases");
+      const updatedAdvisory = await response.json();
+
+      // Update the advisory in the list
+      setAdvisories((prev) =>
+        prev.map((a) => (a.id === advisoryId ? updatedAdvisory : a))
+      );
+
+      // Update selected advisory if it's the one being updated
+      if (selectedAdvisory?.id === advisoryId) {
+        setSelectedAdvisory(updatedAdvisory);
+      }
+    } catch (error) {
+      console.error("Failed to generate test cases:", error);
+      alert("Failed to generate test cases. Please try again.");
+    } finally {
+      setGeneratingTests(null);
     }
   };
 
@@ -215,6 +242,82 @@ export default function CodeAdvisoriesPage() {
                     <code className="text-gray-900 dark:text-gray-50">{selectedAdvisory.refactored_code}</code>
                   </pre>
                 </div>
+              </div>
+
+              {/* Test Cases */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Generated Test Cases</h3>
+                  {!selectedAdvisory.test_cases && (
+                    <button
+                      onClick={() => generateTestCases(selectedAdvisory.id)}
+                      disabled={generatingTests === selectedAdvisory.id}
+                      className="px-3 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <TestTube className="w-3 h-3" />
+                      {generatingTests === selectedAdvisory.id ? "Generating..." : "Generate Test Cases"}
+                    </button>
+                  )}
+                </div>
+
+                {selectedAdvisory.test_cases ? (
+                  (() => {
+                    try {
+                      const testCases: TestCase[] = JSON.parse(selectedAdvisory.test_cases);
+                      if (testCases.length === 0 || testCases[0]?.error) {
+                        return (
+                          <div className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
+                            Failed to generate test cases. Please try again.
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="space-y-3">
+                          {testCases.map((testCase, index) => (
+                            <div
+                              key={index}
+                              className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-lg"
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="font-medium text-sm text-gray-900 dark:text-gray-50">
+                                  {index + 1}. {testCase.name}
+                                </h4>
+                              </div>
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{testCase.scenario}</p>
+                              <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                  <span className="font-medium text-gray-700 dark:text-gray-300">Setup:</span>
+                                  <p className="text-gray-600 dark:text-gray-400 mt-1">{testCase.setup}</p>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-gray-700 dark:text-gray-300">Expected Result:</span>
+                                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                                    Original: {testCase.expected_original} | Refactored: {testCase.expected_refactored}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="mt-2 text-xs">
+                                <span className="font-medium text-gray-700 dark:text-gray-300">Assertion:</span>
+                                <p className="text-gray-600 dark:text-gray-400 mt-1">{testCase.assertion}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    } catch (e) {
+                      return (
+                        <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                          Error parsing test cases
+                        </div>
+                      );
+                    }
+                  })()
+                ) : (
+                  <div className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                    No test cases generated yet. Click the button above to generate comprehensive test cases for this
+                    advisory.
+                  </div>
+                )}
               </div>
 
               {/* Actions */}

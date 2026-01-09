@@ -1,7 +1,8 @@
 """Tests for code advisory service."""
 
-import pytest
 from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
