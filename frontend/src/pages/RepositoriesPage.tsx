@@ -382,6 +382,7 @@ export default function RepositoriesPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-semibold">Repositories</h2>
         <button
+          data-testid="repositories-btn-add"
           onClick={() => setIsModalOpen(true)}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
         >
@@ -395,6 +396,7 @@ export default function RepositoriesPage() {
           <Filter size={16} className="text-gray-600 dark:text-gray-400" />
           <span className="text-sm font-medium">Filter:</span>
           <select
+            data-testid="repositories-filter-type"
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value as 'all' | 'git' | 'database' | 'mainframe')}
             className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
@@ -410,6 +412,7 @@ export default function RepositoriesPage() {
           <ArrowUpDown size={16} className="text-gray-600 dark:text-gray-400" />
           <span className="text-sm font-medium">Sort by:</span>
           <select
+            data-testid="repositories-sort-by"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'created_at' | 'last_scan_at' | 'name')}
             className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm"
@@ -419,6 +422,7 @@ export default function RepositoriesPage() {
             <option value="name">Name</option>
           </select>
           <button
+            data-testid="repositories-sort-order"
             onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
             className="px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
           >
@@ -448,10 +452,11 @@ export default function RepositoriesPage() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4" data-testid="repositories-list">
           {filteredAndSortedRepositories.map((repo) => (
             <div
               key={repo.id}
+              data-testid="repository-row"
               className="border border-gray-200 dark:border-dark-border rounded-lg bg-white dark:bg-dark-surface p-6 hover:shadow-md transition"
             >
               <div className="flex items-start justify-between">
@@ -460,7 +465,7 @@ export default function RepositoriesPage() {
                     {getTypeIcon(repo.repository_type)}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold">{repo.name}</h3>
+                    <h3 className="text-lg font-semibold" data-testid="repository-name">{repo.name}</h3>
                     {repo.description && (
                       <p className="text-sm text-gray-600 dark:text-dark-text-secondary mt-1">
                         {repo.description}
@@ -478,7 +483,7 @@ export default function RepositoriesPage() {
                       </a>
                     )}
                     <div className="flex items-center space-x-4 mt-3 text-sm text-gray-600 dark:text-dark-text-secondary">
-                      <span className="capitalize">{repo.repository_type}</span>
+                      <span className="capitalize" data-testid="repository-type">{repo.repository_type}</span>
                       <span>•</span>
                       <span>Added {new Date(repo.created_at).toLocaleDateString()}</span>
                       {repo.last_scan_at && (
@@ -491,8 +496,9 @@ export default function RepositoriesPage() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {getStatusBadge(repo.status)}
+                  <span data-testid="repository-status">{getStatusBadge(repo.status)}</span>
                   <button
+                    data-testid="repository-btn-view-details"
                     onClick={() => handleViewDetails(repo)}
                     className="inline-flex items-center space-x-1 px-2 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
                     title="View details"
@@ -500,6 +506,7 @@ export default function RepositoriesPage() {
                     <Eye size={16} />
                   </button>
                   <button
+                    data-testid="repository-btn-edit"
                     onClick={() => handleEdit(repo)}
                     className="inline-flex items-center space-x-1 px-2 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
                     title="Edit repository"
@@ -507,6 +514,7 @@ export default function RepositoriesPage() {
                     <Edit2 size={16} />
                   </button>
                   <button
+                    data-testid="repository-btn-delete"
                     onClick={() => handleDelete(repo)}
                     className="inline-flex items-center space-x-1 px-2 py-1.5 border border-red-300 dark:border-red-600 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-sm"
                     title="Delete repository"
@@ -516,6 +524,7 @@ export default function RepositoriesPage() {
                   {repo.repository_type === 'git' && repo.status === 'connected' && (
                     <>
                       <button
+                        data-testid="repository-btn-webhook"
                         onClick={() => handleConfigureWebhook(repo)}
                         className="inline-flex items-center space-x-2 px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
                         title="Configure webhook"
@@ -529,6 +538,7 @@ export default function RepositoriesPage() {
                       {scanningRepoId !== repo.id && (
                         <div className="relative">
                           <button
+                            data-testid="repository-btn-scan"
                             onClick={(e) => {
                               e.stopPropagation()
                               setScanMenuOpen(scanMenuOpen === repo.id ? null : repo.id)
@@ -545,6 +555,7 @@ export default function RepositoriesPage() {
                               className="absolute right-0 mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10"
                             >
                               <button
+                                data-testid="repository-btn-scan-full"
                                 onClick={() => {
                                   handleScan(repo.id, false)
                                   setScanMenuOpen(null)
@@ -560,6 +571,7 @@ export default function RepositoriesPage() {
                                 </div>
                               </button>
                               <button
+                                data-testid="repository-btn-scan-incremental"
                                 onClick={() => {
                                   handleScan(repo.id, true)
                                   setScanMenuOpen(null)
@@ -585,7 +597,7 @@ export default function RepositoriesPage() {
 
               {/* Scan Progress */}
               {scanningRepoId === repo.id && scanProgress && (
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border">
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border" data-testid="repository-scan-progress">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600 dark:text-dark-text-secondary">
