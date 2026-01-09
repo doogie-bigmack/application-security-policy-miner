@@ -21,11 +21,12 @@ from app.core.metrics import (
     set_active_scans,
 )
 from app.models.policy import Evidence, Policy, PolicyStatus, RiskLevel, SourceType
-from app.models.repository import Repository, RepositoryStatus
+from app.models.repository import Repository, RepositoryStatus, RepositoryType
 from app.models.scan_progress import ScanProgress, ScanStatus
 from app.models.secret_detection import SecretDetectionLog
 from app.services.audit_service import AuditService
 from app.services.csharp_scanner_service import CSharpScannerService
+from app.services.database_scanner_service import DatabaseScannerService
 from app.services.java_scanner_service import JavaScannerService
 from app.services.javascript_scanner import JavaScriptScannerService
 from app.services.llm_provider import get_llm_provider
@@ -92,6 +93,7 @@ class ScannerService:
         self.csharp_scanner = CSharpScannerService()
         self.python_scanner = PythonScannerService()
         self.javascript_scanner = JavaScriptScannerService()
+        self.database_scanner = DatabaseScannerService()
         self.process = psutil.Process(os.getpid())
         self.initial_memory_mb = self.process.memory_info().rss / 1024 / 1024
 
@@ -214,6 +216,12 @@ class ScannerService:
         set_active_scans(active_scans_count)
 
         try:
+            # Handle database repositories differently
+            if repo.repository_type == RepositoryType.DATABASE:
+                return await self._scan_database_repository(
+                    repo, scan_progress, start_time, start_memory_mb, tenant_id
+                )
+
             # Clone repository to temp directory
             repo_path = await self._clone_repository(repo)
 
@@ -1163,3 +1171,124 @@ Return ONLY the JSON array, no other text."""
             logger.debug(f"Response was: {response}")
 
         return policies
+
+    async def _scan_database_repository(
+        self,
+        repo: Repository,
+        scan_progress: ScanProgress,
+        start_time: datetime,
+        start_memory_mb: float,
+        tenant_id: str | None,
+    ) -> dict[str, Any]:
+        """Scan a database repository for stored procedures with authorization logic.
+
+        Args:
+            repo: Repository object
+            scan_progress: Scan progress tracker
+            start_time: Scan start time
+            start_memory_mb: Initial memory usage
+            tenant_id: Tenant ID
+
+        Returns:
+            Scan results dictionary
+        """
+        logger.info(
+            "scanning_database_repository",
+            repository_id=repo.id,
+            repository_name=repo.name,
+            tenant_id=tenant_id,
+        )
+
+        try:
+            # Update scan progress to processing
+            scan_progress.status = ScanStatus.PROCESSING
+            self.db.commit()
+
+            # Scan database using database scanner service
+            scan_result = await self.database_scanner.scan_database(
+                repository=repo,
+                tenant_id=tenant_id,
+            )
+
+            policies = scan_result["policies"]
+            procedures_scanned = scan_result["procedures_scanned"]
+            total_procedures = scan_result["total_procedures"]
+
+            # Update scan progress
+            scan_progress.total_files = total_procedures
+            scan_progress.processed_files = procedures_scanned
+            scan_progress.policies_extracted = len(policies)
+            scan_progress.total_batches = 1
+            scan_progress.current_batch = 1
+            self.db.commit()
+
+            # Save policies to database
+            for policy in policies:
+                self.db.add(policy)
+            self.db.commit()
+
+            # Update scan progress to completed
+            scan_progress.status = ScanStatus.COMPLETED
+            scan_progress.completed_at = datetime.utcnow()
+            self.db.commit()
+
+            # Update repository status and last scan time
+            repo.status = RepositoryStatus.CONNECTED
+            repo.last_scan_at = datetime.utcnow()
+            self.db.commit()
+
+            # Calculate metrics
+            end_time = datetime.utcnow()
+            duration = (end_time - start_time).total_seconds()
+            end_memory_mb = self._get_memory_usage_mb()
+            memory_increase_mb = end_memory_mb - start_memory_mb
+
+            # Record metrics
+            increment_scan_count()
+            increment_policies_extracted(len(policies))
+            record_scan_duration(duration)
+
+            logger.info(
+                "database_scan_completed",
+                repository_id=repo.id,
+                procedures_scanned=procedures_scanned,
+                total_procedures=total_procedures,
+                policies_extracted=len(policies),
+                duration_seconds=round(duration, 2),
+                memory_increase_mb=round(memory_increase_mb, 2),
+            )
+
+            return {
+                "repository_id": repo.id,
+                "scan_type": "database",
+                "procedures_scanned": procedures_scanned,
+                "total_procedures": total_procedures,
+                "policies_extracted": len(policies),
+                "errors": 0,
+                "duration_seconds": duration,
+                "start_memory_mb": round(start_memory_mb, 2),
+                "end_memory_mb": round(end_memory_mb, 2),
+                "memory_increase_mb": round(memory_increase_mb, 2),
+            }
+
+        except Exception as e:
+            logger.error(
+                "database_scan_failed",
+                repository_id=repo.id,
+                error=str(e),
+            )
+
+            # Update scan progress to failed
+            scan_progress.status = ScanStatus.FAILED
+            scan_progress.error_message = str(e)
+            scan_progress.completed_at = datetime.utcnow()
+            self.db.commit()
+
+            # Update repository status to failed
+            repo.status = RepositoryStatus.FAILED
+            self.db.commit()
+
+            # Record error metric
+            increment_error_count()
+
+            raise

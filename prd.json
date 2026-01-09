@@ -413,7 +413,7 @@
         "Confirm Row-Level Security policies detected",
         "Verify triggers with authorization logic are found"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "technical",
