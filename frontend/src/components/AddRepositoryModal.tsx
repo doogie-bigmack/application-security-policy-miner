@@ -3,6 +3,7 @@ import { X, Github, GitlabIcon } from 'lucide-react'
 import logger from '../lib/logger'
 import GitHubRepositoryBrowser from './GitHubRepositoryBrowser'
 import GitLabRepositoryBrowser from './GitLabRepositoryBrowser'
+import BitbucketRepositoryBrowser from './BitbucketRepositoryBrowser'
 
 interface AddRepositoryModalProps {
   isOpen: boolean
@@ -35,6 +36,9 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
 
   // GitLab browser state
   const [showGitLabBrowser, setShowGitLabBrowser] = useState(false)
+
+  // Bitbucket browser state
+  const [showBitbucketBrowser, setShowBitbucketBrowser] = useState(false)
 
   if (!isOpen) return null
 
@@ -239,6 +243,70 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
     }
   }
 
+  const handleBitbucketRepositorySelect = async (repo: any, bbUsername: string, appPassword: string) => {
+    logger.info('Bitbucket repository selected', { repo: repo.full_name })
+
+    setShowBitbucketBrowser(false)
+
+    // Pre-fill the form with Bitbucket repository data
+    setName(repo.name)
+    setDescription(repo.description || '')
+    setGitUrl(repo.clone_url)
+    setAuthType('usernamepassword')
+    setUsername(bbUsername)
+    setPassword(appPassword)
+    setSourceType('git')
+
+    // Auto-submit the form
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/v1/repositories/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: repo.name,
+          description: repo.description || '',
+          repository_type: 'git',
+          git_provider: 'bitbucket',
+          source_url: repo.clone_url,
+          connection_config: {
+            username: bbUsername,
+            password: appPassword,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to create repository')
+      }
+
+      const data = await response.json()
+      logger.info('Bitbucket repository imported successfully', { repositoryId: data.id })
+
+      // Reset form
+      setName('')
+      setDescription('')
+      setGitUrl('')
+      setAuthType('none')
+      setUsername('')
+      setPassword('')
+
+      onSuccess()
+      onClose()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      logger.error('Failed to import Bitbucket repository', { error: errorMessage })
+      setError(errorMessage)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-2xl mx-4">
@@ -318,14 +386,14 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
             <>
               {/* Git Integration Buttons */}
               <div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <button
                     type="button"
                     onClick={() => setShowGitHubBrowser(true)}
                     className="px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center space-x-2 transition"
                   >
                     <Github size={20} />
-                    <span>Import from GitHub</span>
+                    <span>GitHub</span>
                   </button>
                   <button
                     type="button"
@@ -333,7 +401,17 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
                     className="px-4 py-3 bg-orange-600 dark:bg-orange-700 text-white rounded-lg hover:bg-orange-700 dark:hover:bg-orange-600 flex items-center justify-center space-x-2 transition"
                   >
                     <GitlabIcon size={20} />
-                    <span>Import from GitLab</span>
+                    <span>GitLab</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowBitbucketBrowser(true)}
+                    className="px-4 py-3 bg-blue-700 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-800 dark:hover:bg-blue-700 flex items-center justify-center space-x-2 transition"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M.778 1.211a.768.768 0 00-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 00.77-.646l3.27-20.03a.768.768 0 00-.768-.891zM14.52 15.528H9.522L8.17 8.464h7.561z"/>
+                    </svg>
+                    <span>Bitbucket</span>
                   </button>
                 </div>
                 <p className="mt-2 text-sm text-gray-600 dark:text-dark-text-secondary text-center">
@@ -608,6 +686,14 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
         <GitLabRepositoryBrowser
           onSelectRepository={handleGitLabRepositorySelect}
           onClose={() => setShowGitLabBrowser(false)}
+        />
+      )}
+
+      {/* Bitbucket Repository Browser */}
+      {showBitbucketBrowser && (
+        <BitbucketRepositoryBrowser
+          onSelectRepository={handleBitbucketRepositorySelect}
+          onClose={() => setShowBitbucketBrowser(false)}
         />
       )}
     </div>

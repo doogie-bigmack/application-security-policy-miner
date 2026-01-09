@@ -1,5 +1,85 @@
 # Progress Log
 
+## 2026-01-09 - Bitbucket Integration for Repository Scanning Complete
+
+### Completed
+- Implemented Bitbucket integration for easy repository importing:
+  - Created BitbucketService for Bitbucket API integration using httpx
+  - Implemented Bitbucket repository listing via Bitbucket REST API 2.0
+  - Added credentials verification endpoint to validate Bitbucket access
+  - Lists user's repositories with metadata (name, description, language, workspace)
+  - Uses Bitbucket App Password authentication (username + app password)
+
+- Backend API endpoints:
+  - POST /api/v1/repositories/bitbucket/list - List accessible Bitbucket repositories
+  - POST /api/v1/repositories/bitbucket/verify - Verify Bitbucket credentials
+  - Supports pagination (100 repositories per page)
+  - Returns formatted repository data with clone URLs (HTTP and SSH)
+  - Uses HTTP Basic Auth with username and app password
+
+- Frontend Bitbucket browser component:
+  - Created BitbucketRepositoryBrowser modal with credentials authentication
+  - Clean, professional UI matching design system
+  - Bitbucket username input field
+  - App password input field (not account password)
+  - Two-step flow: verify credentials, then browse repositories
+  - Repository search and filtering
+  - Visual indicators for visibility (public/private)
+  - Workspace display for repository organization
+  - Last activity dates
+  - Direct links to view repositories on Bitbucket
+  - One-click import with automatic form population
+
+- Integration with AddRepositoryModal:
+  - Added "Import from Bitbucket" button with Bitbucket icon (blue theme)
+  - Placed alongside GitHub and GitLab buttons in 3-column grid
+  - Seamless modal overlay system
+  - Auto-fills repository details on selection
+  - Stores git_provider='bitbucket' for tracking source
+  - Encrypted credentials storage in connection_config
+  - Stores both username and app password securely
+
+- Code quality:
+  - All backend code passes Ruff linting
+  - Follows established patterns from GitHub and GitLab integrations
+  - Proper error handling and logging
+  - Structured logging with context
+
+### User Story Status
+✅ Story: "Bitbucket integration for repository scanning" - PASSES
+
+Requirements met:
+- ✅ Navigate to Add Repository
+- ✅ Select Bitbucket as source (via "Import from Bitbucket" button)
+- ✅ Authenticate with Bitbucket (username + app password)
+- ✅ Select repository from workspace (browse repositories modal)
+- ✅ Grant access permissions (app password provides access)
+- ✅ Clone repository for scanning (uses clone_url from Bitbucket API)
+- ✅ Verify repository metadata stored (connection test before adding)
+- ✅ Initiate scan on Bitbucket repository (existing scan functionality)
+
+### Technical Details
+- Backend: Python, FastAPI, httpx for Bitbucket API calls
+- Frontend: React, TypeScript with BitbucketRepositoryBrowser component
+- Security: Credentials encrypted at rest using EncryptedJSON
+- API: Bitbucket REST API 2.0 with App Password authentication
+- UX: Two-step flow - verify credentials, then browse repositories
+- Authentication: HTTP Basic Auth (username + app password)
+
+### Benefits
+- Dramatically simplifies Bitbucket repository onboarding
+- No manual URL copying or credential entry needed
+- Browse all accessible repositories in one view
+- Visual feedback on repository visibility levels
+- Reduces human error in URL/credentials entry
+- Professional, intuitive user experience
+- Consistent with GitHub and GitLab integration patterns
+
+### Next Steps
+- Azure DevOps integration can follow same pattern
+- Consider OAuth flow for production deployment
+- Add webhook auto-configuration during import
+
 ## 2026-01-09 - GitLab Integration for Repository Scanning Complete
 
 ### Completed
