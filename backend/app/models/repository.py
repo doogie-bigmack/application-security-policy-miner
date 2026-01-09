@@ -5,6 +5,7 @@ from enum import Enum
 from sqlalchemy import JSON, Column, DateTime, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
@@ -55,6 +56,9 @@ class Repository(Base):
         onupdate=lambda: datetime.now(UTC),
     )
     tenant_id = Column(String(100), nullable=True, index=True)  # For multi-tenancy
+
+    # Relationships
+    scan_progresses = relationship("ScanProgress", back_populates="repository", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         """String representation."""

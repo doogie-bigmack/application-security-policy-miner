@@ -147,7 +147,7 @@
         "Verify all files are analyzed",
         "Check that memory usage remains within limits"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

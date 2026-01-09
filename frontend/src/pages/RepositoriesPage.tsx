@@ -14,11 +14,26 @@ interface Repository {
   last_scan_at: string | null
 }
 
+interface ScanProgress {
+  id: number
+  repository_id: number
+  status: 'queued' | 'processing' | 'completed' | 'failed'
+  total_files: number
+  processed_files: number
+  current_batch: number
+  total_batches: number
+  policies_extracted: number
+  errors_count: number
+  error_message: string | null
+}
+
 export default function RepositoriesPage() {
   const [repositories, setRepositories] = useState<Repository[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [scanningRepoId, setScanningRepoId] = useState<number | null>(null)
+  const [scanProgress, setScanProgress] = useState<ScanProgress | null>(null)
 
   const fetchRepositories = async () => {
     try {
@@ -51,9 +66,55 @@ export default function RepositoriesPage() {
     fetchRepositories()
   }
 
+  const pollScanProgress = async (repositoryId: number, scanId: number) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/v1/scan-progress/${scanId}`)
+
+        if (!response.ok) {
+          clearInterval(pollInterval)
+          setScanningRepoId(null)
+          setScanProgress(null)
+          return
+        }
+
+        const progress: ScanProgress = await response.json()
+        setScanProgress(progress)
+
+        if (progress.status === 'completed' || progress.status === 'failed') {
+          clearInterval(pollInterval)
+          setScanningRepoId(null)
+
+          // Refresh repositories
+          await fetchRepositories()
+
+          if (progress.status === 'completed') {
+            alert(
+              `Scan complete! Processed ${progress.total_files} files in ${progress.total_batches} batches.\n` +
+              `Extracted ${progress.policies_extracted} policies.\n` +
+              `${progress.errors_count} errors encountered.`
+            )
+          } else {
+            alert(`Scan failed: ${progress.error_message}`)
+          }
+
+          setScanProgress(null)
+        }
+      } catch (err) {
+        logger.error('Failed to fetch scan progress', { error: err })
+        clearInterval(pollInterval)
+        setScanningRepoId(null)
+        setScanProgress(null)
+      }
+    }, 2000) // Poll every 2 seconds
+  }
+
   const handleScan = async (repositoryId: number) => {
     try {
       logger.info('Starting scan', { repositoryId })
+      setScanningRepoId(repositoryId)
+      setScanProgress(null)
+
       const response = await fetch(`/api/v1/repositories/${repositoryId}/scan`, {
         method: 'POST',
       })
@@ -64,16 +125,18 @@ export default function RepositoriesPage() {
       }
 
       const result = await response.json()
-      logger.info('Scan completed', { result })
+      logger.info('Scan started', { result })
 
-      // Refresh repositories to show updated status
-      await fetchRepositories()
-
-      alert(`Scan complete! Extracted ${result.policies_extracted} policies from ${result.files_scanned} files.`)
+      // Start polling for progress
+      if (result.scan_id) {
+        await pollScanProgress(repositoryId, result.scan_id)
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
       logger.error('Scan failed', { error: errorMessage })
       alert(`Scan failed: ${errorMessage}`)
+      setScanningRepoId(null)
+      setScanProgress(null)
     }
   }
 
@@ -178,7 +241,7 @@ export default function RepositoriesPage() {
                 </div>
                 <div className="flex items-center space-x-3">
                   {getStatusBadge(repo.status)}
-                  {repo.repository_type === 'git' && repo.status === 'connected' && (
+                  {repo.repository_type === 'git' && repo.status === 'connected' && scanningRepoId !== repo.id && (
                     <button
                       onClick={() => handleScan(repo.id)}
                       className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm"
@@ -189,6 +252,36 @@ export default function RepositoriesPage() {
                   )}
                 </div>
               </div>
+
+              {/* Scan Progress */}
+              {scanningRepoId === repo.id && scanProgress && (
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600 dark:text-dark-text-secondary">
+                        Batch {scanProgress.current_batch} of {scanProgress.total_batches}
+                      </span>
+                      <span className="text-gray-900 dark:text-dark-text-primary font-medium">
+                        {scanProgress.processed_files} / {scanProgress.total_files} files
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${scanProgress.total_files > 0 ? (scanProgress.processed_files / scanProgress.total_files) * 100 : 0}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-600 dark:text-dark-text-secondary">
+                      <span>{scanProgress.policies_extracted} policies extracted</span>
+                      {scanProgress.errors_count > 0 && (
+                        <span className="text-red-600 dark:text-red-400">{scanProgress.errors_count} errors</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
