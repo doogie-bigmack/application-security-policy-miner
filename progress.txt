@@ -1047,3 +1047,67 @@
 ✅ Story 25: "Full audit logging - All prompts, responses, decisions" - PASSES
 ✅ Story 26: "Evidence-based output - Quote exact code lines" - PASSES
 
+
+## 2026-01-08 - Java Language Scanning with Tree-Sitter Complete
+
+### Completed
+- Backend Java scanner service:
+  - Created JavaScannerService using tree-sitter-languages package
+  - Supports detection of Spring Security annotations (@PreAuthorize, @PostAuthorize, @Secured, @RolesAllowed)
+  - Supports detection of Apache Shiro annotations (@RequiresRoles, @RequiresPermissions, @RequiresAuthentication, etc.)
+  - Detects authorization method calls (hasRole, hasAuthority, hasPermission, canAccess, etc.)
+  - Detects authorization conditionals in if-statements
+  - Accurate line number tracking for all detected patterns
+  - Context extraction around authorization code
+
+- Backend scanner integration:
+  - Integrated JavaScannerService into main ScannerService
+  - Java files (.java) automatically routed to Java-specific scanner
+  - Enhanced AI prompts with Java-specific context from tree-sitter analysis
+  - Tree-sitter AST traversal for annotation, method call, and conditional detection
+
+- Dependencies:
+  - Downgraded tree-sitter from 0.23.2 to 0.21.3 for compatibility with tree-sitter-languages
+  - tree-sitter-languages==1.10.2 provides Java parser
+  - Both packages now work together correctly
+
+- Testing:
+  - Created 9 comprehensive unit tests for JavaScannerService
+  - All 9 tests passing ✅
+  - Tests cover: Spring Security, Apache Shiro, method calls, conditionals, prompt enhancement, line numbers
+  - Created 4 integration tests with real Java repository
+  - All 4 integration tests passing ✅
+  - Tests verify end-to-end Java code analysis with git repository
+
+### Implementation Details
+- Tree-sitter parser initialized once per JavaScannerService instance
+- AST traversal extracts detailed authorization context
+- Annotations detected via marker_annotation and annotation nodes
+- Method calls detected via method_invocation nodes
+- Conditionals detected via if_statement nodes with authorization keywords
+- Enhanced prompts include Java-specific context (Spring Security, Apache Shiro, method calls)
+- Full integration with existing scanner batching and progress tracking
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
+✅ Story 8: "Conflict Resolution - Flag conflicts and AI recommendations" - PASSES
+✅ Story 9: "Multi-tenancy - Tenant-aware policy mining with full isolation" - PASSES
+✅ Story 10: "Unlimited Repository Size - Streaming analysis with batching" - PASSES
+✅ Story 11: "Change Detection - Auto-create work items and diff visualization" - PASSES
+✅ Story 12: "Change Detection - Git integration and PBAC sync" - PASSES
+✅ Story 22: "Pre-scan secret detection - No credentials sent to LLM" - PASSES
+✅ Story 23: "Private LLM endpoints - AWS Bedrock or Azure OpenAI only" - PASSES
+✅ Story 24: "Encryption at rest and in transit" - PASSES
+✅ Story 25: "Full audit logging - All prompts, responses, decisions" - PASSES
+✅ Story 26: "Evidence-based output - Quote exact code lines" - PASSES
+✅ Story 27: "Support Java language scanning with tree-sitter" - PASSES
+
+### Next Steps
+- Story 28: Support C#/.NET language scanning with tree-sitter
+- Story 29: Support Python language scanning
+- Story 30: Support JavaScript/TypeScript scanning

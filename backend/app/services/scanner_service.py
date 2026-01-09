@@ -15,6 +15,7 @@ from app.models.repository import Repository, RepositoryStatus
 from app.models.scan_progress import ScanProgress, ScanStatus
 from app.models.secret_detection import SecretDetectionLog
 from app.services.audit_service import AuditService
+from app.services.java_scanner_service import JavaScannerService
 from app.services.llm_provider import get_llm_provider
 from app.services.risk_scoring_service import RiskScoringService
 from app.services.secret_detection_service import SecretDetectionService
@@ -74,6 +75,7 @@ class ScannerService:
         """Initialize scanner service."""
         self.db = db
         self.llm_provider = get_llm_provider()
+        self.java_scanner = JavaScannerService()
 
     def _classify_source_type(self, file_path: str, content: str) -> SourceType:
         """Classify whether code is frontend, backend, or database.
@@ -359,16 +361,37 @@ class ScannerService:
                         "Secrets will be redacted before sending to LLM."
                     )
 
-                # Search for authorization patterns
-                matches = []
-                for pattern in AUTH_PATTERNS:
-                    for match in re.finditer(pattern, content, re.IGNORECASE):
-                        line_num = content[:match.start()].count("\n") + 1
-                        matches.append({
-                            "pattern": pattern,
-                            "line": line_num,
-                            "text": match.group(),
-                        })
+                # Use Java-specific scanner for .java files
+                if file_path.endswith(".java"):
+                    if self.java_scanner.has_authorization_code(content):
+                        # Extract detailed authorization info via tree-sitter
+                        java_details = self.java_scanner.extract_authorization_details(
+                            content, str(relative_path)
+                        )
+
+                        # Convert to matches format
+                        matches = [
+                            {
+                                "pattern": detail.get("pattern", ""),
+                                "line": detail.get("line_start", 0),
+                                "text": detail.get("text", ""),
+                                "java_detail": detail,  # Store full detail for prompt enhancement
+                            }
+                            for detail in java_details
+                        ]
+                    else:
+                        matches = []
+                else:
+                    # Search for authorization patterns (non-Java files)
+                    matches = []
+                    for pattern in AUTH_PATTERNS:
+                        for match in re.finditer(pattern, content, re.IGNORECASE):
+                            line_num = content[:match.start()].count("\n") + 1
+                            matches.append({
+                                "pattern": pattern,
+                                "line": line_num,
+                                "text": match.group(),
+                            })
 
                 if matches:
                     # Redact secrets from content before storing
@@ -493,6 +516,11 @@ class ScannerService:
                 snippets.append(f"Lines {start}-{end}:\n{snippet}")
             content = "\n\n---\n\n".join(snippets)
 
+        # Check if this is a Java file with tree-sitter details
+        java_details = []
+        if file_path.endswith(".java"):
+            java_details = [m.get("java_detail") for m in matches if m.get("java_detail")]
+
         prompt = f"""You are a security policy extraction expert. Analyze the following code file and extract ALL authorization/access control policies.
 
 File: {file_path}
@@ -536,6 +564,10 @@ Return your response as a JSON array of policies:
 ```
 
 Return ONLY the JSON array, no other text."""
+
+        # Enhance prompt with Java-specific context if available
+        if java_details:
+            prompt = self.java_scanner.enhance_prompt_with_java_context(prompt, java_details)
 
         return prompt
 

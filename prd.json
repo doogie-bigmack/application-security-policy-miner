@@ -353,7 +353,7 @@
         "Verify Spring Security, Apache Shiro patterns detected",
         "Check evidence points to correct Java files"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "technical",

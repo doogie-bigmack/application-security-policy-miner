@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.api.v1.webhooks import verify_github_signature
 from app.main import app
-from app.models.repository import Repository, RepositoryStatus, RepositoryType
+from app.models.repository import Repository
 
 
 @pytest.fixture
