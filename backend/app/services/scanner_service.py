@@ -13,6 +13,13 @@ from git import Repo
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.metrics import (
+    increment_error_count,
+    increment_policies_extracted,
+    increment_scan_count,
+    record_scan_duration,
+    set_active_scans,
+)
 from app.models.policy import Evidence, Policy, PolicyStatus, RiskLevel, SourceType
 from app.models.repository import Repository, RepositoryStatus
 from app.models.scan_progress import ScanProgress, ScanStatus
@@ -200,6 +207,12 @@ class ScannerService:
         repo.status = RepositoryStatus.SCANNING
         self.db.commit()
 
+        # Track active scans metric
+        active_scans_count = self.db.query(ScanProgress).filter(
+            ScanProgress.status.in_([ScanStatus.QUEUED, ScanStatus.PROCESSING])
+        ).count()
+        set_active_scans(active_scans_count)
+
         try:
             # Clone repository to temp directory
             repo_path = await self._clone_repository(repo)
@@ -315,6 +328,7 @@ class ScannerService:
                         logger.error(f"Error processing file {file_info['path']}: {e}")
                         errors_count += 1
                         scan_progress.errors_count = errors_count
+                        increment_error_count("file_processing", "scanner_service")
                         self.db.commit()
                         continue
 
@@ -338,6 +352,17 @@ class ScannerService:
             scan_duration_seconds = (end_time - start_time).total_seconds()
             end_memory_mb = self._get_memory_usage_mb()
             memory_delta_mb = end_memory_mb - start_memory_mb
+
+            # Record Prometheus metrics
+            record_scan_duration(str(repository_id), scan_type, scan_duration_seconds)
+            increment_policies_extracted(str(repository_id), "extracted", policies_created)
+            increment_scan_count(scan_type, "success")
+
+            # Update active scans metric
+            active_scans_count = self.db.query(ScanProgress).filter(
+                ScanProgress.status.in_([ScanStatus.QUEUED, ScanStatus.PROCESSING])
+            ).count()
+            set_active_scans(active_scans_count)
 
             logger.info(
                 f"Streaming scan complete: processed {total_files} files in {batch_num} batches, "
@@ -381,6 +406,17 @@ class ScannerService:
 
         except Exception as e:
             logger.error(f"Scan failed: {e}")
+
+            # Record error metrics
+            increment_error_count("scan_failure", "scanner_service")
+            increment_scan_count(scan_type, "failure")
+
+            # Update active scans metric
+            active_scans_count = self.db.query(ScanProgress).filter(
+                ScanProgress.status.in_([ScanStatus.QUEUED, ScanStatus.PROCESSING])
+            ).count()
+            set_active_scans(active_scans_count)
+
             repo.status = RepositoryStatus.FAILED
             scan_progress.status = ScanStatus.FAILED
             scan_progress.error_message = str(e)
