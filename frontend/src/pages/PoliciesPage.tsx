@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit } from 'lucide-react'
 import logger from '../lib/logger'
 import PolicyDetailModal from '../components/PolicyDetailModal'
+import SourceFileViewer from '../components/SourceFileViewer'
 
 interface Evidence {
   id: number
@@ -41,6 +42,7 @@ export default function PoliciesPage() {
   const [sourceTypeFilter, setSourceTypeFilter] = useState<SourceType | 'all'>('all')
   const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null)
   const [expandedRiskPolicy, setExpandedRiskPolicy] = useState<number | null>(null)
+  const [viewingSourceEvidenceId, setViewingSourceEvidenceId] = useState<number | null>(null)
 
   const fetchPolicies = async (sourceType?: SourceType | 'all') => {
     try {
@@ -337,9 +339,13 @@ export default function PoliciesPage() {
                           className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-800"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                              {ev.file_path}
-                            </span>
+                            <button
+                              onClick={() => setViewingSourceEvidenceId(ev.id)}
+                              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer flex items-center space-x-2"
+                            >
+                              <FileCode size={14} />
+                              <span>{ev.file_path}</span>
+                            </button>
                             <span className="text-xs text-gray-500 dark:text-gray-400">
                               Lines {ev.line_start}-{ev.line_end}
                             </span>
@@ -393,6 +399,14 @@ export default function PoliciesPage() {
             setEditingPolicy(null)
             fetchPolicies(sourceTypeFilter)
           }}
+        />
+      )}
+
+      {/* Source File Viewer Modal */}
+      {viewingSourceEvidenceId && (
+        <SourceFileViewer
+          evidenceId={viewingSourceEvidenceId}
+          onClose={() => setViewingSourceEvidenceId(null)}
         />
       )}
     </div>

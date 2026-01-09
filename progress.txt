@@ -973,5 +973,77 @@
 ### Next Steps
 - Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
 - Story 13: Policy Provisioning - Auto-provision to OPA
-- Story 26: Evidence-based output - Quote exact code lines
+- Story 27: Support Java language scanning
+
+## 2026-01-08 - Evidence-Based Output Complete
+
+### Completed
+- Backend source file API endpoint:
+  - Created GET /api/v1/policies/evidence/{evidence_id}/source endpoint
+  - Fetches full source file content from cloned repository
+  - Returns file_path, content, total_lines, line_start, line_end
+  - Validates evidence, policy, and repository exist
+  - Reads from /tmp/policy_miner_repos/{repo_id}/ directory
+  - Proper error handling for missing files and read failures
+
+- Frontend SourceFileViewer component:
+  - Created modal component with syntax highlighting
+  - Uses react-syntax-highlighter with Prism
+  - Automatic language detection from file extension (20+ languages)
+  - Dark mode support (vscDarkPlus theme for dark, oneLight for light)
+  - Highlights evidence lines with blue background
+  - Displays file metadata (total lines, evidence line range, language)
+  - Legend showing which lines are evidence
+  - Clean, professional UI matching design system
+
+- Frontend PoliciesPage integration:
+  - Made evidence file paths clickable
+  - File path now shows FileCode icon and is a button
+  - Clicking file path opens SourceFileViewer modal
+  - Modal displays full source file with highlighted lines
+  - User can verify evidence matches actual code in repository
+
+- Dependencies:
+  - Added react-syntax-highlighter@16.1.0
+  - Added @types/react-syntax-highlighter@15.5.13
+  - Updated frontend package.json
+
+- Testing:
+  - Created comprehensive unit tests (5 test cases)
+  - Tests cover: successful retrieval, not found cases, content verification, line number accuracy
+  - Tests verify evidence snippet matches source file lines
+  - Note: Tests use PostgreSQL (SQLite has JSONB compatibility issues)
+
+### Implementation Details
+- Source files are read directly from cloned repositories on disk
+- No additional storage needed - uses existing git clones
+- Syntax highlighting supports 20+ programming languages
+- Evidence lines are visually highlighted to prevent confusion
+- Modal is responsive and handles large files well
+- Line numbers displayed for easy navigation
+- Full error handling for missing files (suggests rescanning)
+
+### Security Features
+- Source files are read from secure cloned repository location
+- No direct user file system access
+- Evidence validation ensures data integrity
+- Tenant isolation respected (through policy -> repository chain)
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
+✅ Story 8: "Conflict Resolution - Flag conflicts and AI recommendations" - PASSES
+✅ Story 9: "Multi-tenancy - Tenant-aware policy mining with full isolation" - PASSES
+✅ Story 10: "Unlimited Repository Size - Streaming analysis with batching" - PASSES
+✅ Story 11: "Change Detection - Auto-create work items and diff visualization" - PASSES
+✅ Story 12: "Change Detection - Git integration and PBAC sync" - PASSES
+✅ Story 22: "Pre-scan secret detection - No credentials sent to LLM" - PASSES
+✅ Story 23: "Private LLM endpoints - AWS Bedrock or Azure OpenAI only" - PASSES
+✅ Story 24: "Encryption at rest and in transit" - PASSES
+✅ Story 25: "Full audit logging - All prompts, responses, decisions" - PASSES
+✅ Story 26: "Evidence-based output - Quote exact code lines" - PASSES
 
