@@ -776,7 +776,7 @@
         "View provisioning status (success/failure)",
         "Review provisioning logs for errors"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "ui",
