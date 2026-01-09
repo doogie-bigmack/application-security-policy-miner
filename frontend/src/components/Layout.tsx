@@ -55,6 +55,12 @@ export default function Layout({ children, darkMode, setDarkMode }: LayoutProps)
                 Secrets
               </Link>
               <Link
+                to="/security"
+                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
+              >
+                Security
+              </Link>
+              <Link
                 to="/settings"
                 className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
               >

@@ -2,10 +2,12 @@
 from datetime import UTC, datetime
 from enum import Enum
 
-from sqlalchemy import JSON, Column, DateTime, Integer, String
+from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+
+from app.models.encrypted_types import EncryptedJSON, EncryptedString
 
 Base = declarative_base()
 
@@ -46,10 +48,10 @@ class Repository(Base):
     description = Column(String(1000), nullable=True)
     repository_type = Column(SAEnum(RepositoryType), nullable=False)
     source_url = Column(String(500), nullable=True)
-    connection_config = Column(JSON, nullable=True)  # Store credentials encrypted
+    connection_config = Column(EncryptedJSON, nullable=True)  # Credentials encrypted at rest
     status = Column(SAEnum(RepositoryStatus), default=RepositoryStatus.PENDING)
     last_scan_at = Column(DateTime(timezone=True), nullable=True)
-    webhook_secret = Column(String(255), nullable=True)  # Secret for webhook verification
+    webhook_secret = Column(EncryptedString(255), nullable=True)  # Secret encrypted at rest
     webhook_enabled = Column(Integer, default=0)  # Boolean: 0=disabled, 1=enabled
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
