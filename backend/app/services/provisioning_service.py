@@ -178,7 +178,7 @@ class ProvisioningService:
 
         # Fetch policy
         policy_stmt = select(Policy).where(
-            Policy.policy_id == policy_id,
+            Policy.id == policy_id,
             Policy.tenant_id == tenant_id,
         )
         policy_result = self.db.execute(policy_stmt)
@@ -345,6 +345,10 @@ class ProvisioningService:
             await self._push_to_opa(provider, policy, translated_policy)
         elif provider.provider_type == ProviderType.AWS_VERIFIED_PERMISSIONS:
             await self._push_to_aws_verified_permissions(provider, policy, translated_policy)
+        elif provider.provider_type == ProviderType.AXIOMATICS:
+            await self._push_to_axiomatics(provider, policy, translated_policy)
+        elif provider.provider_type == ProviderType.PLAINID:
+            await self._push_to_plainid(provider, policy, translated_policy)
         else:
             logger.warning(
                 "unsupported_provider_type",
@@ -480,3 +484,188 @@ class ProvisioningService:
             raise Exception(error_msg) from e
 
         logger.info("aws_push_successful", policy_id=policy.id)
+
+    async def _push_to_axiomatics(
+        self, provider: PBACProvider, policy: Policy, translated_policy: str
+    ) -> None:
+        """
+        Push policy to Axiomatics via REST API.
+
+        Args:
+            provider: The Axiomatics provider
+            policy: The original policy
+            translated_policy: The translated policy (XACML or JSON)
+
+        Raises:
+            Exception: If push fails
+        """
+        logger.info(
+            "pushing_to_axiomatics",
+            endpoint=provider.endpoint_url,
+            policy_id=policy.id,
+        )
+
+        # Parse provider configuration
+        # Expected format: {"auth_type": "bearer", "additional_headers": {...}}
+        config = json.loads(provider.configuration) if provider.configuration else {}
+
+        # Build policy payload for Axiomatics API
+        # Axiomatics typically uses XACML or custom JSON format
+        policy_id = f"policy-{policy.id}"
+
+        payload = {
+            "policyId": policy_id,
+            "name": f"Policy for {policy.subject} accessing {policy.resource}",
+            "description": policy.description or f"Policy {policy.id}",
+            "content": translated_policy,
+            "enabled": True,
+            "metadata": {
+                "source": "policy_miner",
+                "subject": policy.subject,
+                "resource": policy.resource,
+                "action": policy.action,
+            }
+        }
+
+        # Build headers
+        headers = {"Content-Type": "application/json"}
+
+        # Add authentication
+        if provider.api_key:
+            auth_type = config.get("auth_type", "bearer")
+            if auth_type.lower() == "bearer":
+                headers["Authorization"] = f"Bearer {provider.api_key}"
+            elif auth_type.lower() == "apikey":
+                headers["X-API-Key"] = provider.api_key
+            else:
+                headers["Authorization"] = f"Bearer {provider.api_key}"
+
+        # Add any additional headers from configuration
+        if "additional_headers" in config:
+            headers.update(config["additional_headers"])
+
+        # Axiomatics REST API: POST /api/policies or PUT /api/policies/{policy_id}
+        url = f"{provider.endpoint_url.rstrip('/')}/api/policies/{policy_id}"
+
+        async with httpx.AsyncClient() as client:
+            # Try PUT first (update), then POST if not found
+            try:
+                response = await client.put(
+                    url,
+                    json=payload,
+                    headers=headers,
+                    timeout=30.0,
+                )
+
+                if response.status_code == 404:
+                    # Policy doesn't exist, create it with POST
+                    create_url = f"{provider.endpoint_url.rstrip('/')}/api/policies"
+                    response = await client.post(
+                        create_url,
+                        json=payload,
+                        headers=headers,
+                        timeout=30.0,
+                    )
+
+                if response.status_code not in (200, 201, 204):
+                    error_msg = f"Axiomatics returned status {response.status_code}: {response.text}"
+                    logger.error("axiomatics_push_failed", error=error_msg)
+                    raise Exception(error_msg)
+
+            except httpx.RequestError as e:
+                error_msg = f"Axiomatics connection error: {str(e)}"
+                logger.error("axiomatics_connection_error", error=error_msg)
+                raise Exception(error_msg) from e
+
+        logger.info("axiomatics_push_successful", policy_id=policy.id)
+
+    async def _push_to_plainid(
+        self, provider: PBACProvider, policy: Policy, translated_policy: str
+    ) -> None:
+        """
+        Push policy to PlainID via REST API.
+
+        Args:
+            provider: The PlainID provider
+            policy: The original policy
+            translated_policy: The translated policy (JSON format)
+
+        Raises:
+            Exception: If push fails
+        """
+        logger.info(
+            "pushing_to_plainid",
+            endpoint=provider.endpoint_url,
+            policy_id=policy.id,
+        )
+
+        # Parse provider configuration
+        # Expected format: {"tenant_id": "...", "environment": "production"}
+        config = json.loads(provider.configuration) if provider.configuration else {}
+
+        # Build policy payload for PlainID API
+        # PlainID uses a proprietary JSON format for policies
+        policy_id = f"policy-{policy.id}"
+
+        payload = {
+            "id": policy_id,
+            "name": f"Policy for {policy.subject} accessing {policy.resource}",
+            "description": policy.description or f"Mined policy {policy.id}",
+            "status": "active",
+            "policy": json.loads(translated_policy) if translated_policy.startswith("{") else {"content": translated_policy},
+            "tags": ["policy_miner", "automated"],
+            "metadata": {
+                "source": "policy_miner",
+                "original_policy_id": str(policy.id),
+                "subject": policy.subject,
+                "resource": policy.resource,
+                "action": policy.action,
+                "risk_score": policy.risk_score,
+            }
+        }
+
+        # Add tenant ID if provided
+        if "tenant_id" in config:
+            payload["tenantId"] = config["tenant_id"]
+
+        # Build headers
+        headers = {"Content-Type": "application/json"}
+
+        # Add authentication (PlainID uses API key authentication)
+        if provider.api_key:
+            headers["Authorization"] = f"Bearer {provider.api_key}"
+
+        # PlainID REST API: POST /api/v1/policies or PUT /api/v1/policies/{policy_id}
+        url = f"{provider.endpoint_url.rstrip('/')}/api/v1/policies/{policy_id}"
+
+        async with httpx.AsyncClient() as client:
+            # Try PUT first (update existing policy)
+            try:
+                response = await client.put(
+                    url,
+                    json=payload,
+                    headers=headers,
+                    timeout=30.0,
+                )
+
+                if response.status_code == 404:
+                    # Policy doesn't exist, create it with POST
+                    create_url = f"{provider.endpoint_url.rstrip('/')}/api/v1/policies"
+                    response = await client.post(
+                        create_url,
+                        json=payload,
+                        headers=headers,
+                        timeout=30.0,
+                    )
+
+                if response.status_code not in (200, 201, 204):
+                    error_msg = f"PlainID returned status {response.status_code}: {response.text}"
+                    logger.error("plainid_push_failed", error=error_msg)
+                    raise Exception(error_msg)
+
+            except httpx.RequestError as e:
+                error_msg = f"PlainID connection error: {str(e)}"
+                logger.error("plainid_connection_error", error=error_msg)
+                raise Exception(error_msg) from e
+
+        logger.info("plainid_push_successful", policy_id=policy.id)
