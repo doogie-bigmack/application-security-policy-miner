@@ -4,6 +4,12 @@ from typing import Any
 
 import httpx
 
+from app.core.test_mode import is_test_mode
+from tests.fixtures.github_responses import (
+    GITHUB_LIST_REPOS,
+    GITHUB_VERIFY_TOKEN,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,6 +41,32 @@ class GitHubService:
             httpx.HTTPStatusError: If GitHub API returns an error
         """
         logger.info("Fetching GitHub repositories", extra={"page": page, "per_page": per_page})
+
+        # Return mock data in test mode
+        if is_test_mode():
+            logger.info("TEST_MODE: Returning mock GitHub repositories")
+            formatted_repos = [
+                {
+                    "id": repo["id"],
+                    "name": repo["name"],
+                    "full_name": repo["full_name"],
+                    "description": repo.get("description"),
+                    "clone_url": repo["html_url"] + ".git",
+                    "ssh_url": f"git@github.com:{repo['full_name']}.git",
+                    "html_url": repo["html_url"],
+                    "private": repo["private"],
+                    "language": repo.get("language"),
+                    "updated_at": repo["updated_at"],
+                    "default_branch": repo["default_branch"],
+                }
+                for repo in GITHUB_LIST_REPOS
+            ]
+            return {
+                "repositories": formatted_repos,
+                "total": len(formatted_repos),
+                "page": page,
+                "per_page": per_page,
+            }
 
         try:
             async with httpx.AsyncClient() as client:
@@ -105,6 +137,16 @@ class GitHubService:
             httpx.HTTPStatusError: If token is invalid
         """
         logger.info("Verifying GitHub access token")
+
+        # Return mock data in test mode
+        if is_test_mode():
+            logger.info("TEST_MODE: Returning mock GitHub user")
+            return {
+                "login": GITHUB_VERIFY_TOKEN["login"],
+                "name": GITHUB_VERIFY_TOKEN.get("name"),
+                "email": GITHUB_VERIFY_TOKEN.get("email"),
+                "avatar_url": GITHUB_VERIFY_TOKEN.get("avatar_url"),
+            }
 
         try:
             async with httpx.AsyncClient() as client:
