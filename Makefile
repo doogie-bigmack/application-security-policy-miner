@@ -64,7 +64,7 @@ e2e: ## Run E2E tests manually (requires e2e/ infrastructure)
 		echo "❌ e2e/ directory not found. Run 'make damonnator-infra' first to build test infrastructure."; \
 		exit 1; \
 	fi
-	python3 e2e/e2e_runner.py --test-suite e2e-tests.json --prd prd.json --output test-results.json
+	e2e/.venv/bin/python3 e2e/e2e_runner.py --test-suite e2e-tests.json --prd prd.json --output test-results.json
 	@echo "✅ E2E tests complete. See test-results.json"
 
 ##@ Code Quality
