@@ -63,25 +63,64 @@ docker-compose up -d
 3. Enter a Git repository URL
 4. Click "Start Scan" to extract policies
 
+<<<<<<< HEAD
 ## Cloud Deployment (Kubernetes)
 
 For production deployments to AWS EKS, Azure AKS, or any Kubernetes cluster:
 
 ### Quick Deploy
 
+=======
+## Deployment Options
+
+### Option 1: On-Premises Deployment (Docker Compose)
+
+For on-premises or self-hosted deployments with NGINX reverse proxy, TLS, and production hardening:
+
+**Quick Deploy:**
+```bash
+cd onprem
+cp .env.example .env
+# Edit .env with your configuration
+./deploy.sh
+```
+
+**Features:**
+- NGINX reverse proxy with TLS/SSL
+- PostgreSQL, Redis, MinIO with encryption at rest and in transit
+- Automated backup/restore scripts
+- No external dependencies (air-gapped support)
+- Integration with on-prem Git servers (GitLab, GitHub Enterprise, Bitbucket Server)
+
+See [onprem/DEPLOYMENT.md](onprem/DEPLOYMENT.md) for detailed on-premises deployment guide.
+
+### Option 2: Cloud Deployment (Kubernetes)
+
+For production deployments to AWS EKS, Azure AKS, or any Kubernetes cluster:
+
+**Quick Deploy:**
+>>>>>>> d2cadf0 (feat: Add comprehensive on-premises deployment support with NGINX, TLS, and automation scripts)
 ```bash
 cd kubernetes
 ./deploy.sh
 ```
 
+<<<<<<< HEAD
 ### Manual Deploy
 
+=======
+**Manual Deploy:**
+>>>>>>> d2cadf0 (feat: Add comprehensive on-premises deployment support with NGINX, TLS, and automation scripts)
 ```bash
 # Update secrets and images first
 kubectl apply -k kubernetes/overlays/aws  # or azure
 ```
 
+<<<<<<< HEAD
 See [kubernetes/README.md](kubernetes/README.md) for detailed deployment guide.
+=======
+See [kubernetes/README.md](kubernetes/README.md) for detailed cloud deployment guide.
+>>>>>>> d2cadf0 (feat: Add comprehensive on-premises deployment support with NGINX, TLS, and automation scripts)
 
 ## Development
 
