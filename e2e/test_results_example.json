@@ -1,0 +1,123 @@
+{
+  "metadata": {
+    "test_run_id": "test-run-20260109-161545",
+    "started_at": "2026-01-09T16:15:45.123456Z",
+    "completed_at": "2026-01-09T16:18:23.987654Z",
+    "duration_seconds": 158.86,
+    "trigger": "manual",
+    "environment": {
+      "frontend_url": "http://localhost:3333",
+      "backend_url": "http://localhost:7777",
+      "python_version": "3.12+"
+    }
+  },
+  "summary": {
+    "total_tests": 5,
+    "passed": 4,
+    "failed": 1,
+    "skipped": 0,
+    "error": 0,
+    "pass_rate": 80.0
+  },
+  "test_results": [
+    {
+      "test_id": "test_add_github_repository",
+      "test_name": "Add GitHub Repository",
+      "prd_story_id": "FUNC-001",
+      "status": "passed",
+      "duration_seconds": 12.45,
+      "started_at": "2026-01-09T16:15:45.123456Z",
+      "completed_at": "2026-01-09T16:15:57.573456Z",
+      "steps_completed": 11,
+      "steps_total": 11,
+      "error": null
+    },
+    {
+      "test_id": "test_scan_repository",
+      "test_name": "Scan Repository and Extract Policies",
+      "prd_story_id": "AI-001",
+      "status": "failed",
+      "duration_seconds": 125.78,
+      "started_at": "2026-01-09T16:15:57.600000Z",
+      "completed_at": "2026-01-09T16:18:03.380000Z",
+      "steps_completed": 4,
+      "steps_total": 10,
+      "error": {
+        "type": "timeout",
+        "message": "Element not found within timeout: [data-testid='scan-status'][data-status='completed']",
+        "step_index": 4,
+        "step_description": "Wait for scan to complete (up to 2 minutes)",
+        "screenshot": "e2e/screenshots/test_scan_repository_failure_20260109_161803.png",
+        "console_errors": [
+          "[ERROR] Failed to load resource: http://localhost:7777/api/v1/repositories/123/scan - Status: 500",
+          "[ERROR] Uncaught (in promise) Error: Scan service unavailable"
+        ],
+        "stack_trace": "Traceback (most recent call last):\n  File \"e2e/e2e_runner.py\", line 234, in execute_step\n    self.executor.wait_for_element(selector, timeout_ms)\n  File \"e2e/test_executor.py\", line 178, in wait_for_element\n    raise TimeoutError(f\"Element not found within timeout: {selector}\")\nTimeoutError: Element not found within timeout: [data-testid='scan-status'][data-status='completed']"
+      }
+    },
+    {
+      "test_id": "test_view_policies",
+      "test_name": "View and Filter Policies",
+      "prd_story_id": "UI-001",
+      "status": "passed",
+      "duration_seconds": 8.23,
+      "started_at": "2026-01-09T16:18:03.400000Z",
+      "completed_at": "2026-01-09T16:18:11.630000Z",
+      "steps_completed": 12,
+      "steps_total": 12,
+      "error": null
+    },
+    {
+      "test_id": "test_add_pbac_provider",
+      "test_name": "Add PBAC Provider (OPA)",
+      "prd_story_id": "PROV-001",
+      "status": "passed",
+      "duration_seconds": 9.87,
+      "started_at": "2026-01-09T16:18:11.650000Z",
+      "completed_at": "2026-01-09T16:18:21.520000Z",
+      "steps_completed": 13,
+      "steps_total": 13,
+      "error": null
+    },
+    {
+      "test_id": "test_provision_policy",
+      "test_name": "Provision Policy to PBAC Provider",
+      "prd_story_id": "PROV-002",
+      "status": "passed",
+      "duration_seconds": 2.53,
+      "started_at": "2026-01-09T16:18:21.540000Z",
+      "completed_at": "2026-01-09T16:18:24.070000Z",
+      "steps_completed": 9,
+      "steps_total": 9,
+      "error": null
+    }
+  ],
+  "recommendations": [
+    "⚠️ 1 test(s) failed. Review error diagnostics below for root cause analysis.",
+    "⏱️ 1 test(s) failed due to timeout. Check if backend services are running (docker-compose ps). Verify API response times with backend logs.",
+    "📸 1 screenshot(s) captured. Review screenshots in e2e/screenshots/ for visual debugging."
+  ],
+  "coverage_analysis": {
+    "prd_stories_tested": [
+      "FUNC-001",
+      "AI-001",
+      "UI-001",
+      "PROV-001",
+      "PROV-002"
+    ],
+    "prd_stories_total": 15,
+    "coverage_percentage": 33.33,
+    "untested_stories": [
+      "FUNC-002",
+      "FUNC-003",
+      "AI-002",
+      "UI-002",
+      "UI-003",
+      "PROV-003",
+      "PROV-004",
+      "PROV-005",
+      "INT-001",
+      "INT-002"
+    ]
+  }
+}
