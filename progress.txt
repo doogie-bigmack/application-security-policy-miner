@@ -1,5 +1,89 @@
 # Progress Log
 
+## 2026-01-09 - Azure DevOps Integration for Repository Scanning Complete
+
+### Completed
+- Implemented Azure DevOps integration for easy repository importing:
+  - Created AzureDevOpsService for Azure DevOps API integration using httpx
+  - Implemented Azure DevOps repository listing via Azure DevOps REST API v7.0
+  - Added Personal Access Token (PAT) verification endpoint
+  - Lists user's projects and repositories with metadata (name, project, default branch)
+  - Supports both organization-wide and project-specific repository listing
+  - Uses HTTP Basic Auth with PAT (empty username, PAT as password)
+
+- Backend API endpoints:
+  - POST /api/v1/repositories/azure-devops/list - List accessible Azure DevOps repositories
+  - POST /api/v1/repositories/azure-devops/verify - Verify Azure DevOps PAT
+  - POST /api/v1/repositories/azure-devops/projects - List projects in organization
+  - Supports pagination (100 repositories per page)
+  - Returns formatted repository data with clone URLs (HTTP and SSH)
+  - Automatically encodes PAT for Basic Authentication
+
+- Frontend Azure DevOps browser component:
+  - Created AzureDevOpsRepositoryBrowser modal with PAT authentication
+  - Clean, professional UI matching design system (sky blue theme for Azure)
+  - Organization name input field
+  - Personal Access Token input field (masked password field)
+  - Three-step flow: verify credentials, fetch projects, then browse repositories
+  - Project filter dropdown (optional - can view all repos or filter by project)
+  - Repository search and filtering
+  - Project name display for each repository
+  - Default branch indicator
+  - Direct links to view repositories on Azure DevOps
+  - One-click import with automatic form population
+
+- Integration with AddRepositoryModal:
+  - Added "Azure DevOps" button with Azure DevOps icon (sky blue theme)
+  - Placed in 2x2 grid with GitHub, GitLab, and Bitbucket
+  - Seamless modal overlay system
+  - Auto-fills repository details on selection
+  - Stores git_provider='azure-devops' for tracking source
+  - Encrypted credentials storage in connection_config
+  - Stores both PAT and organization securely
+
+- Code quality:
+  - All backend code passes Ruff linting
+  - Fixed undefined variable issue in scanner_service.py (added repo_path parameter)
+  - Follows established patterns from GitHub, GitLab, and Bitbucket integrations
+  - Proper error handling and logging
+  - Structured logging with context
+
+### User Story Status
+✅ Story: "Azure DevOps integration for repository scanning" - PASSES
+
+Requirements met:
+- ✅ Navigate to Add Repository
+- ✅ Select Azure DevOps as source (via "Azure DevOps" button)
+- ✅ Provide Azure DevOps PAT (organization + PAT input)
+- ✅ Enter organization and project details (organization required, project optional filter)
+- ✅ Test connection (verify PAT before browsing)
+- ✅ Clone repository for scanning (uses remoteUrl from Azure DevOps API)
+- ✅ Verify repository accessible (connection test before adding)
+- ✅ Initiate scan on Azure DevOps repository (existing scan functionality)
+
+### Technical Details
+- Backend: Python, FastAPI, httpx for Azure DevOps API calls
+- Frontend: React, TypeScript with AzureDevOpsRepositoryBrowser component
+- Security: Credentials encrypted at rest using EncryptedJSON
+- API: Azure DevOps REST API v7.0 with PAT authentication
+- UX: Three-step flow - verify credentials, fetch projects, browse repositories
+- Authentication: HTTP Basic Auth with empty username and PAT as password
+- Base64 encoding: PAT is encoded as `:PAT` for Basic Auth header
+
+### Benefits
+- Dramatically simplifies Azure DevOps repository onboarding
+- No manual URL copying or credential entry needed
+- Browse all accessible repositories across organization or by project
+- Visual feedback with project grouping
+- Reduces human error in URL/credentials entry
+- Professional, intuitive user experience
+- Consistent with GitHub, GitLab, and Bitbucket integration patterns
+
+### Next Steps
+- Consider OAuth flow for production deployment (Azure AD integration)
+- Add webhook auto-configuration during import
+- Add repository statistics (size, last updated) when API supports it
+
 ## 2026-01-09 - Bitbucket Integration for Repository Scanning Complete
 
 ### Completed
