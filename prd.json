@@ -58,7 +58,7 @@
         "Filter policies by 'Backend Authorization'",
         "Verify API authorization rules are extracted"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

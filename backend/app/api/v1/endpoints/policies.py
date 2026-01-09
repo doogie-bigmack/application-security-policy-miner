@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.policy import Policy
+from app.models.policy import Policy, SourceType
 from app.schemas.policy import (
     PolicyListResponse,
     PolicyResponse,
@@ -65,6 +65,7 @@ async def scan_repository(
 @router.get("/", response_model=PolicyListResponse)
 def list_policies(
     repository_id: int | None = None,
+    source_type: str | None = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
@@ -74,6 +75,7 @@ def list_policies(
 
     Args:
         repository_id: Optional repository ID to filter by
+        source_type: Optional source type to filter by (FRONTEND, BACKEND, DATABASE, UNKNOWN)
         skip: Number of records to skip
         limit: Maximum number of records to return
         db: Database session
@@ -85,6 +87,13 @@ def list_policies(
 
     if repository_id is not None:
         query = query.filter(Policy.repository_id == repository_id)
+
+    if source_type is not None:
+        try:
+            source_type_enum = SourceType(source_type.upper())
+            query = query.filter(Policy.source_type == source_type_enum)
+        except ValueError:
+            logger.warning("Invalid source_type filter: %s", source_type)
 
     total = query.count()
     policies = query.offset(skip).limit(limit).all()

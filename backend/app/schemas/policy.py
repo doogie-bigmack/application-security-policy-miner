@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.policy import PolicyStatus, RiskLevel
+from app.models.policy import PolicyStatus, RiskLevel, SourceType
 
 
 class PolicyEvidenceBase(BaseModel):
@@ -66,6 +66,7 @@ class PolicyResponse(PolicyBase):
     status: PolicyStatus
     risk_level: RiskLevel
     risk_score: int
+    source_type: SourceType
     created_at: datetime
     updated_at: datetime
     tenant_id: str | None = None
