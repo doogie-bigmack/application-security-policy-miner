@@ -428,7 +428,7 @@
         "Add data-testid='policies-sort-by' to sort dropdown",
         "Add data-testid='policy-detail-view' to detail modal"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "PoliciesPage has 12+ data-testid attributes",
         "Table structure identifiable",

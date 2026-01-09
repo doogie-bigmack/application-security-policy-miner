@@ -203,7 +203,7 @@ export default function PoliciesPage() {
       </div>
 
       {/* Source Type Filter */}
-      <div className="flex items-center space-x-3">
+      <div data-testid="policies-filter-source" className="flex items-center space-x-3">
         <Filter size={20} className="text-gray-600 dark:text-gray-400" />
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by Source:</span>
         <div className="flex space-x-2">
@@ -241,10 +241,11 @@ export default function PoliciesPage() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div data-testid="policies-table" className="grid gap-4">
           {policies.map((policy) => (
             <div
               key={policy.id}
+              data-testid="policy-row"
               className="border border-gray-200 dark:border-dark-border rounded-lg bg-white dark:bg-dark-surface p-6 hover:shadow-md transition"
             >
               <div className="flex items-start justify-between mb-4">
@@ -263,19 +264,19 @@ export default function PoliciesPage() {
                       </p>
                     )}
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
+                      <div data-testid="policy-subject">
                         <span className="font-medium text-gray-700 dark:text-gray-300">Who (Subject):</span>
                         <span className="ml-2 text-gray-600 dark:text-gray-400">{policy.subject}</span>
                       </div>
-                      <div>
+                      <div data-testid="policy-resource">
                         <span className="font-medium text-gray-700 dark:text-gray-300">What (Resource):</span>
                         <span className="ml-2 text-gray-600 dark:text-gray-400">{policy.resource}</span>
                       </div>
-                      <div>
+                      <div data-testid="policy-action">
                         <span className="font-medium text-gray-700 dark:text-gray-300">How (Action):</span>
                         <span className="ml-2 text-gray-600 dark:text-gray-400">{policy.action}</span>
                       </div>
-                      <div>
+                      <div data-testid="policy-conditions">
                         <span className="font-medium text-gray-700 dark:text-gray-300">When (Conditions):</span>
                         <span className="ml-2 text-gray-600 dark:text-gray-400">
                           {policy.conditions || 'None'}
@@ -350,7 +351,7 @@ export default function PoliciesPage() {
               )}
 
               {policy.evidence.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border">
+                <div data-testid="policy-evidence" className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border">
                   <button
                     onClick={() => setSelectedPolicy(selectedPolicy?.id === policy.id ? null : policy)}
                     className="inline-flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
@@ -393,6 +394,7 @@ export default function PoliciesPage() {
 
               <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border flex items-center space-x-3">
                 <button
+                  data-testid="policy-btn-edit"
                   onClick={() => setEditingPolicy(policy)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm inline-flex items-center space-x-2"
                 >
@@ -400,6 +402,7 @@ export default function PoliciesPage() {
                   <span>Edit</span>
                 </button>
                 <button
+                  data-testid="policy-btn-find-similar"
                   onClick={() => setViewingSimilarPolicyId(policy.id)}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-sm inline-flex items-center space-x-2"
                 >
@@ -407,6 +410,7 @@ export default function PoliciesPage() {
                   <span>Find Similar</span>
                 </button>
                 <button
+                  data-testid="policies-btn-export"
                   onClick={() => setExportingPolicyId(policy.id)}
                   className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 text-sm inline-flex items-center space-x-2"
                 >
@@ -414,6 +418,7 @@ export default function PoliciesPage() {
                   <span>Export</span>
                 </button>
                 <button
+                  data-testid="policy-btn-generate-advisory"
                   onClick={() => handleGenerateAdvisory(policy.id)}
                   disabled={generatingAdvisory === policy.id}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-sm inline-flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -424,12 +429,14 @@ export default function PoliciesPage() {
                 {policy.status === 'pending' && (
                   <>
                     <button
+                      data-testid="policy-btn-approve"
                       onClick={() => handleApprove(policy.id)}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-sm"
                     >
                       Approve
                     </button>
                     <button
+                      data-testid="policy-btn-reject"
                       onClick={() => handleReject(policy.id)}
                       className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-sm"
                     >
@@ -446,6 +453,7 @@ export default function PoliciesPage() {
       {/* Policy Detail Modal */}
       {editingPolicy && (
         <PolicyDetailModal
+          data-testid="policy-detail-view"
           policy={editingPolicy}
           onClose={() => setEditingPolicy(null)}
           onSave={() => {
