@@ -323,7 +323,7 @@
         "Search logs by tenant, user, timestamp",
         "Export audit logs for compliance review"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "security",
