@@ -515,7 +515,7 @@
         "Test script execution: TEST_MODE=true python backend/scripts/seed_test_data.py",
         "Verify data appears in test database"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "Seed script creates test organizations",
         "Seed script creates test applications",
