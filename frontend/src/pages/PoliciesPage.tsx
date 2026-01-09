@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit, Download, Wrench, GitCompare } from 'lucide-react'
+import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit, Download, Wrench, Link as LinkIcon } from 'lucide-react'
 import logger from '../lib/logger'
 import PolicyDetailModal from '../components/PolicyDetailModal'
 import SourceFileViewer from '../components/SourceFileViewer'
@@ -400,18 +400,18 @@ export default function PoliciesPage() {
                   <span>Edit</span>
                 </button>
                 <button
-                  onClick={() => setViewingSimilarPolicyId(policy.id)}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-sm inline-flex items-center space-x-2"
-                >
-                  <GitCompare size={16} />
-                  <span>Find Similar</span>
-                </button>
-                <button
                   onClick={() => setExportingPolicyId(policy.id)}
                   className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 text-sm inline-flex items-center space-x-2"
                 >
                   <Download size={16} />
                   <span>Export</span>
+                </button>
+                <button
+                  onClick={() => setViewingSimilarPolicyId(policy.id)}
+                  className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-sm inline-flex items-center space-x-2"
+                >
+                  <LinkIcon size={16} />
+                  <span>Find Similar</span>
                 </button>
                 <button
                   onClick={() => handleGenerateAdvisory(policy.id)}
