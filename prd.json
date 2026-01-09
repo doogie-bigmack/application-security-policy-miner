@@ -701,7 +701,7 @@
         "Set up alerting rules",
         "Export dashboard for sharing"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "ui",

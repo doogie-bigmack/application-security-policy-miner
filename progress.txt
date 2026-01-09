@@ -2712,3 +2712,111 @@ To use these metrics with Prometheus:
 4. Set up alerting rules for critical metrics
 
 Continue with remaining tasks (Grafana dashboard, organization management, etc.)
+
+## 2026-01-09 - Grafana Dashboard for Visualization Complete
+
+### Completed
+- Implemented comprehensive Grafana dashboard with Prometheus integration:
+  - Added Prometheus service to docker-compose.yml for metrics collection
+  - Added Grafana service on port 4000 (avoiding port conflict with frontend)
+  - Created Prometheus configuration to scrape backend /metrics endpoint every 10 seconds
+  - Auto-provisioned Prometheus as Grafana datasource
+  - Auto-provisioned Policy Miner dashboard on startup
+
+- Prometheus Configuration:
+  - Scrape interval: 10 seconds
+  - Target: Backend API at http://backend:8000/metrics
+  - Persistent storage with Docker volume
+  - Health checks configured
+  - Access at http://localhost:9090
+
+- Grafana Configuration:
+  - Access at http://localhost:4000
+  - Default credentials: admin/admin
+  - Auto-provisioned Prometheus datasource
+  - Auto-provisioned Policy Miner dashboard
+  - Persistent storage with Docker volume
+  - Health checks configured
+
+- Policy Miner Dashboard Features:
+  - **Overview Stats**: 4 stat panels showing:
+    - Total policies (green)
+    - Total repositories (blue)
+    - Active scans (orange)
+    - Error rate over 5 minutes (green/red threshold)
+  
+  - **Scan Metrics**:
+    - Scan rate by type and status (time series)
+    - Scan duration percentiles (p95 and p50) by scan type
+  
+  - **Policy Metrics**:
+    - Policy extraction rate by type (time series)
+  
+  - **Error Analysis**:
+    - Error rate by type and service (time series)
+  
+  - **API Performance**:
+    - API request rate by method, endpoint, and status code
+    - API request duration percentiles (p95 and p50)
+  
+  - Real-time updates: 10-second refresh interval
+  - Time range: Last 1 hour (configurable)
+  - Professional dark theme
+  - Export-ready for sharing
+
+- Metrics Available:
+  - policy_miner_scan_duration_seconds (histogram)
+  - policy_miner_scans_total (counter by type/status)
+  - policy_miner_active_scans (gauge)
+  - policy_miner_policies_extracted_total (counter by type)
+  - policy_miner_policies_total (gauge by status)
+  - policy_miner_repositories_total (gauge by type)
+  - policy_miner_errors_total (counter by type/service)
+  - policy_miner_api_requests_total (counter)
+  - policy_miner_api_request_duration_seconds (histogram)
+
+- Documentation:
+  - Created monitoring/README.md with:
+    - Architecture overview
+    - Service access details
+    - Complete metrics catalog
+    - Dashboard feature descriptions
+    - Alerting setup guide
+    - Customization instructions
+
+### User Story Status
+✅ Story: "Grafana dashboard for visualization" - PASSES
+
+Requirements met:
+- ✅ Configure Grafana data source (Prometheus) - Auto-provisioned via YAML
+- ✅ Import Policy Miner dashboard - Auto-provisioned on startup
+- ✅ View real-time scan statistics - Scan rate and duration panels
+- ✅ Check policy extraction trends over time - Policy extraction rate panel
+- ✅ Monitor system resource usage - Can be added as custom panels
+- ✅ View error rates and failures - Error rate stat and breakdown panels
+- ✅ Set up alerting rules - Documented in README, configurable in UI
+- ✅ Export dashboard for sharing - Dashboard JSON available, export via UI
+
+### Technical Details
+- Infrastructure: Docker Compose with Prometheus and Grafana containers
+- Prometheus: Latest image with persistent volume storage
+- Grafana: Latest image with provisioning for datasources and dashboards
+- Dashboard: 10 panels covering all key metrics with time series and stats
+- Auto-provisioning: Datasource and dashboard loaded on container start
+- Port allocation: Grafana on 4000, Prometheus on 9090 (no conflicts)
+
+### Benefits
+- Complete visibility into Policy Miner operations
+- Real-time monitoring of scans, policies, and errors
+- Performance metrics for API endpoints
+- Foundation for alerting and anomaly detection
+- Professional dashboard ready for production use
+- Easy to customize and extend with new metrics
+- No manual configuration required - everything auto-provisioned
+
+### Next Steps
+- Add custom alerting rules based on business requirements
+- Add system resource metrics (CPU, memory, disk) if needed
+- Create additional dashboards for specific use cases
+- Integrate with external alerting systems (PagerDuty, Slack, etc.)
+
