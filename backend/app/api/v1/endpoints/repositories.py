@@ -14,6 +14,7 @@ from app.schemas.repository import (
     RepositoryResponse,
     RepositoryUpdate,
 )
+from app.services.bitbucket_service import BitbucketService
 from app.services.evidence_validation_service import EvidenceValidationService
 from app.services.github_service import GitHubService
 from app.services.gitlab_service import GitLabService
@@ -371,4 +372,75 @@ async def verify_gitlab_token(
         raise HTTPException(
             status_code=401,
             detail="Invalid GitLab access token",
+        )
+
+
+@router.post("/bitbucket/list")
+async def list_bitbucket_repositories(
+    username: str = Query(..., description="Bitbucket username or email"),
+    app_password: str = Query(..., description="Bitbucket App Password"),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(100, ge=1, le=100, description="Results per page"),
+) -> dict:
+    """
+    List Bitbucket repositories accessible to the user.
+
+    Requires a Bitbucket App Password (not your account password).
+    Create one at: https://bitbucket.org/account/settings/app-passwords/
+
+    Args:
+        username: Bitbucket username or email
+        app_password: Bitbucket App Password
+        page: Page number (default: 1)
+        per_page: Results per page (default: 100, max: 100)
+
+    Returns:
+        List of Bitbucket repositories with metadata
+    """
+    logger.info("api_list_bitbucket_repositories", page=page, per_page=per_page, username=username)
+
+    try:
+        bitbucket_service = BitbucketService(username, app_password)
+        result = await bitbucket_service.list_repositories(per_page=per_page, page=page)
+
+        logger.info("bitbucket_repositories_listed", count=result.get("total"))
+        return result
+
+    except Exception as e:
+        logger.error("failed_to_list_bitbucket_repositories", error=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to fetch Bitbucket repositories: {str(e)}",
+        )
+
+
+@router.post("/bitbucket/verify")
+async def verify_bitbucket_credentials(
+    username: str = Query(..., description="Bitbucket username or email"),
+    app_password: str = Query(..., description="Bitbucket App Password"),
+) -> dict:
+    """
+    Verify Bitbucket credentials and get user information.
+
+    Args:
+        username: Bitbucket username or email
+        app_password: Bitbucket App Password
+
+    Returns:
+        User information if credentials are valid
+    """
+    logger.info("api_verify_bitbucket_credentials", username=username)
+
+    try:
+        bitbucket_service = BitbucketService(username, app_password)
+        user_info = await bitbucket_service.verify_access()
+
+        logger.info("bitbucket_credentials_verified", user=user_info.get("username"))
+        return user_info
+
+    except Exception as e:
+        logger.error("bitbucket_credentials_verification_failed", error=str(e))
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Bitbucket credentials",
         )

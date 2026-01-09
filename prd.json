@@ -608,7 +608,7 @@
         "Verify repository metadata stored",
         "Initiate scan on Bitbucket repository"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "integration",
