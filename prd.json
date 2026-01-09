@@ -867,7 +867,7 @@
         "Validate Cedar policy syntax",
         "Test behavioral equivalence between C# and Cedar"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
