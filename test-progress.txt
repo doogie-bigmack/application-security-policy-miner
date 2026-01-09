@@ -329,3 +329,86 @@ Ready to implement TEST-006: Wire damonnator_test.sh to execute E2E runner.
 **Next Steps:**
 Ready to implement TEST-007: Create reusable test scenario for Add GitHub Repository.
 
+
+---
+
+[2026-01-09 16:50] ✅ TEST-009 Complete - Reusable Test Scenario: View and Filter Policies
+
+**What was done:**
+- Created e2e/scenarios/policy_viewing.py module (366 lines) with five functions:
+  1. view_policies() - Complete policy viewing flow with filtering and sorting
+  2. filter_policies_by_subject() - Filter policies by subject (Who)
+  3. filter_policies_by_resource() - Filter policies by resource (What)
+  4. sort_policies() - Sort policies by column (subject, resource, action, conditions)
+  5. view_policy_detail() - View policy details with code evidence
+- Comprehensive error handling with specific exception types
+- Structured logging with structlog throughout all functions
+- Screenshot capture on failure for debugging
+- Created e2e/scenarios/test_policy_viewing.py with 18 unit tests (all passing)
+- Updated e2e/scenarios/__init__.py to export all policy viewing functions
+- All linting checks passed (ruff)
+
+**view_policies() Features:**
+- Navigates to http://localhost:3333/policies
+- Verifies policies table is visible
+- Verifies all required columns: Subject (Who), Resource (What), Action (How), Conditions (When), Evidence
+- Optional filtering by subject with input[data-testid='filter-subject']
+- Optional filtering by resource with input[data-testid='filter-resource']
+- Optional sorting by clicking column headers
+- Optional detail view verification by clicking policy row
+- Returns dict with policies_count, filtered status, sorted_by column, detail_verified status
+- Takes screenshots on failure
+
+**filter_policies_by_subject() Features:**
+- Navigates to policies page
+- Applies subject filter
+- Waits for table update
+- Returns count of filtered policies
+- Error handling and screenshots
+
+**filter_policies_by_resource() Features:**
+- Navigates to policies page
+- Applies resource filter
+- Waits for table update
+- Returns count of filtered policies
+- Error handling and screenshots
+
+**sort_policies() Features:**
+- Accepts column name (subject, resource, action, conditions)
+- Validates column name (raises ValueError for invalid columns)
+- Clicks column header to sort
+- Waits for table update
+- Returns True on success
+- Error handling and screenshots
+
+**view_policy_detail() Features:**
+- Accepts policy_index parameter (default: 0 for first policy)
+- Navigates to policies page
+- Clicks specified policy row
+- Waits for detail view to appear
+- Verifies code evidence section is visible
+- Returns dict with detail_visible and evidence_visible booleans
+- Error handling and screenshots
+
+**Validation:**
+✓ Can navigate to policies page
+✓ Can verify table columns (Subject, Resource, Action, Conditions, Evidence)
+✓ Can filter policies by subject
+✓ Can filter policies by resource
+✓ Can sort policies by different columns
+✓ Can view policy details with evidence
+✓ All 18 unit tests pass
+✓ Ruff linting passes with no errors
+✓ Functions properly integrate with ClaudeChromeExecutor
+✓ Comprehensive error handling and logging
+✓ Screenshots captured on failures
+✓ Package exports working correctly
+
+**Files Created:**
+- e2e/scenarios/policy_viewing.py (366 lines)
+- e2e/scenarios/test_policy_viewing.py (250+ lines, 18 tests)
+- Updated e2e/scenarios/__init__.py with exports
+
+**Next Steps:**
+Ready to implement TEST-010: Create reusable test scenario for Add PBAC Provider.
+
