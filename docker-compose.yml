@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: policy_miner
       POSTGRES_PASSWORD: dev_password
@@ -11,6 +11,7 @@ services:
       - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U policy_miner"]
       interval: 5s

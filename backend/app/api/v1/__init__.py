@@ -20,6 +20,7 @@ from app.api.v1.endpoints import (
     repositories,
     risk,
     secrets,
+    similarity,
 )
 
 api_router = APIRouter()
@@ -41,3 +42,4 @@ api_router.include_router(auto_approval.router, prefix="/auto-approval", tags=["
 api_router.include_router(risk.router, prefix="/risk", tags=["risk"])
 api_router.include_router(organizations.router, prefix="/organizations", tags=["organizations"])
 api_router.include_router(applications.router, prefix="/applications", tags=["applications"])
+api_router.include_router(similarity.router, prefix="/similarity", tags=["similarity"])
