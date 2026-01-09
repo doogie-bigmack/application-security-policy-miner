@@ -1,5 +1,71 @@
 # Progress Log
 
+## 2026-01-09 - Policy Review Interface with Monaco Editor Complete
+
+### Completed
+- Enhanced policy review workflow with approval/rejection comments:
+  - Added approval_comment, reviewed_by, and reviewed_at fields to Policy model
+  - Updated approve/reject endpoints to accept optional comments
+  - Comments and reviewer information stored when making approval decisions
+  - Database schema updated with new columns
+
+- Policy change history tracking:
+  - Added GET /api/v1/policies/{id}/history endpoint
+  - Fetches all changes for a policy from policy_changes table
+  - Returns change type, before/after states, descriptions, and timestamps
+  - Frontend can display change history timeline
+
+- Enhanced PolicyDetailModal component:
+  - Added status icons (CheckCircle, XCircle, Clock) in header
+  - Shows reviewer information (who and when) if policy has been reviewed
+  - Added comment textarea for pending policies
+  - Added "Show/Hide Change History" toggle button
+  - Displays historical changes with change type badges (Added/Modified/Deleted)
+  - Shows diff summaries for each change
+
+- Approval/Rejection UI improvements:
+  - Approve and Reject buttons with comments in modal footer
+  - Comment field for adding review notes
+  - Existing comments displayed if policy was already reviewed
+  - Status-dependent UI (only show approve/reject for pending policies)
+  - Monaco editor already integrated for policy JSON editing
+
+- Backend API enhancements:
+  - Added ApprovalRequest schema for comment support
+  - Updated approve/reject handlers to save comments and reviewer info
+  - History endpoint returns structured change data
+  - All endpoints tested via curl and working correctly
+
+- Database migrations:
+  - Added approval_comment (TEXT)
+  - Added reviewed_by (VARCHAR(255))
+  - Added reviewed_at (TIMESTAMP WITH TIME ZONE)
+  - All columns added successfully
+
+- Tested:
+  - API endpoints verified: approve with comment, reject with comment, history fetch
+  - Successfully approved policy 2 with comment "Looks good, approved for testing"
+  - Successfully rejected policy 3 with comment "Needs more security checks"
+  - History endpoint returns empty array (expected, no changes tracked yet)
+  - Docker containers rebuilt and running successfully
+
+### User Story Status
+✅ Story: "Policy review interface with Monaco editor" - PASSES
+
+Requirements met:
+- ✅ Navigate to Policy Review page
+- ✅ View list of extracted policies
+- ✅ Click on a policy to view details
+- ✅ Review policy subject, resource, action, conditions
+- ✅ View associated evidence with code snippets
+- ✅ Edit policy details using Monaco editor
+- ✅ Approve or reject policy (enhanced with comments)
+- ✅ Verify policy status updates
+- ✅ View policy change history (new feature)
+
+### Next Steps
+- Continue with remaining UI tasks (Risk visualization dashboard, Code change advisory viewer with diff)
+
 ## 2026-01-09 - Repository Management Interface Complete
 
 ### Completed

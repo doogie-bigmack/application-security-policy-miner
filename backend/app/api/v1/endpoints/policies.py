@@ -115,9 +115,16 @@ async def update_policy(
     return policy
 
 
+class ApprovalRequest(BaseModel):
+    """Request body for policy approval/rejection."""
+
+    comment: str | None = None
+
+
 @router.put("/{policy_id}/approve")
 async def approve_policy(
     policy_id: int,
+    request: ApprovalRequest,
     db: Session = Depends(get_db),
     user_email: str | None = Depends(get_current_user_email),
     tenant_id: int | None = Depends(get_tenant_id),
@@ -126,6 +133,7 @@ async def approve_policy(
 
     Args:
         policy_id: Policy ID
+        request: Approval request with optional comment
         db: Database session
         user_email: Authenticated user email
         tenant_id: Authenticated tenant ID
@@ -133,6 +141,8 @@ async def approve_policy(
     Returns:
         Success message
     """
+    from datetime import UTC, datetime
+
     from app.models.policy import PolicyStatus
 
     policy = db.query(Policy).filter(Policy.id == policy_id).first()
@@ -141,6 +151,9 @@ async def approve_policy(
         raise HTTPException(status_code=404, detail="Policy not found")
 
     policy.status = PolicyStatus.APPROVED
+    policy.approval_comment = request.comment
+    policy.reviewed_by = user_email or "anonymous"
+    policy.reviewed_at = datetime.now(UTC)
     db.commit()
 
     # Log approval decision to audit trail
@@ -158,6 +171,7 @@ async def approve_policy(
 @router.put("/{policy_id}/reject")
 async def reject_policy(
     policy_id: int,
+    request: ApprovalRequest,
     db: Session = Depends(get_db),
     user_email: str | None = Depends(get_current_user_email),
     tenant_id: int | None = Depends(get_tenant_id),
@@ -166,6 +180,7 @@ async def reject_policy(
 
     Args:
         policy_id: Policy ID
+        request: Rejection request with optional comment
         db: Database session
         user_email: Authenticated user email
         tenant_id: Authenticated tenant ID
@@ -173,6 +188,8 @@ async def reject_policy(
     Returns:
         Success message
     """
+    from datetime import UTC, datetime
+
     from app.models.policy import PolicyStatus
 
     policy = db.query(Policy).filter(Policy.id == policy_id).first()
@@ -181,6 +198,9 @@ async def reject_policy(
         raise HTTPException(status_code=404, detail="Policy not found")
 
     policy.status = PolicyStatus.REJECTED
+    policy.approval_comment = request.comment
+    policy.reviewed_by = user_email or "anonymous"
+    policy.reviewed_at = datetime.now(UTC)
     db.commit()
 
     # Log rejection decision to audit trail
@@ -193,6 +213,60 @@ async def reject_policy(
         )
 
     return {"status": "success", "message": "Policy rejected"}
+
+
+@router.get("/{policy_id}/history")
+async def get_policy_history(policy_id: int, db: Session = Depends(get_db)) -> dict:
+    """Get change history for a policy.
+
+    Args:
+        policy_id: Policy ID
+        db: Database session
+
+    Returns:
+        List of policy changes
+    """
+    from app.models.policy_change import PolicyChange
+
+    # Check if policy exists
+    policy = db.query(Policy).filter(Policy.id == policy_id).first()
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    # Get all changes for this policy
+    changes = (
+        db.query(PolicyChange)
+        .filter(PolicyChange.policy_id == policy_id)
+        .order_by(PolicyChange.detected_at.desc())
+        .all()
+    )
+
+    return {
+        "policy_id": policy_id,
+        "changes": [
+            {
+                "id": change.id,
+                "change_type": change.change_type,
+                "before": {
+                    "subject": change.before_subject,
+                    "resource": change.before_resource,
+                    "action": change.before_action,
+                    "conditions": change.before_conditions,
+                },
+                "after": {
+                    "subject": change.after_subject,
+                    "resource": change.after_resource,
+                    "action": change.after_action,
+                    "conditions": change.after_conditions,
+                },
+                "description": change.description,
+                "diff_summary": change.diff_summary,
+                "detected_at": change.detected_at.isoformat() if change.detected_at else None,
+            }
+            for change in changes
+        ],
+        "total": len(changes),
+    }
 
 
 @router.delete("/{policy_id}")
