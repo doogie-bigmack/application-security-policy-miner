@@ -28,6 +28,7 @@ class Tenant(Base):
 
     # Relationships
     pbac_providers = relationship("PBACProvider", back_populates="tenant")
+    advisories = relationship("CodeAdvisory", back_populates="tenant")
 
     def __repr__(self) -> str:
         """String representation."""

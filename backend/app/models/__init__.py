@@ -1,5 +1,6 @@
 """Database models."""
 from app.models.audit_log import AuditEventType, AuditLog
+from app.models.code_advisory import AdvisoryStatus, CodeAdvisory
 from app.models.conflict import ConflictStatus, ConflictType, PolicyConflict
 from app.models.policy import Evidence, Policy, PolicyStatus, RiskLevel, SourceType
 from app.models.policy_change import (
@@ -48,4 +49,6 @@ __all__ = [
     "ProviderType",
     "ProvisioningOperation",
     "ProvisioningStatus",
+    "CodeAdvisory",
+    "AdvisoryStatus",
 ]

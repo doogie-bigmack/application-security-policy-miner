@@ -1,11 +1,11 @@
 """Tests for streaming file processing performance."""
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch, AsyncMock
 from sqlalchemy.orm import Session
 
+from app.models.repository import Repository, RepositoryStatus, RepositoryType
 from app.services.scanner_service import ScannerService
-from app.models.repository import Repository, RepositoryType, RepositoryStatus
 
 
 @pytest.fixture

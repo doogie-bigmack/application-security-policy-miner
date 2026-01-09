@@ -63,6 +63,7 @@ class Policy(Base):
 
     # Relationships
     evidence = relationship("Evidence", back_populates="policy", cascade="all, delete-orphan")
+    advisories = relationship("CodeAdvisory", back_populates="policy", cascade="all, delete-orphan")
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))

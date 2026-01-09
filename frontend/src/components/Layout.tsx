@@ -61,6 +61,12 @@ export default function Layout({ children, darkMode, setDarkMode }: LayoutProps)
                 Provisioning
               </Link>
               <Link
+                to="/code-advisories"
+                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
+              >
+                Advisories
+              </Link>
+              <Link
                 to="/audit-logs"
                 className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
               >
