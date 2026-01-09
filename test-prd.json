@@ -99,7 +99,7 @@
         "Add coverage_analysis: prd_stories_tested, prd_stories_total, coverage_percentage",
         "Validate JSON output"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "test-results.json generated after test run",
         "Contains all required fields per schema",
