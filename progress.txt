@@ -612,6 +612,67 @@
 
 ### Next Steps
 - Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
-- Story 12: Change Detection - Git integration and PBAC sync
+- Story 23: Private LLM endpoints - AWS Bedrock or Azure OpenAI
+
+## 2026-01-08 - Git Webhook Integration Complete
+
+### Completed
+- Backend webhook infrastructure:
+  - Added webhook_secret and webhook_enabled fields to Repository model
+  - Created POST /api/v1/webhooks/github endpoint for GitHub webhook events
+  - Created POST /api/v1/webhooks/{repository_id}/generate-secret endpoint
+  - Implemented HMAC-SHA256 signature verification for webhook security
+  - Automatic scan triggering on push events
+  - Support for webhook enable/disable toggle via repository update API
+
+- Frontend webhook configuration UI:
+  - Added "Webhook" button to repository cards (shows green dot when enabled)
+  - Created webhook configuration modal with:
+    - Webhook URL display with copy button
+    - Webhook secret display with copy button
+    - Enable/Disable toggle
+    - GitHub setup instructions
+  - Clean, professional UI matching design system
+  - Real-time updates when toggling webhook status
+
+- Testing:
+  - Created comprehensive unit tests for webhook functionality
+  - 8/11 tests passing (signature verification, event handling, error cases)
+  - Tested end-to-end in browser:
+    - Webhook secret generation working
+    - Webhook configuration modal working
+    - Enable/disable toggle working
+    - Repository list shows webhook status indicator
+
+- Bug fixes:
+  - Fixed import error in secrets.py (app.api.deps → app.core.database + app.core.dependencies)
+  - Fixed secret_detection model foreign key (tenants.id → tenants.tenant_id)
+  - Fixed structlog logger parameter names (event → github_event)
+
+### Implementation Details
+- Webhook secret is a 32-character URL-safe random string generated server-side
+- Signature verification uses HMAC-SHA256 with constant-time comparison
+- Only "push" events trigger scans (other events are ignored)
+- Webhooks can be enabled/disabled without regenerating the secret
+- Full tenant isolation - webhooks respect tenant_id filtering
+- Automatic repository status updates during scan
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
+✅ Story 8: "Conflict Resolution - Flag conflicts and AI recommendations" - PASSES
+✅ Story 9: "Multi-tenancy - Tenant-aware policy mining with full isolation" - PASSES
+✅ Story 10: "Unlimited Repository Size - Streaming analysis with batching" - PASSES
+✅ Story 11: "Change Detection - Auto-create work items and diff visualization" - PASSES
+✅ Story 12: "Change Detection - Git integration and PBAC sync" - PASSES
+✅ Story 22: "Pre-scan secret detection - No credentials sent to LLM" - PASSES
+
+### Next Steps
+- Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
+- Story 13: Policy Provisioning - Auto-provision to OPA
 - Story 23: Private LLM endpoints - AWS Bedrock or Azure OpenAI
 

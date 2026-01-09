@@ -106,7 +106,7 @@ async def test_batch_processing_updates_progress(mock_db, mock_repo):
         mock_find.return_value = mock_auth_files
         mock_extract.return_value = [MagicMock()]
 
-        result = await scanner.scan_repository(1, "test-tenant")
+        await scanner.scan_repository(1, "test-tenant")
 
         # Verify scan progress was created
         assert scan_progress is not None

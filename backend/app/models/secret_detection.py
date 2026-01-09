@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
-from app.core.database import Base
+from .repository import Base
 
 
 class SecretDetectionLog(Base):
@@ -14,7 +14,7 @@ class SecretDetectionLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     repository_id = Column(Integer, ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False, index=True)
-    tenant_id = Column(String, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
+    tenant_id = Column(String, ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
     file_path = Column(String, nullable=False)
     secret_type = Column(String, nullable=False)
     description = Column(String, nullable=False)

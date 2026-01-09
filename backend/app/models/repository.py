@@ -49,6 +49,8 @@ class Repository(Base):
     connection_config = Column(JSON, nullable=True)  # Store credentials encrypted
     status = Column(SAEnum(RepositoryStatus), default=RepositoryStatus.PENDING)
     last_scan_at = Column(DateTime(timezone=True), nullable=True)
+    webhook_secret = Column(String(255), nullable=True)  # Secret for webhook verification
+    webhook_enabled = Column(Integer, default=0)  # Boolean: 0=disabled, 1=enabled
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
         DateTime(timezone=True),
