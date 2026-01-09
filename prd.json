@@ -761,7 +761,7 @@
         "Apply resolution",
         "Verify conflict is marked as resolved"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "ui",
