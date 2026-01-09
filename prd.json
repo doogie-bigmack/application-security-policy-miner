@@ -428,7 +428,7 @@
         "Confirm security predicates detected",
         "Check evidence shows SQL code snippets"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "technical",
