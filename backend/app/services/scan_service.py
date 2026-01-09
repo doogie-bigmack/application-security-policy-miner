@@ -11,7 +11,7 @@ from git import Repo
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.models.policy import Policy, PolicyEvidence, PolicyStatus, RiskLevel
+from app.models.policy import Policy, PolicyEvidence, PolicyStatus, RiskLevel, SourceType
 from app.models.repository import Repository, RepositoryStatus, RepositoryType
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,24 @@ SCANNABLE_EXTENSIONS = {
     ".hpp",
 }
 
+# Frontend file extensions (UI components)
+FRONTEND_EXTENSIONS = {
+    ".jsx",
+    ".tsx",
+    ".vue",
+    ".html",
+}
+
+# Backend file extensions (API/server code)
+BACKEND_EXTENSIONS = {
+    ".py",
+    ".java",
+    ".cs",
+    ".go",
+    ".rb",
+    ".php",
+}
+
 
 class ScanService:
     """Service for scanning repositories and extracting policies."""
@@ -44,6 +62,40 @@ class ScanService:
         self.client = None
         if settings.ANTHROPIC_API_KEY:
             self.client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+    def _detect_source_type(self, file_path: str) -> SourceType:
+        """
+        Detect whether authorization is frontend or backend based on file.
+
+        Args:
+            file_path: Relative path to file
+
+        Returns:
+            SourceType enum value
+        """
+        path_lower = file_path.lower()
+        suffix = Path(file_path).suffix
+
+        # Check for frontend patterns
+        if suffix in FRONTEND_EXTENSIONS:
+            return SourceType.FRONTEND
+
+        # Check for frontend directories
+        frontend_dirs = ["components", "pages", "views", "src/ui", "src/frontend", "client"]
+        if any(dir_name in path_lower for dir_name in frontend_dirs):
+            return SourceType.FRONTEND
+
+        # Check for backend patterns
+        if suffix in BACKEND_EXTENSIONS:
+            # Check for backend directories
+            backend_dirs = ["api", "server", "backend", "controllers", "routes", "endpoints", "services"]
+            if any(dir_name in path_lower for dir_name in backend_dirs):
+                return SourceType.BACKEND
+
+            # Default backend files to backend
+            return SourceType.BACKEND
+
+        return SourceType.UNKNOWN
 
     async def scan_repository(self, repository_id: int) -> int:
         """
@@ -82,7 +134,7 @@ class ScanService:
 
             return policies_count
 
-        except Exception as e:
+        except Exception:
             logger.exception("Error scanning repository %d", repository_id)
             repository.status = RepositoryStatus.FAILED
             self.db.commit()
@@ -119,7 +171,7 @@ class ScanService:
                 clone_url = self._insert_credentials(repository.source_url, username, password)
 
             # Clone repository
-            repo = Repo.clone_from(clone_url, temp_dir, depth=1)
+            Repo.clone_from(clone_url, temp_dir, depth=1)
             logger.info("Repository cloned successfully")
 
             # Find all scannable files
@@ -235,6 +287,7 @@ For each authorization policy you find, identify:
 - WHAT: The resource being accessed (API endpoint, data, feature, etc.)
 - HOW: The action being performed (read, write, delete, execute, etc.)
 - WHEN: Any conditions or constraints (time-based, attribute-based, etc.)
+- SOURCE_TYPE: Whether this is FRONTEND (UI component authorization) or BACKEND (API/server authorization)
 
 Also provide evidence for each policy:
 - File path
@@ -242,13 +295,22 @@ Also provide evidence for each policy:
 - Exact code snippet
 
 Look for:
+
+FRONTEND Authorization (UI components):
+- React/Vue/Angular component-level access control
+- Conditional rendering based on roles/permissions
+- UI element visibility controls
+- Client-side route guards
+- Component prop-based authorization
+
+BACKEND Authorization (API/Server):
 - Role-based access control (RBAC) checks
-- Permission checks
+- Permission checks in API endpoints
 - Authentication/authorization decorators or attributes
-- Conditional access logic
-- Security checks in API endpoints
+- Security checks in controllers/routes
 - Authorization middleware
 - Access control lists
+- Database-level security
 
 Return your analysis as a JSON array with this structure:
 [
@@ -258,7 +320,8 @@ Return your analysis as a JSON array with this structure:
     "action": "string describing what action",
     "conditions": "string describing when/conditions (or null)",
     "description": "brief description of the policy",
-    "risk_level": "low|medium|high|critical",
+    "risk_level": "LOW|MEDIUM|HIGH|CRITICAL",
+    "source_type": "FRONTEND|BACKEND|UNKNOWN",
     "evidence": [
       {{
         "file_path": "relative/path/to/file",
@@ -305,6 +368,19 @@ Return ONLY the JSON array, no other text.
             try:
                 # Create policy
                 policy_status_str = policy_data.get("status", "EXTRACTED")
+
+                # Get source_type from Claude response or detect from evidence
+                source_type_str = policy_data.get("source_type", "UNKNOWN")
+                if source_type_str == "UNKNOWN" and policy_data.get("evidence"):
+                    # Try to detect from first evidence file path
+                    first_evidence = policy_data["evidence"][0]
+                    source_type = self._detect_source_type(first_evidence.get("file_path", ""))
+                else:
+                    try:
+                        source_type = SourceType(source_type_str)
+                    except ValueError:
+                        source_type = SourceType.UNKNOWN
+
                 policy = Policy(
                     repository_id=repository.id,
                     subject=policy_data.get("subject", "Unknown"),
@@ -313,7 +389,8 @@ Return ONLY the JSON array, no other text.
                     conditions=policy_data.get("conditions"),
                     description=policy_data.get("description"),
                     status=PolicyStatus(policy_status_str),
-                    risk_level=RiskLevel(policy_data.get("risk_level", "medium")),
+                    risk_level=RiskLevel(policy_data.get("risk_level", "MEDIUM")),
+                    source_type=source_type,
                     tenant_id=repository.tenant_id,
                 )
                 self.db.add(policy)
@@ -349,10 +426,11 @@ Return ONLY the JSON array, no other text.
                 "conditions": "Valid JWT token required",
                 "description": "Users must be authenticated to access protected API endpoints",
                 "risk_level": "MEDIUM",
+                "source_type": "BACKEND",
                 "status": "EXTRACTED",
                 "evidence": [
                     {
-                        "file_path": str(files[0].relative_to(repo_root)) if files else "example.py",
+                        "file_path": str(files[0].relative_to(repo_root)) if files else "api/example.py",
                         "start_line": 1,
                         "end_line": 5,
                         "code_snippet": "# Sample authorization code\n@require_auth\ndef protected_endpoint():\n    return data",
@@ -366,13 +444,32 @@ Return ONLY the JSON array, no other text.
                 "conditions": "User must have admin role",
                 "description": "Only administrators can manage user accounts",
                 "risk_level": "HIGH",
+                "source_type": "BACKEND",
                 "status": "EXTRACTED",
                 "evidence": [
                     {
-                        "file_path": str(files[0].relative_to(repo_root)) if files else "example.py",
+                        "file_path": str(files[0].relative_to(repo_root)) if files else "api/admin.py",
                         "start_line": 10,
                         "end_line": 15,
                         "code_snippet": "if user.role == 'admin':\n    # Admin operations\n    manage_users()",
+                    }
+                ],
+            },
+            {
+                "subject": "Manager Role",
+                "resource": "Delete Button",
+                "action": "View",
+                "conditions": "User must have manager role",
+                "description": "Only managers can see the delete button in the UI",
+                "risk_level": "MEDIUM",
+                "source_type": "FRONTEND",
+                "status": "EXTRACTED",
+                "evidence": [
+                    {
+                        "file_path": "components/UserTable.tsx",
+                        "start_line": 20,
+                        "end_line": 25,
+                        "code_snippet": "{user.role === 'manager' && (\n  <button onClick={handleDelete}>\n    Delete\n  </button>\n)}",
                     }
                 ],
             },
