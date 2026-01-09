@@ -7,7 +7,7 @@ end-to-end test flows for the Policy Miner application.
 Available scenario modules:
 - repository_crud: Repository management scenarios (add, scan, delete)
 - policy_viewing: Policy viewing and filtering scenarios
-- provisioning_flow: PBAC provider and policy provisioning scenarios (coming soon)
+- provisioning_flow: PBAC provider and policy provisioning scenarios
 """
 
 from e2e.scenarios.repository_crud import (
@@ -22,6 +22,11 @@ from e2e.scenarios.policy_viewing import (
     sort_policies,
     view_policy_detail,
 )
+from e2e.scenarios.provisioning_flow import (
+    add_pbac_provider,
+    delete_pbac_provider,
+    provision_policy,
+)
 
 __all__ = [
     "add_github_repository",
@@ -32,4 +37,7 @@ __all__ = [
     "filter_policies_by_resource",
     "sort_policies",
     "view_policy_detail",
+    "add_pbac_provider",
+    "delete_pbac_provider",
+    "provision_policy",
 ]

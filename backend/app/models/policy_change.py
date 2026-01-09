@@ -94,6 +94,10 @@ class WorkItem(Base):
     # Assignment
     assigned_to = Column(String(255), nullable=True)  # User email or ID
 
+    # Spaghetti detection flags
+    is_spaghetti_detection = Column(Integer, default=0)  # 1 if this is a spaghetti code detection
+    refactoring_suggestion = Column(Text, nullable=True)  # AI-generated refactoring suggestion
+
     # Relationships
     policy_change = relationship("PolicyChange", back_populates="work_items")
 
