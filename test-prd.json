@@ -1,0 +1,355 @@
+{
+  "metadata": {
+    "name": "E2E Testing Infrastructure PRD",
+    "description": "Product requirements for building the automated E2E testing system that validates Policy Miner features",
+    "version": "1.0",
+    "created": "2026-01-09",
+    "github_issue": "https://github.com/doogie-bigmack/application-security-policy-miner/issues/53"
+  },
+  "stories": [
+    {
+      "id": "TEST-001",
+      "category": "infrastructure",
+      "priority": "critical",
+      "description": "Create e2e directory structure and Python dependencies",
+      "steps": [
+        "Create e2e/ directory in project root",
+        "Create e2e/__init__.py for Python package",
+        "Create e2e/requirements.txt with dependencies: anthropic, requests, jq (via subprocess)",
+        "Create e2e/README.md explaining directory structure",
+        "Verify Python 3.12 compatibility"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "e2e/ directory exists",
+        "requirements.txt can be installed with pip",
+        "All dependencies resolve without conflicts"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "category": "infrastructure",
+      "priority": "critical",
+      "description": "Implement ClaudeChromeExecutor wrapper for browser automation",
+      "steps": [
+        "Create e2e/test_executor.py",
+        "Implement ClaudeChromeExecutor class",
+        "Add navigate(url) method wrapping mcp__claude-in-chrome__navigate",
+        "Add click(selector) method wrapping mcp__claude-in-chrome__computer",
+        "Add fill_input(selector, value) method wrapping mcp__claude-in-chrome__form_input",
+        "Add assert_visible(selector, timeout_ms) method wrapping mcp__claude-in-chrome__read_page",
+        "Add take_screenshot(filename) method wrapping mcp__claude-in-chrome__computer screenshot",
+        "Add wait_for_element(selector, timeout_ms) method",
+        "Add get_page_text() method for debugging",
+        "Add error handling and retry logic",
+        "Create unit tests for each method"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "ClaudeChromeExecutor can navigate to localhost:3333",
+        "Can click elements by selector",
+        "Can fill form inputs",
+        "Can assert element visibility",
+        "Screenshots save to e2e/screenshots/ on failure"
+      ]
+    },
+    {
+      "id": "TEST-003",
+      "category": "infrastructure",
+      "priority": "critical",
+      "description": "Create e2e-tests.json schema and 5 critical test definitions",
+      "steps": [
+        "Create e2e-tests.json in project root",
+        "Define schema version and test_suites structure",
+        "Create test suite: repository_management",
+        "Add test: test_add_github_repository (maps to prd.json FUNC-001)",
+        "Add test: test_scan_repository (maps to prd.json AI rule mining)",
+        "Add test: test_view_policies (maps to prd.json policy viewing)",
+        "Add test: test_add_pbac_provider (maps to prd.json PBAC integration)",
+        "Add test: test_provision_policy (maps to prd.json policy provisioning)",
+        "Define test steps with actions: navigate, click, fill, wait_for_element, assert_element_visible",
+        "Add expected_outcomes for each test",
+        "Add cleanup steps for test data",
+        "Add prerequisites (services, test_data) for each test",
+        "Validate JSON syntax"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "e2e-tests.json is valid JSON",
+        "Contains 5 test definitions",
+        "Each test maps to a prd.json story ID",
+        "All required fields present: test_id, prd_story_id, name, priority, steps"
+      ]
+    },
+    {
+      "id": "TEST-004",
+      "category": "infrastructure",
+      "priority": "critical",
+      "description": "Create test-results.json schema and TestReporter implementation",
+      "steps": [
+        "Create example test-results.json schema in docs or comments",
+        "Create e2e/test_reporter.py",
+        "Implement TestReporter class",
+        "Add generate_report() method that creates test-results.json",
+        "Include test run metadata: test_run_id, started_at, completed_at, duration_seconds, trigger",
+        "Include summary: total_tests, passed, failed, skipped, pass_rate",
+        "Include detailed test_results array with status, duration, error details",
+        "Add error diagnostics: type, message, step_index, screenshot, console_errors",
+        "Add recommendations array using AI analysis of failures",
+        "Add coverage_analysis: prd_stories_tested, prd_stories_total, coverage_percentage",
+        "Validate JSON output"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "test-results.json generated after test run",
+        "Contains all required fields per schema",
+        "Pass/fail status accurately reflects test outcomes",
+        "Screenshots referenced in error objects exist in e2e/screenshots/",
+        "Recommendations provide actionable debugging guidance"
+      ]
+    },
+    {
+      "id": "TEST-005",
+      "category": "infrastructure",
+      "priority": "critical",
+      "description": "Implement E2ETestRunner orchestrator",
+      "steps": [
+        "Create e2e/e2e_runner.py",
+        "Implement E2ETestRunner class",
+        "Add load_test_suite(path) method to parse e2e-tests.json",
+        "Add load_prd(path) method to parse prd.json",
+        "Add run_tests(filter_priority, filter_story_ids) method",
+        "Implement test execution loop using ClaudeChromeExecutor",
+        "Add error handling and screenshot capture on failure",
+        "Add retry logic for flaky tests (1 retry max)",
+        "Call TestReporter to generate test-results.json",
+        "Add CLI argument parsing: --test-suite, --prd, --output, --filter-priority, --filter-story-id",
+        "Add verbose logging to console"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "Can execute: python3 e2e/e2e_runner.py --test-suite e2e-tests.json --prd prd.json",
+        "Runs all 5 critical tests",
+        "Generates test-results.json",
+        "Exits with code 0 if all pass, code 1 if any fail",
+        "Logs test progress to console"
+      ]
+    },
+    {
+      "id": "TEST-006",
+      "category": "integration",
+      "priority": "high",
+      "description": "Wire damonnator_test.sh to execute E2E runner",
+      "steps": [
+        "Review existing damonnator_test.sh (already created in PR #54)",
+        "Verify it reads @e2e-tests.json and @test-results.json",
+        "Ensure it calls e2e/e2e_runner.py correctly",
+        "Add logic to parse test-results.json and update prd.json test_metadata",
+        "Test manual execution of damonnator_test.sh",
+        "Verify it creates GitHub issues on test failures"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "./damonnator_test.sh 1 executes successfully",
+        "Runs E2E tests via e2e_runner.py",
+        "Updates prd.json with test results",
+        "Creates GitHub issue if tests fail"
+      ]
+    },
+    {
+      "id": "TEST-007",
+      "category": "scenarios",
+      "priority": "high",
+      "description": "Create reusable test scenario: Add GitHub Repository",
+      "steps": [
+        "Create e2e/scenarios/ directory",
+        "Create e2e/scenarios/repository_crud.py",
+        "Implement add_github_repository() function",
+        "Navigate to http://localhost:3333/repositories",
+        "Click 'Add Repository' button",
+        "Click 'GitHub' integration option",
+        "Fill in test token (from environment variable GITHUB_TEST_TOKEN)",
+        "Click 'Connect' button",
+        "Assert success message appears",
+        "Assert repository appears in list",
+        "Return repository ID for cleanup",
+        "Add cleanup function to delete test repository"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "Function successfully adds GitHub repository",
+        "Returns repository ID",
+        "Cleanup function removes test data"
+      ]
+    },
+    {
+      "id": "TEST-008",
+      "category": "scenarios",
+      "priority": "high",
+      "description": "Create reusable test scenario: Scan Repository",
+      "steps": [
+        "Create scan_repository() function in e2e/scenarios/repository_crud.py",
+        "Accept repository_id as parameter",
+        "Navigate to repository detail page",
+        "Click 'Start Scan' button",
+        "Wait for scan to complete (check for status change)",
+        "Assert scan completes successfully",
+        "Assert policies were extracted (count > 0)",
+        "Return scan results"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "Function triggers scan successfully",
+        "Waits for scan completion",
+        "Validates policies extracted"
+      ]
+    },
+    {
+      "id": "TEST-009",
+      "category": "scenarios",
+      "priority": "medium",
+      "description": "Create reusable test scenario: View and Filter Policies",
+      "steps": [
+        "Create e2e/scenarios/policy_viewing.py",
+        "Implement view_policies() function",
+        "Navigate to policies page",
+        "Assert policies table is visible",
+        "Assert columns: Subject (Who), Resource (What), Action (How), Conditions (When), Evidence",
+        "Test filtering by subject",
+        "Test filtering by resource",
+        "Test sorting by different columns",
+        "Click a policy row to view details",
+        "Assert detail view shows code evidence"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "Can navigate to policies page",
+        "Can filter and sort policies",
+        "Can view policy details with evidence"
+      ]
+    },
+    {
+      "id": "TEST-010",
+      "category": "scenarios",
+      "priority": "medium",
+      "description": "Create reusable test scenario: Add PBAC Provider",
+      "steps": [
+        "Create e2e/scenarios/provisioning_flow.py",
+        "Implement add_pbac_provider() function",
+        "Navigate to PBAC providers page",
+        "Click 'Add Provider' button",
+        "Select provider type (OPA/AWS/Axiomatics)",
+        "Fill in provider configuration (endpoint, credentials)",
+        "Click 'Test Connection' button",
+        "Assert connection test succeeds",
+        "Click 'Save' button",
+        "Assert provider appears in list",
+        "Return provider ID for cleanup"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "Can add PBAC provider",
+        "Connection test validates successfully",
+        "Provider saved and visible in list"
+      ]
+    },
+    {
+      "id": "TEST-011",
+      "category": "scenarios",
+      "priority": "medium",
+      "description": "Create reusable test scenario: Provision Policy to PBAC",
+      "steps": [
+        "Create provision_policy() function in e2e/scenarios/provisioning_flow.py",
+        "Accept policy_id and provider_id as parameters",
+        "Navigate to policy detail page",
+        "Click 'Provision' button",
+        "Select target PBAC provider from dropdown",
+        "Select target format (OPA Rego / AWS Cedar / Axiomatics ALFA)",
+        "Click 'Provision' button",
+        "Wait for provisioning to complete",
+        "Assert provisioning status shows 'Success'",
+        "Assert provisioned policy appears in provider's policy list"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "Can provision policy to PBAC provider",
+        "Provisioning completes successfully",
+        "Policy visible in target PBAC system"
+      ]
+    },
+    {
+      "id": "TEST-012",
+      "category": "validation",
+      "priority": "critical",
+      "description": "End-to-end validation: Run full test suite and verify feedback quality",
+      "steps": [
+        "Run: python3 e2e/e2e_runner.py --test-suite e2e-tests.json --prd prd.json --output test-results.json",
+        "Verify all 5 critical tests execute",
+        "Check test-results.json is generated",
+        "Verify summary section shows correct pass/fail counts",
+        "For any failed tests, verify error diagnostics include: type, message, step_index, screenshot path, console_errors",
+        "Verify screenshots exist in e2e/screenshots/ for failed tests",
+        "Verify recommendations array provides actionable debugging steps",
+        "Run a deliberate failure test (break a selector) to validate failure reporting",
+        "Verify failure report includes: root cause analysis, code locations to check, recommended fixes"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "Full test suite runs to completion",
+        "test-results.json contains all required fields",
+        "Failure scenarios generate rich diagnostics",
+        "Recommendations are actionable and accurate",
+        "Screenshots captured on failure"
+      ]
+    },
+    {
+      "id": "TEST-013",
+      "category": "documentation",
+      "priority": "medium",
+      "description": "Update TESTING.md with actual usage examples",
+      "steps": [
+        "Review existing TESTING.md (created in PR #54)",
+        "Add section: 'Running E2E Tests Manually'",
+        "Document: python3 e2e/e2e_runner.py command with all options",
+        "Add section: 'Understanding Test Results'",
+        "Document test-results.json schema with examples",
+        "Add section: 'Debugging Failed Tests'",
+        "Include examples of using screenshots and error diagnostics",
+        "Add section: 'Writing New Test Scenarios'",
+        "Document e2e-tests.json schema with example test definition",
+        "Add troubleshooting guide for common issues"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "TESTING.md updated with manual testing guide",
+        "Includes command examples with output",
+        "Documents schemas with examples",
+        "Provides debugging guidance"
+      ]
+    },
+    {
+      "id": "TEST-014",
+      "category": "integration",
+      "priority": "high",
+      "description": "Integrate with Makefile and validate end-to-end flow",
+      "steps": [
+        "Verify Makefile targets exist (created in PR #54): make e2e, make damonnator-test",
+        "Test: make e2e (should run e2e_runner.py directly)",
+        "Test: make damonnator-test (should run damonnator_test.sh loop)",
+        "Verify: make status shows test results summary",
+        "Test full flow: make docker-up && make e2e",
+        "Verify services start and tests execute",
+        "Test deliberate failure to verify error reporting",
+        "Verify GitHub issue creation on test failure",
+        "Document any issues found and fix them"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "make e2e runs successfully",
+        "make damonnator-test executes testing loop",
+        "make status shows test metrics",
+        "Full flow works end-to-end"
+      ]
+    }
+  ]
+}
