@@ -35,7 +35,7 @@ for ((i=1; i<=$ITERATIONS; i++)); do
     echo ""
 
     # Run claude with heredoc - focuses on test-prd.json instead of prd.json
-    claude --dangerously-skip-permissions -p "@test-prd.json @progress.txt" << 'PROMPT' | tee "$TEMP_OUTPUT"
+    claude --dangerously-skip-permissions -p "@test-prd.json @test-progress.txt" << 'PROMPT' | tee "$TEMP_OUTPUT"
 You are an autonomous software engineer building E2E testing infrastructure.
 
 ## REPO
@@ -50,7 +50,7 @@ https://github.com/doogie-bigmack/application-security-policy-miner
 
 ## START EVERY SESSION
 1. Read the test-prd.json file above - this defines the test infrastructure to build
-2. Read the progress.txt file above - this is what was done recently
+2. Read the test-progress.txt file above - this is what was done recently
 3. Run: git log --oneline -10
 4. Ensure Docker containers are running: docker-compose up -d
 
@@ -66,7 +66,7 @@ You are building the E2E testing infrastructure, NOT product features.
    - Verify Python imports work correctly
    - For test scenarios, verify they can execute against localhost:3333
 5. Update test-prd.json - set passes: true for the completed task
-6. Update progress.txt with what you did
+6. Update test-progress.txt with what you did
 7. Commit: git add -A && git commit -m "test: [description]"
 8. Push branch: git push -u origin test-infra/[task-id]
 9. Create PR and merge to main:
@@ -95,7 +95,7 @@ When implementing ClaudeChromeExecutor, use these MCP tools:
 - Only work on ONE task per iteration
 - Each task gets its own branch and PR
 - Never mark passes: true without validating the code works
-- Never leave broken code - if stuck, revert and document in progress.txt
+- Never leave broken code - if stuck, revert and document in test-progress.txt
 - Always commit working code
 - Use docker-compose for all services
 
