@@ -1,7 +1,9 @@
 """Provisioning service for pushing policies to PBAC platforms."""
 
+import json
 from datetime import datetime
 
+import boto3
 import httpx
 import structlog
 from sqlalchemy import select
@@ -407,11 +409,74 @@ class ProvisioningService:
         Raises:
             Exception: If push fails
         """
-        # This is a placeholder - actual AWS SDK integration would go here
         logger.info(
             "pushing_to_aws_verified_permissions",
-            endpoint=provider.endpoint_url,
+            region=provider.endpoint_url,
             policy_id=policy.id,
         )
-        # TODO: Implement AWS Verified Permissions SDK integration
-        raise NotImplementedError("AWS Verified Permissions integration not yet implemented")
+
+        # Parse provider configuration
+        # Expected format: {"policy_store_id": "...", "aws_access_key_id": "...", "aws_secret_access_key": "..."}
+        config = json.loads(provider.configuration) if provider.configuration else {}
+
+        policy_store_id = config.get("policy_store_id")
+        if not policy_store_id:
+            raise ValueError("AWS Verified Permissions requires policy_store_id in configuration")
+
+        # Initialize AWS Verified Permissions client
+        # Region is stored in endpoint_url field
+        region = provider.endpoint_url
+
+        client_kwargs = {"region_name": region}
+
+        # Use explicit credentials if provided, otherwise use IAM role/profile
+        if config.get("aws_access_key_id") and config.get("aws_secret_access_key"):
+            client_kwargs["aws_access_key_id"] = config["aws_access_key_id"]
+            client_kwargs["aws_secret_access_key"] = config["aws_secret_access_key"]
+
+        client = boto3.client("verifiedpermissions", **client_kwargs)
+
+        try:
+            # Create or update policy in AWS Verified Permissions
+            # Policy ID is derived from our internal policy ID
+            policy_id = f"policy-{policy.id}"
+
+            # Build the policy definition
+            policy_definition = {
+                "static": {
+                    "statement": cedar_policy,
+                    "description": policy.description or f"Policy for {policy.subject} accessing {policy.resource}",
+                }
+            }
+
+            # Try to update existing policy first
+            try:
+                response = client.update_policy(
+                    policyStoreId=policy_store_id,
+                    policyId=policy_id,
+                    definition=policy_definition,
+                )
+                logger.info(
+                    "aws_policy_updated",
+                    policy_id=policy_id,
+                    policy_version=response.get("policyVersion"),
+                )
+            except client.exceptions.ResourceNotFoundException:
+                # Policy doesn't exist, create it
+                response = client.create_policy(
+                    policyStoreId=policy_store_id,
+                    clientToken=f"policy-miner-{policy.id}",
+                    definition=policy_definition,
+                )
+                logger.info(
+                    "aws_policy_created",
+                    policy_id=response.get("policyId"),
+                    policy_version=response.get("policyVersion"),
+                )
+
+        except Exception as e:
+            error_msg = f"AWS Verified Permissions error: {str(e)}"
+            logger.error("aws_push_failed", error=error_msg, policy_id=policy.id)
+            raise Exception(error_msg) from e
+
+        logger.info("aws_push_successful", policy_id=policy.id)

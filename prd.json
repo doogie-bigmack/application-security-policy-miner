@@ -206,7 +206,7 @@
         "Confirm policies are created in AWS Verified Permissions",
         "Validate policies in AWS console"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

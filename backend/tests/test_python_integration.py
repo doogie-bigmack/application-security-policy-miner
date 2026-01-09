@@ -6,6 +6,7 @@ import pytest
 from git import Repo
 from sqlalchemy.orm import Session
 
+from app.models.policy import Policy
 from app.models.repository import Repository, RepositoryType
 from app.services.scanner_service import ScannerService
 

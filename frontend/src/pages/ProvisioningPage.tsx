@@ -289,14 +289,14 @@ export default function ProvisioningPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Endpoint URL
+                  {providerForm.provider_type === 'aws_verified_permissions' ? 'AWS Region' : 'Endpoint URL'}
                 </label>
                 <input
                   type="text"
                   value={providerForm.endpoint_url}
                   onChange={(e) => setProviderForm({ ...providerForm, endpoint_url: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-                  placeholder="http://localhost:8181"
+                  placeholder={providerForm.provider_type === 'aws_verified_permissions' ? 'us-east-1' : 'http://localhost:8181'}
                 />
               </div>
               <div>
@@ -309,6 +309,25 @@ export default function ProvisioningPage() {
                   onChange={(e) => setProviderForm({ ...providerForm, api_key: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Configuration (optional)
+                </label>
+                <textarea
+                  value={providerForm.configuration}
+                  onChange={(e) => setProviderForm({ ...providerForm, configuration: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 font-mono text-sm"
+                  rows={3}
+                  placeholder={providerForm.provider_type === 'aws_verified_permissions'
+                    ? '{"policy_store_id": "PSEXAMPLEabcdefg12345"}'
+                    : '{}'}
+                />
+                {providerForm.provider_type === 'aws_verified_permissions' && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    JSON format. Required: policy_store_id. Optional: aws_access_key_id, aws_secret_access_key
+                  </p>
+                )}
               </div>
             </div>
             <div className="mt-6 flex space-x-3">
