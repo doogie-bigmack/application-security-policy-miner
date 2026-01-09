@@ -221,7 +221,7 @@
         "Click a policy row to view details",
         "Assert detail view shows code evidence"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "Can navigate to policies page",
         "Can filter and sort policies",

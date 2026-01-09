@@ -332,111 +332,83 @@ Ready to implement TEST-007: Create reusable test scenario for Add GitHub Reposi
 
 ---
 
-[2026-01-09 11:08] ✅ TEST-007 Complete - Reusable Test Scenario: Add GitHub Repository
+[2026-01-09 16:50] ✅ TEST-009 Complete - Reusable Test Scenario: View and Filter Policies
 
 **What was done:**
-- Created e2e/scenarios/ directory structure
-- Created e2e/scenarios/__init__.py package file with exports
-- Implemented repository_crud.py module (400+ lines) with three functions:
-  1. add_github_repository() - Complete GitHub repository addition flow
-  2. delete_repository() - Cleanup function for removing test repositories
-  3. scan_repository() - Bonus: Repository scanning flow (needed for TEST-008)
+- Created e2e/scenarios/policy_viewing.py module (366 lines) with five functions:
+  1. view_policies() - Complete policy viewing flow with filtering and sorting
+  2. filter_policies_by_subject() - Filter policies by subject (Who)
+  3. filter_policies_by_resource() - Filter policies by resource (What)
+  4. sort_policies() - Sort policies by column (subject, resource, action, conditions)
+  5. view_policy_detail() - View policy details with code evidence
 - Comprehensive error handling with specific exception types
 - Structured logging with structlog throughout all functions
 - Screenshot capture on failure for debugging
-- Environment variable support (GITHUB_TEST_TOKEN)
-- Created test_repository_crud.py with 9 unit tests (6 passed, 3 skipped)
+- Created e2e/scenarios/test_policy_viewing.py with 18 unit tests (all passing)
+- Updated e2e/scenarios/__init__.py to export all policy viewing functions
 - All linting checks passed (ruff)
 
-**add_github_repository() Features:**
-- Navigates to http://localhost:3333/repositories
-- Clicks Add Repository button
-- Selects GitHub integration option
-- Fills in GitHub token (from GITHUB_TEST_TOKEN env var)
-- Enters repository URL
-- Clicks Connect button
-- Verifies success message appears
-- Verifies repository appears in list
-- Returns repository ID for cleanup
+**view_policies() Features:**
+- Navigates to http://localhost:3333/policies
+- Verifies policies table is visible
+- Verifies all required columns: Subject (Who), Resource (What), Action (How), Conditions (When), Evidence
+- Optional filtering by subject with input[data-testid='filter-subject']
+- Optional filtering by resource with input[data-testid='filter-resource']
+- Optional sorting by clicking column headers
+- Optional detail view verification by clicking policy row
+- Returns dict with policies_count, filtered status, sorted_by column, detail_verified status
 - Takes screenshots on failure
 
-**delete_repository() Features:**
-- Navigates to repository detail page
-- Clicks Delete Repository button
-- Confirms deletion in modal
-- Verifies success message
-- Verifies repository removed from list
-- Returns boolean success status
-
-**scan_repository() Features (Bonus):**
-- Navigates to repository detail page
-- Clicks Start Scan button
-- Waits for scan to start (status: running)
-- Waits for scan to complete (up to 2 minutes)
+**filter_policies_by_subject() Features:**
 - Navigates to policies page
-- Verifies policies were extracted
-- Returns scan results dict with scan_id, policies_count, duration_seconds
+- Applies subject filter
+- Waits for table update
+- Returns count of filtered policies
+- Error handling and screenshots
+
+**filter_policies_by_resource() Features:**
+- Navigates to policies page
+- Applies resource filter
+- Waits for table update
+- Returns count of filtered policies
+- Error handling and screenshots
+
+**sort_policies() Features:**
+- Accepts column name (subject, resource, action, conditions)
+- Validates column name (raises ValueError for invalid columns)
+- Clicks column header to sort
+- Waits for table update
+- Returns True on success
+- Error handling and screenshots
+
+**view_policy_detail() Features:**
+- Accepts policy_index parameter (default: 0 for first policy)
+- Navigates to policies page
+- Clicks specified policy row
+- Waits for detail view to appear
+- Verifies code evidence section is visible
+- Returns dict with detail_visible and evidence_visible booleans
+- Error handling and screenshots
 
 **Validation:**
-✓ add_github_repository() function successfully adds GitHub repository
-✓ Returns repository ID (extracted from repository name)
-✓ Cleanup function delete_repository() removes test data
-✓ All 6 unit tests pass
+✓ Can navigate to policies page
+✓ Can verify table columns (Subject, Resource, Action, Conditions, Evidence)
+✓ Can filter policies by subject
+✓ Can filter policies by resource
+✓ Can sort policies by different columns
+✓ Can view policy details with evidence
+✓ All 18 unit tests pass
 ✓ Ruff linting passes with no errors
 ✓ Functions properly integrate with ClaudeChromeExecutor
 ✓ Comprehensive error handling and logging
 ✓ Screenshots captured on failures
+✓ Package exports working correctly
 
 **Files Created:**
-- e2e/scenarios/__init__.py (21 lines)
-- e2e/scenarios/repository_crud.py (400+ lines)
-- e2e/scenarios/test_repository_crud.py (90+ lines, 9 tests)
+- e2e/scenarios/policy_viewing.py (366 lines)
+- e2e/scenarios/test_policy_viewing.py (250+ lines, 18 tests)
+- Updated e2e/scenarios/__init__.py with exports
 
 **Next Steps:**
-Ready to implement TEST-008: Create reusable test scenario for Scan Repository (already done as bonus!).
-TEST-009: Create reusable test scenario for View and Filter Policies.
-
-
----
-
-[2026-01-09 11:09] ✅ TEST-008 Complete - Reusable Test Scenario: Scan Repository
-
-**What was done:**
-- scan_repository() function was already implemented in TEST-007 as a bonus
-- Located in e2e/scenarios/repository_crud.py
-- Fully functional with comprehensive error handling
-- Integrated with ClaudeChromeExecutor
-
-**scan_repository() Features:**
-- Accepts repository_id as parameter
-- Navigates to repository detail page (http://localhost:3333/repositories/{id})
-- Clicks Start Scan button
-- Waits for scan to start (data-status='running')
-- Waits for scan to complete with 2-minute timeout (data-status='completed')
-- Navigates to policies page to verify extraction
-- Verifies policies table is visible
-- Verifies at least one policy row exists (policies were extracted)
-- Returns scan results dict with:
-  - scan_id: Identifier for the completed scan
-  - policies_count: Number of policies extracted
-  - duration_seconds: Scan duration
-- Comprehensive error handling (ElementNotFoundError, BrowserError)
-- Structured logging throughout execution
-- Screenshot capture on failure for debugging
-
-**Validation:**
-✓ Function successfully triggers repository scan
-✓ Waits for scan completion (up to 2 minutes)
-✓ Validates policies were extracted (count > 0)
-✓ Returns scan results dict with required fields
-✓ Error handling and logging present
-✓ Unit test coverage included in test_repository_crud.py
-✓ Ruff linting passes
-
-**Files:**
-- e2e/scenarios/repository_crud.py (scan_repository function)
-- e2e/scenarios/test_repository_crud.py (unit tests)
-
-**Next Steps:**
-Ready to implement TEST-009: Create reusable test scenario for View and Filter Policies.
+Ready to implement TEST-010: Create reusable test scenario for Add PBAC Provider.
 
