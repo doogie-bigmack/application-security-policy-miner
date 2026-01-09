@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit } from 'lucide-react'
+import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit, Download } from 'lucide-react'
 import logger from '../lib/logger'
 import PolicyDetailModal from '../components/PolicyDetailModal'
 import SourceFileViewer from '../components/SourceFileViewer'
+import PolicyExportModal from '../components/PolicyExportModal'
 
 interface Evidence {
   id: number
@@ -43,6 +44,7 @@ export default function PoliciesPage() {
   const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null)
   const [expandedRiskPolicy, setExpandedRiskPolicy] = useState<number | null>(null)
   const [viewingSourceEvidenceId, setViewingSourceEvidenceId] = useState<number | null>(null)
+  const [exportingPolicyId, setExportingPolicyId] = useState<number | null>(null)
 
   const fetchPolicies = async (sourceType?: SourceType | 'all') => {
     try {
@@ -368,6 +370,13 @@ export default function PoliciesPage() {
                   <Edit size={16} />
                   <span>Edit</span>
                 </button>
+                <button
+                  onClick={() => setExportingPolicyId(policy.id)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 text-sm inline-flex items-center space-x-2"
+                >
+                  <Download size={16} />
+                  <span>Export</span>
+                </button>
                 {policy.status === 'pending' && (
                   <>
                     <button
@@ -407,6 +416,14 @@ export default function PoliciesPage() {
         <SourceFileViewer
           evidenceId={viewingSourceEvidenceId}
           onClose={() => setViewingSourceEvidenceId(null)}
+        />
+      )}
+
+      {/* Policy Export Modal */}
+      {exportingPolicyId && (
+        <PolicyExportModal
+          policyId={exportingPolicyId}
+          onClose={() => setExportingPolicyId(null)}
         />
       )}
     </div>

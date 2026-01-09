@@ -30,24 +30,25 @@ class TranslationService:
         Raises:
             ValueError: If translation fails
         """
-        logger.info("translating_policy_to_rego", policy_id=policy.policy_id)
+        logger.info("translating_policy_to_rego", policy_id=policy.id)
 
         # Build the prompt for Claude
         prompt = self._build_rego_translation_prompt(policy)
 
         try:
             # Call Claude Agent SDK via LLM provider
-            response = self.llm_provider.create_message(
+            response_text = self.llm_provider.create_message(
+                prompt=prompt,
                 max_tokens=2000,
-                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
             )
 
             # Extract the Rego policy from the response
-            rego_policy = self._extract_rego_from_response(response.content[0].text)
+            rego_policy = self._extract_rego_from_response(response_text)
 
             logger.info(
                 "translation_successful",
-                policy_id=policy.policy_id,
+                policy_id=policy.id,
                 rego_length=len(rego_policy),
             )
 
@@ -56,7 +57,7 @@ class TranslationService:
         except Exception as e:
             logger.error(
                 "translation_failed",
-                policy_id=policy.policy_id,
+                policy_id=policy.id,
                 error=str(e),
             )
             raise ValueError(f"Failed to translate policy to Rego: {e}") from e
@@ -74,24 +75,25 @@ class TranslationService:
         Raises:
             ValueError: If translation fails
         """
-        logger.info("translating_policy_to_cedar", policy_id=policy.policy_id)
+        logger.info("translating_policy_to_cedar", policy_id=policy.id)
 
         prompt = self._build_cedar_translation_prompt(policy)
 
         try:
-            response = self.llm_provider.create_message(
+            response_text = self.llm_provider.create_message(
+                prompt=prompt,
                 max_tokens=2000,
-                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
             )
 
-            cedar_policy = self._extract_cedar_from_response(response.content[0].text)
+            cedar_policy = self._extract_cedar_from_response(response_text)
 
             # Validate the Cedar policy structure
             self._validate_cedar_policy(cedar_policy)
 
             logger.info(
                 "translation_successful",
-                policy_id=policy.policy_id,
+                policy_id=policy.id,
                 cedar_length=len(cedar_policy),
             )
 
@@ -100,7 +102,7 @@ class TranslationService:
         except Exception as e:
             logger.error(
                 "translation_failed",
-                policy_id=policy.policy_id,
+                policy_id=policy.id,
                 error=str(e),
             )
             raise ValueError(f"Failed to translate policy to Cedar: {e}") from e
@@ -118,7 +120,7 @@ class TranslationService:
         Raises:
             ValueError: If translation fails
         """
-        logger.info("translating_policy_to_json", policy_id=policy.policy_id)
+        logger.info("translating_policy_to_json", policy_id=policy.id)
 
         # For JSON, we can use a simple structured format
         json_policy = {

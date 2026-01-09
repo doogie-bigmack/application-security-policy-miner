@@ -13,6 +13,7 @@ from app.models.repository import Repository
 from app.schemas.policy import Policy as PolicySchema
 from app.schemas.policy import PolicyList, PolicyUpdate
 from app.services.audit_service import AuditService
+from app.services.translation_service import TranslationService
 
 logger = logging.getLogger(__name__)
 
@@ -270,3 +271,97 @@ async def get_source_file(evidence_id: int, db: Session = Depends(get_db)) -> So
         line_start=evidence.line_start,
         line_end=evidence.line_end,
     )
+
+
+class PolicyExportResponse(BaseModel):
+    """Response model for policy export."""
+
+    format: str
+    policy: str
+
+
+@router.get("/{policy_id}/export/rego", response_model=PolicyExportResponse)
+async def export_policy_rego(policy_id: int, db: Session = Depends(get_db)) -> PolicyExportResponse:
+    """Export a policy as OPA Rego format.
+
+    Args:
+        policy_id: Policy ID
+        db: Database session
+
+    Returns:
+        Exported policy in Rego format
+    """
+    policy = db.query(Policy).filter(Policy.id == policy_id).first()
+
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    try:
+        translation_service = TranslationService()
+        rego_policy = await translation_service.translate_to_rego(policy)
+
+        logger.info(f"Policy {policy_id} exported to Rego", extra={"policy_id": policy_id})
+
+        return PolicyExportResponse(format="rego", policy=rego_policy)
+
+    except Exception as e:
+        logger.error(f"Failed to export policy to Rego: {e}", extra={"policy_id": policy_id})
+        raise HTTPException(status_code=500, detail=f"Failed to export policy to Rego: {str(e)}")
+
+
+@router.get("/{policy_id}/export/cedar", response_model=PolicyExportResponse)
+async def export_policy_cedar(policy_id: int, db: Session = Depends(get_db)) -> PolicyExportResponse:
+    """Export a policy as AWS Cedar format.
+
+    Args:
+        policy_id: Policy ID
+        db: Database session
+
+    Returns:
+        Exported policy in Cedar format
+    """
+    policy = db.query(Policy).filter(Policy.id == policy_id).first()
+
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    try:
+        translation_service = TranslationService()
+        cedar_policy = await translation_service.translate_to_cedar(policy)
+
+        logger.info(f"Policy {policy_id} exported to Cedar", extra={"policy_id": policy_id})
+
+        return PolicyExportResponse(format="cedar", policy=cedar_policy)
+
+    except Exception as e:
+        logger.error(f"Failed to export policy to Cedar: {e}", extra={"policy_id": policy_id})
+        raise HTTPException(status_code=500, detail=f"Failed to export policy to Cedar: {str(e)}")
+
+
+@router.get("/{policy_id}/export/json", response_model=PolicyExportResponse)
+async def export_policy_json(policy_id: int, db: Session = Depends(get_db)) -> PolicyExportResponse:
+    """Export a policy as JSON format.
+
+    Args:
+        policy_id: Policy ID
+        db: Database session
+
+    Returns:
+        Exported policy in JSON format
+    """
+    policy = db.query(Policy).filter(Policy.id == policy_id).first()
+
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    try:
+        translation_service = TranslationService()
+        json_policy = await translation_service.translate_to_json(policy)
+
+        logger.info(f"Policy {policy_id} exported to JSON", extra={"policy_id": policy_id})
+
+        return PolicyExportResponse(format="json", policy=json_policy)
+
+    except Exception as e:
+        logger.error(f"Failed to export policy to JSON: {e}", extra={"policy_id": policy_id})
+        raise HTTPException(status_code=500, detail=f"Failed to export policy to JSON: {str(e)}")
