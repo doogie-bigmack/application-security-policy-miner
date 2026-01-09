@@ -51,6 +51,7 @@ class Policy(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     repository_id = Column(Integer, ForeignKey("repositories.id"), nullable=False)
+    application_id = Column(Integer, ForeignKey("applications.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Who/What/How/When components
     subject = Column(String(500), nullable=False)  # Who (e.g., "Manager", "Admin")
@@ -77,6 +78,7 @@ class Policy(Base):
     # Relationships
     evidence = relationship("Evidence", back_populates="policy", cascade="all, delete-orphan")
     advisories = relationship("CodeAdvisory", back_populates="policy", cascade="all, delete-orphan")
+    application = relationship("Application", foreign_keys=[application_id])
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))

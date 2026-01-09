@@ -52,8 +52,7 @@ class Application(Base):
 
     # Relationships
     business_unit = relationship("BusinessUnit")
-
-    # Note: policies relationship would be added later when linking applications to policies
+    policies = relationship("Policy", back_populates="application", foreign_keys="[Policy.application_id]")
 
     def __repr__(self) -> str:
         """String representation."""
