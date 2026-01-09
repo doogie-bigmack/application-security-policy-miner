@@ -67,6 +67,9 @@ class Policy(PolicyBase):
     impact_score: float | None = None
     confidence_score: float | None = None
     historical_score: float | None = None
+    approval_comment: str | None = None
+    reviewed_by: str | None = None
+    reviewed_at: datetime | None = None
     evidence: list[Evidence] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime

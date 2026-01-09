@@ -60,6 +60,9 @@ class Policy(Base):
     status = Column(SAEnum(PolicyStatus), default=PolicyStatus.PENDING)
     description = Column(Text, nullable=True)  # AI-generated description
     source_type = Column(SAEnum(SourceType), default=SourceType.UNKNOWN, nullable=False)  # Frontend/Backend/Database
+    approval_comment = Column(Text, nullable=True)  # Comment when approving/rejecting
+    reviewed_by = Column(String(255), nullable=True)  # Email of user who reviewed
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)  # When the review happened
 
     # Relationships
     evidence = relationship("Evidence", back_populates="policy", cascade="all, delete-orphan")
