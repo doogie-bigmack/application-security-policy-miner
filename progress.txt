@@ -1,5 +1,70 @@
 # Progress Log
 
+## 2026-01-09 - Incremental Scanning with Git Diff Complete
+
+### Completed
+- Implemented incremental scanning with git diff detection:
+  - Added git_commit_hash and is_incremental columns to ScanProgress model
+  - Created database migration to add new columns
+  - Modified _clone_repository to pull latest changes instead of re-cloning
+  - Removed depth=1 from git clone to enable git diff functionality
+
+- Git diff detection:
+  - Added _get_last_scan_commit method to retrieve last successful scan's commit hash
+  - Implemented _get_changed_files_since_commit using GitPython's diff API
+  - Detects added and modified files between commits
+  - Falls back to full scan if no previous scan exists or diff fails
+
+- Scanner service enhancements:
+  - Updated scan_repository to accept incremental parameter
+  - Modified _count_authorization_files to filter by changed files
+  - Updated _stream_authorization_files to support changed files filtering
+  - Scan progress now tracks git commit hash and incremental flag
+  - Return value includes scan_type and git_commit information
+
+- API endpoint updates:
+  - Added incremental query parameter to POST /api/v1/repositories/{id}/scan
+  - Endpoint defaults to full scan (incremental=false)
+  - Logs scan type (full/incremental) for debugging
+
+- Frontend UI improvements:
+  - Added ChevronDown and Zap icons to imports
+  - Replaced single scan button with dropdown menu
+  - Dropdown offers "Full Scan" and "Incremental Scan" options
+  - Full scan: scans all files in repository
+  - Incremental scan: only scans changed files since last scan
+  - Added click-outside handler to close dropdown menu
+  - Visual distinction: Zap icon (yellow) for incremental scans
+
+- Testing and validation:
+  - Created Flask public repository for testing (repo ID 24)
+  - Full scan: Successfully scanned 83 files
+  - Incremental scan (no changes): Scanned 0 files correctly
+  - Git commit hash tracked: 2579ce9f18e67ec3213c6eceb5240310ccd46af8
+  - Scan history shows both scan types with correct metadata
+  - Performance: Incremental scan significantly faster when no changes
+
+### User Story Status
+✅ Story: "Incremental scanning with git diff" - PASSES
+
+Requirements met:
+- ✅ Perform full repository scan
+- ✅ Record scan duration
+- ✅ Trigger incremental scan
+- ✅ Verify only changed files are rescanned (0 files when no changes)
+- ✅ Confirm incremental scan is faster than full scan
+- ✅ Check that unchanged policies remain intact
+- ✅ Git commit tracking enables future change detection
+
+### Technical Details
+- Database: PostgreSQL with new columns for git tracking
+- Backend: Python/FastAPI with GitPython for diff detection
+- Frontend: React with dropdown UI for scan type selection
+- Memory efficient: Streaming file processing maintained for both scan types
+
+### Next Steps
+- Continue with remaining incomplete stories from PRD
+
 ## 2026-01-09 - Policy Review Interface with Monaco Editor Complete
 
 ### Completed

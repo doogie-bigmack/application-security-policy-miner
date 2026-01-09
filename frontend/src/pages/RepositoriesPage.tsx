@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { GitBranch, Database, Server, ExternalLink, Play, Webhook, Copy, Check, Filter, ArrowUpDown, Eye, Edit2, Trash2 } from 'lucide-react'
+import { GitBranch, Database, Server, ExternalLink, Play, Webhook, Copy, Check, Filter, ArrowUpDown, Eye, Edit2, Trash2, ChevronDown, Zap } from 'lucide-react'
 import logger from '../lib/logger'
 import AddRepositoryModal from '../components/AddRepositoryModal'
 
@@ -59,6 +59,9 @@ export default function RepositoriesPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deleteRepo, setDeleteRepo] = useState<Repository | null>(null)
 
+  // Scan type dropdown
+  const [scanMenuOpen, setScanMenuOpen] = useState<number | null>(null)
+
   const fetchRepositories = async () => {
     try {
       setIsLoading(true)
@@ -85,6 +88,15 @@ export default function RepositoriesPage() {
     logger.info('RepositoriesPage mounted')
     fetchRepositories()
   }, [])
+
+  // Close scan menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setScanMenuOpen(null)
+    if (scanMenuOpen !== null) {
+      document.addEventListener('click', handleClickOutside)
+    }
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [scanMenuOpen])
 
   const handleSuccess = () => {
     fetchRepositories()
@@ -133,13 +145,15 @@ export default function RepositoriesPage() {
     }, 2000) // Poll every 2 seconds
   }
 
-  const handleScan = async (repositoryId: number) => {
+  const handleScan = async (repositoryId: number, incremental: boolean = false) => {
     try {
-      logger.info('Starting scan', { repositoryId })
+      const scanType = incremental ? 'incremental' : 'full'
+      logger.info('Starting scan', { repositoryId, scanType })
       setScanningRepoId(repositoryId)
       setScanProgress(null)
 
-      const response = await fetch(`/api/v1/repositories/${repositoryId}/scan`, {
+      const url = `/api/v1/repositories/${repositoryId}/scan${incremental ? '?incremental=true' : ''}`
+      const response = await fetch(url, {
         method: 'POST',
       })
 
@@ -513,13 +527,56 @@ export default function RepositoriesPage() {
                         )}
                       </button>
                       {scanningRepoId !== repo.id && (
-                        <button
-                          onClick={() => handleScan(repo.id)}
-                          className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm"
-                        >
-                          <Play size={16} />
-                          <span>Start Scan</span>
-                        </button>
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setScanMenuOpen(scanMenuOpen === repo.id ? null : repo.id)
+                            }}
+                            className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm"
+                          >
+                            <Play size={16} />
+                            <span>Start Scan</span>
+                            <ChevronDown size={14} />
+                          </button>
+                          {scanMenuOpen === repo.id && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute right-0 mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10"
+                            >
+                              <button
+                                onClick={() => {
+                                  handleScan(repo.id, false)
+                                  setScanMenuOpen(null)
+                                }}
+                                className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-start space-x-3 border-b border-gray-200 dark:border-gray-700"
+                              >
+                                <Play size={16} className="mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <div className="font-medium text-sm">Full Scan</div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                                    Scan all files in the repository
+                                  </div>
+                                </div>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleScan(repo.id, true)
+                                  setScanMenuOpen(null)
+                                }}
+                                className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-start space-x-3 rounded-b-lg"
+                              >
+                                <Zap size={16} className="mt-0.5 flex-shrink-0 text-yellow-500" />
+                                <div>
+                                  <div className="font-medium text-sm">Incremental Scan</div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                                    Only scan changed files since last scan
+                                  </div>
+                                </div>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </>
                   )}
