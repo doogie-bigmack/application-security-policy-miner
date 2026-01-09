@@ -1,5 +1,6 @@
 """Database models."""
 from app.models.audit_log import AuditEventType, AuditLog
+from app.models.auto_approval import AutoApprovalDecision, AutoApprovalSettings
 from app.models.code_advisory import AdvisoryStatus, CodeAdvisory
 from app.models.conflict import ConflictStatus, ConflictType, PolicyConflict
 from app.models.policy import Evidence, Policy, PolicyStatus, RiskLevel, SourceType
@@ -51,4 +52,6 @@ __all__ = [
     "ProvisioningStatus",
     "CodeAdvisory",
     "AdvisoryStatus",
+    "AutoApprovalSettings",
+    "AutoApprovalDecision",
 ]

@@ -266,7 +266,7 @@
         "Confirm auto-approved policies match historical patterns",
         "Review metrics showing auto-approval rate (target >30%)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "security",
@@ -892,7 +892,7 @@
         "Identify App1 uses 'admin', App2 uses 'administrator', App3 uses 'sysadmin'",
         "Claude Agent SDK detects semantic equivalence across apps",
         "Navigate to Normalization Dashboard",
-        "Review AI-suggested role mapping (admin \u2194 administrator \u2194 sysadmin)",
+        "Review AI-suggested role mapping (admin ↔ administrator ↔ sysadmin)",
         "Approve normalization to standard taxonomy (ADMIN)",
         "Verify all policies are updated to use standard role names",
         "Confirm mapping is documented in audit trail"

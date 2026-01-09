@@ -1975,3 +1975,86 @@ All required features are present and functional.
 ### Next Steps
 - Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
 - Story 18: AI Learning - Auto-approve low-risk policies
+
+## 2026-01-09 - AI Learning Auto-Approval Complete
+
+### Completed
+- Backend auto-approval infrastructure:
+  - Created AutoApprovalSettings model (tenant-specific config for enable/threshold/min_approvals)
+  - Created AutoApprovalDecision model (audit trail of all auto-approval decisions)
+  - Implemented AutoApprovalService with AI-powered pattern matching
+  - Historical approval analysis (finds similar approved policies by subject/action/resource)
+  - Risk-based filtering (configurable threshold, default 30/100)
+  - Claude Agent SDK integration for intelligent approval recommendations
+  - Full tenant isolation at all layers
+  
+- Backend API endpoints:
+  - GET /api/v1/auto-approval/settings - Get/create settings for tenant
+  - PUT /api/v1/auto-approval/settings - Update enable/threshold/min_approvals
+  - GET /api/v1/auto-approval/metrics - Get auto-approval statistics and rates
+  - GET /api/v1/auto-approval/decisions - Get recent decisions with reasoning
+  - All endpoints handle null tenant_id gracefully (default to "default-tenant")
+  
+- Auto-approval workflow integration:
+  - Modified scanner_service.py to call auto-approval after policy extraction
+  - Evaluates each extracted policy against settings and historical data
+  - AI analyzes policy context + historical approvals → approve/deny decision
+  - Auto-approved policies status set to APPROVED (bypasses manual review)
+  - Tracks metrics: total_auto_approvals, total_policies_scanned, auto_approval_rate
+  - Target: >30% auto-approval rate
+  
+- Frontend Auto-Approval Settings page (/auto-approval):
+  - Metrics dashboard showing auto-approval rate, total approvals, enabled status
+  - Toggle to enable/disable AI learning mode
+  - Slider for risk threshold (0-100, default 30)
+  - Slider for minimum historical approvals (1-10, default 3)
+  - Save settings button with real-time updates
+  - Recent decisions list showing auto-approval reasoning
+  - Full dark mode support
+  - Added navigation link in Layout
+  
+- Testing:
+  - Created comprehensive unit tests (test_auto_approval.py)
+  - 13 test cases covering: settings CRUD, historical analysis, evaluation logic, metrics, tenant isolation
+  - Tests verify: disabled mode blocks approval, high risk blocked, insufficient history blocked, AI analysis flow
+  - Backend linting passed (ruff check)
+  
+- Database:
+  - auto_approval_settings table (per-tenant configuration)
+  - auto_approval_decisions table (audit trail with reasoning and matched patterns)
+  - Tables automatically created on backend startup
+  
+- API validation:
+  - Tested GET /api/v1/auto-approval/settings → returns default settings
+  - Confirmed tenant isolation working (tenant_id defaults to "default-tenant")
+  - All endpoints returning 200 OK
+
+### Implementation Details
+- Auto-approval decision process:
+  1. Check if auto-approval enabled for tenant
+  2. Validate risk_score <= risk_threshold
+  3. Find historically approved policies with similar subject/action/resource
+  4. Verify min_historical_approvals met
+  5. Send policy + historical context to Claude Agent SDK
+  6. AI returns: should_auto_approve, matched_patterns, confidence, reasoning
+  7. Record decision in auto_approval_decisions table
+  8. Update metrics (total scanned, total approved, approval rate)
+  9. If approved: set policy.status = APPROVED (skip manual review)
+  
+- AI prompt includes:
+  - Policy details (WHO/WHAT/HOW/WHEN)
+  - Risk scores (overall, complexity, impact, confidence)
+  - Historical approved policies (up to 10 similar)
+  - Request for: approval decision + pattern matches + confidence + reasoning
+  
+- Pattern matching heuristics:
+  - Same subject (exact match, case-insensitive)
+  - OR same action+resource combo
+  - Future enhancement: semantic similarity with embeddings
+
+### User Story Status
+✅ Story 18: "AI Learning - Auto-approve low-risk policies based on history" - PASSES
+
+### Next Steps
+- Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
+- Story 19: Database stored procedure analysis (PostgreSQL/SQL Server/Oracle/MySQL)
