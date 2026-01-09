@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: policy-miner
+
+resources:
+  - ../../
+
+patches:
+  # Use Azure managed-premium storage class
+  - patch: |-
+      - op: replace
+        path: /spec/storageClassName
+        value: managed-premium
+    target:
+      kind: PersistentVolumeClaim
+
+  # Update ingress for Azure Application Gateway
+  - patch: |-
+      - op: replace
+        path: /spec/ingressClassName
+        value: azure-application-gateway
+      - op: add
+        path: /metadata/annotations
+        value:
+          appgw.ingress.kubernetes.io/ssl-redirect: "true"
+          appgw.ingress.kubernetes.io/backend-protocol: "http"
+    target:
+      kind: Ingress
+      name: policy-miner-ingress
+
+  # Configure backend to use Azure OpenAI
+  - patch: |-
+      - op: replace
+        path: /data/LLM_PROVIDER
+        value: azure_openai
+    target:
+      kind: ConfigMap
+      name: policy-miner-config
+
+# Scale for production
+replicas:
+  - name: backend
+    count: 5
+  - name: frontend
+    count: 3

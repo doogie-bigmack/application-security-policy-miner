@@ -518,7 +518,7 @@
         "Verify auto-scaling is configured",
         "Test high availability failover"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "deployment",

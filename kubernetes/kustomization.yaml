@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: policy-miner
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - postgres-statefulset.yaml
+  - redis-deployment.yaml
+  - minio-deployment.yaml
+  - backend-deployment.yaml
+  - frontend-deployment.yaml
+  - ingress.yaml
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: policy-miner
+  app.kubernetes.io/version: "1.0.0"
+  app.kubernetes.io/managed-by: kustomize
+
+# Images to replace (update these with your registry)
+images:
+  - name: policy-miner/backend
+    newName: your-registry/policy-miner-backend
+    newTag: latest
+  - name: policy-miner/frontend
+    newName: your-registry/policy-miner-frontend
+    newTag: latest
+
+# Configuration patches for different environments
+# Uncomment and customize as needed
+
+# Example: Use AWS storage class
+# patches:
+#   - patch: |-
+#       - op: replace
+#         path: /spec/storageClassName
+#         value: gp3
+#     target:
+#       kind: PersistentVolumeClaim
+#       name: ".*"
+
+# Example: Update replicas
+# replicas:
+#   - name: backend
+#     count: 5
+#   - name: frontend
+#     count: 3

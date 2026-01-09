@@ -1,6 +1,7 @@
 """Test similar policy detection service."""
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from app.services.embedding_service import EmbeddingService
 from app.services.similarity_service import SimilarityService
