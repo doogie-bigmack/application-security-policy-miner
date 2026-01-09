@@ -280,7 +280,7 @@
         "Review audit log to verify no secrets in prompts",
         "Verify extracted policies do not contain actual secret values"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "security",

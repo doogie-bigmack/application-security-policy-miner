@@ -48,6 +48,12 @@ export default function Layout({ children, darkMode, setDarkMode }: LayoutProps)
               >
                 Changes
               </Link>
+              <Link
+                to="/secrets"
+                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
+              >
+                Secrets
+              </Link>
               <button
                 onClick={toggleDarkMode}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
