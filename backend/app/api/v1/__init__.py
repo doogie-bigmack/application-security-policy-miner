@@ -12,6 +12,7 @@ from app.api.v1 import (
     webhooks,
 )
 from app.api.v1.endpoints import (
+    applications,
     audit_logs,
     code_advisories,
     organizations,
@@ -39,3 +40,4 @@ api_router.include_router(code_advisories.router, prefix="/code-advisories", tag
 api_router.include_router(auto_approval.router, prefix="/auto-approval", tags=["auto-approval"])
 api_router.include_router(risk.router, prefix="/risk", tags=["risk"])
 api_router.include_router(organizations.router, prefix="/organizations", tags=["organizations"])
+api_router.include_router(applications.router, prefix="/applications", tags=["applications"])

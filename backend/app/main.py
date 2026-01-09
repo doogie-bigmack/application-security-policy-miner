@@ -92,11 +92,10 @@ async def startup_event():
     logger.info("application_starting", version="0.1.0")
 
     # Create database tables
-    from app.core.database import engine
-    from app.models.repository import Base
-
     # Import all models to ensure they're registered with Base
     import app.models  # noqa: F401
+    from app.core.database import engine
+    from app.models.repository import Base
 
     logger.info("creating_database_tables")
     Base.metadata.create_all(bind=engine)
