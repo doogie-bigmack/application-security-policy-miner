@@ -1,11 +1,14 @@
 """AI-powered code scanning service."""
 import logging
 import math
+import os
 import re
+from collections.abc import AsyncGenerator
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import psutil
 from git import Repo
 from sqlalchemy.orm import Session
 
@@ -82,6 +85,24 @@ class ScannerService:
         self.csharp_scanner = CSharpScannerService()
         self.python_scanner = PythonScannerService()
         self.javascript_scanner = JavaScriptScannerService()
+        self.process = psutil.Process(os.getpid())
+        self.initial_memory_mb = self.process.memory_info().rss / 1024 / 1024
+
+    def _get_memory_usage_mb(self) -> float:
+        """Get current process memory usage in MB.
+
+        Returns:
+            Current memory usage in megabytes
+        """
+        return self.process.memory_info().rss / 1024 / 1024
+
+    def _get_memory_delta_mb(self) -> float:
+        """Get memory usage delta since initialization.
+
+        Returns:
+            Memory usage increase in megabytes
+        """
+        return self._get_memory_usage_mb() - self.initial_memory_mb
 
     def _classify_source_type(self, file_path: str, content: str) -> SourceType:
         """Classify whether code is frontend, backend, or database.
@@ -133,16 +154,24 @@ class ScannerService:
             return SourceType.UNKNOWN
 
     async def scan_repository(self, repository_id: int, tenant_id: str | None = None) -> dict[str, Any]:
-        """Scan a repository and extract policies.
+        """Scan a repository and extract policies using streaming analysis.
 
         Args:
             repository_id: ID of the repository to scan
             tenant_id: Optional tenant ID for multi-tenancy
 
         Returns:
-            Dictionary with scan results
+            Dictionary with scan results including memory metrics
         """
-        logger.info(f"Starting scan for repository {repository_id}", tenant_id=tenant_id)
+        start_time = datetime.utcnow()
+        start_memory_mb = self._get_memory_usage_mb()
+        peak_memory_mb = start_memory_mb
+
+        logger.info(
+            f"Starting streaming scan for repository {repository_id}",
+            tenant_id=tenant_id,
+            initial_memory_mb=round(start_memory_mb, 2)
+        )
 
         # Get repository from database with tenant filtering
         query = self.db.query(Repository).filter(Repository.id == repository_id)
@@ -157,7 +186,7 @@ class ScannerService:
             repository_id=repository_id,
             tenant_id=tenant_id,
             status=ScanStatus.QUEUED,
-            started_at=datetime.utcnow(),
+            started_at=start_time,
         )
         self.db.add(scan_progress)
         self.db.commit()
@@ -171,14 +200,13 @@ class ScannerService:
             # Clone repository to temp directory
             repo_path = await self._clone_repository(repo)
 
-            # Find files with potential authorization code (with secret detection)
-            auth_files = await self._find_authorization_files(repo_path, repo)
-
-            logger.info(f"Found {len(auth_files)} files with potential authorization code")
-
-            # Calculate batches
-            total_files = len(auth_files)
+            # STREAMING: Count files first without loading into memory
+            total_files = await self._count_authorization_files(repo_path)
             total_batches = math.ceil(total_files / settings.BATCH_SIZE)
+
+            logger.info(
+                f"Found {total_files} files to scan, will process in {total_batches} batches"
+            )
 
             # Update scan progress with totals
             scan_progress.total_files = total_files
@@ -186,33 +214,76 @@ class ScannerService:
             scan_progress.status = ScanStatus.PROCESSING
             self.db.commit()
 
-            # Process ALL files in batches
+            # STREAMING: Process files as we discover them (batching)
             policies_created = 0
             errors_count = 0
+            current_batch = []
+            batch_num = 0
 
-            for batch_num in range(total_batches):
-                start_idx = batch_num * settings.BATCH_SIZE
-                end_idx = min((batch_num + 1) * settings.BATCH_SIZE, total_files)
-                batch_files = auth_files[start_idx:end_idx]
+            async for file_info in self._stream_authorization_files(repo_path, repo):
+                current_batch.append(file_info)
 
-                logger.info(
-                    f"Processing batch {batch_num + 1}/{total_batches} "
-                    f"({len(batch_files)} files)"
-                )
+                # Process batch when it reaches BATCH_SIZE
+                if len(current_batch) >= settings.BATCH_SIZE:
+                    batch_num += 1
+                    logger.info(
+                        f"Processing batch {batch_num}/{total_batches} "
+                        f"({len(current_batch)} files)"
+                    )
 
-                # Update progress for current batch
-                scan_progress.current_batch = batch_num + 1
+                    # Update progress for current batch
+                    scan_progress.current_batch = batch_num
+                    self.db.commit()
+
+                    # Process each file in the batch
+                    for file_info in current_batch:
+                        try:
+                            policies = await self._extract_policies_from_file(
+                                repo, file_info["path"], file_info["content"], file_info["matches"]
+                            )
+                            policies_created += len(policies)
+
+                            # Update progress
+                            scan_progress.processed_files += 1
+                            scan_progress.policies_extracted = policies_created
+                            self.db.commit()
+
+                        except Exception as e:
+                            logger.error(f"Error processing file {file_info['path']}: {e}")
+                            errors_count += 1
+                            scan_progress.errors_count = errors_count
+                            self.db.commit()
+                            continue
+
+                    # Track peak memory usage
+                    current_memory_mb = self._get_memory_usage_mb()
+                    peak_memory_mb = max(peak_memory_mb, current_memory_mb)
+
+                    logger.info(
+                        f"Batch {batch_num} complete: "
+                        f"{scan_progress.processed_files}/{total_files} files processed, "
+                        f"{policies_created} policies extracted, "
+                        f"memory: {round(current_memory_mb, 2)}MB (peak: {round(peak_memory_mb, 2)}MB)"
+                    )
+
+                    # Clear batch to free memory
+                    current_batch = []
+
+            # Process remaining files in final batch
+            if current_batch:
+                batch_num += 1
+                logger.info(f"Processing final batch {batch_num} ({len(current_batch)} files)")
+
+                scan_progress.current_batch = batch_num
                 self.db.commit()
 
-                # Process each file in the batch
-                for file_info in batch_files:
+                for file_info in current_batch:
                     try:
                         policies = await self._extract_policies_from_file(
                             repo, file_info["path"], file_info["content"], file_info["matches"]
                         )
                         policies_created += len(policies)
 
-                        # Update progress
                         scan_progress.processed_files += 1
                         scan_progress.policies_extracted = policies_created
                         self.db.commit()
@@ -224,11 +295,8 @@ class ScannerService:
                         self.db.commit()
                         continue
 
-                logger.info(
-                    f"Batch {batch_num + 1} complete: "
-                    f"{scan_progress.processed_files}/{total_files} files processed, "
-                    f"{policies_created} policies extracted"
-                )
+                current_memory_mb = self._get_memory_usage_mb()
+                peak_memory_mb = max(peak_memory_mb, current_memory_mb)
 
             # Update scan progress to completed
             scan_progress.status = ScanStatus.COMPLETED
@@ -242,9 +310,18 @@ class ScannerService:
             repo.last_scan_at = datetime.utcnow()
             self.db.commit()
 
+            # Calculate performance metrics
+            end_time = datetime.utcnow()
+            scan_duration_seconds = (end_time - start_time).total_seconds()
+            end_memory_mb = self._get_memory_usage_mb()
+            memory_delta_mb = end_memory_mb - start_memory_mb
+
             logger.info(
-                f"Scan complete: processed {total_files} files in {total_batches} batches, "
-                f"extracted {policies_created} policies, {errors_count} errors"
+                f"Streaming scan complete: processed {total_files} files in {batch_num} batches, "
+                f"extracted {policies_created} policies, {errors_count} errors, "
+                f"duration: {round(scan_duration_seconds, 2)}s, "
+                f"memory: start={round(start_memory_mb, 2)}MB peak={round(peak_memory_mb, 2)}MB "
+                f"end={round(end_memory_mb, 2)}MB delta={round(memory_delta_mb, 2)}MB"
             )
 
             # Detect changes if this is not the first scan
@@ -266,8 +343,15 @@ class ScannerService:
                 "files_scanned": total_files,
                 "policies_extracted": policies_created,
                 "errors_count": errors_count,
-                "batches_processed": total_batches,
+                "batches_processed": batch_num,
                 "changes_detected": changes_detected,
+                "performance": {
+                    "duration_seconds": round(scan_duration_seconds, 2),
+                    "start_memory_mb": round(start_memory_mb, 2),
+                    "peak_memory_mb": round(peak_memory_mb, 2),
+                    "end_memory_mb": round(end_memory_mb, 2),
+                    "memory_delta_mb": round(memory_delta_mb, 2),
+                },
             }
 
         except Exception as e:
@@ -312,6 +396,108 @@ class ScannerService:
         Repo.clone_from(clone_url, clone_dir, depth=1)
 
         return clone_dir
+
+    async def _count_authorization_files(self, repo_path: Path) -> int:
+        """Count files with potential authorization code without loading them into memory.
+
+        Args:
+            repo_path: Path to repository
+
+        Returns:
+            Count of files to be scanned
+        """
+        count = 0
+        for file_path in repo_path.rglob("*"):
+            # Skip non-files and common ignore patterns
+            if not file_path.is_file():
+                continue
+            if any(p in str(file_path) for p in [".git", "node_modules", "venv", "__pycache__", "dist", "build"]):
+                continue
+            if file_path.suffix not in SUPPORTED_EXTENSIONS:
+                continue
+
+            # Check file size
+            if file_path.stat().st_size > settings.MAX_FILE_SIZE_MB * 1024 * 1024:
+                continue
+
+            count += 1
+
+        return count
+
+    async def _stream_authorization_files(
+        self, repo_path: Path, repository: Repository
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Stream files containing authorization code one at a time (generator).
+
+        This is a memory-efficient streaming version that yields files as they are discovered,
+        rather than loading all files into memory at once.
+
+        Args:
+            repo_path: Path to repository
+            repository: Repository model instance for logging secrets
+
+        Yields:
+            File information dictionaries one at a time
+        """
+        for file_path in repo_path.rglob("*"):
+            # Skip non-files and common ignore patterns
+            if not file_path.is_file():
+                continue
+            if any(p in str(file_path) for p in [".git", "node_modules", "venv", "__pycache__", "dist", "build"]):
+                continue
+            if file_path.suffix not in SUPPORTED_EXTENSIONS:
+                continue
+
+            # Check file size
+            if file_path.stat().st_size > settings.MAX_FILE_SIZE_MB * 1024 * 1024:
+                continue
+
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="ignore")
+                relative_path = file_path.relative_to(repo_path)
+
+                # PRE-SCAN: Detect secrets BEFORE processing
+                secret_result = SecretDetectionService.scan_content(content, str(relative_path))
+
+                # Log detected secrets to audit trail
+                if secret_result.has_secrets:
+                    for secret in secret_result.secrets_found:
+                        secret_log = SecretDetectionLog(
+                            repository_id=repository.id,
+                            tenant_id=repository.tenant_id,
+                            file_path=str(relative_path),
+                            secret_type=secret["type"],
+                            description=secret["description"],
+                            line_number=secret["line"],
+                            preview=secret["preview"],
+                        )
+                        self.db.add(secret_log)
+
+                    # Commit secret logs immediately
+                    self.db.commit()
+
+                    logger.warning(
+                        f"Found {len(secret_result.secrets_found)} secrets in {relative_path}. "
+                        "Secrets logged for audit."
+                    )
+
+                # Check for authorization patterns
+                matches = []
+                for pattern in AUTH_PATTERNS:
+                    if re.search(pattern, content):
+                        matches.append(pattern)
+
+                # Only yield files that have authorization patterns
+                if matches:
+                    yield {
+                        "path": str(relative_path),
+                        "content": content,
+                        "matches": matches,
+                    }
+
+            except Exception as e:
+                logger.error(f"Error reading file {file_path}: {e}")
+                continue
 
     async def _find_authorization_files(self, repo_path: Path, repository: Repository) -> list[dict[str, Any]]:
         """Find files containing authorization code and scan for secrets.

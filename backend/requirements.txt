@@ -26,3 +26,4 @@ tree-sitter-languages==1.10.2
 boto3==1.35.94
 openai==1.59.4
 cryptography==44.0.0
+psutil==6.1.1
