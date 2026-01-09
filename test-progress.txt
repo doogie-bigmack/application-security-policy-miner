@@ -836,3 +836,52 @@ Success notifications are handled by parent components (likely a toast notificat
 **Next Steps:**
 Ready to implement TEST-017: Add data-testid attributes to PoliciesPage.
 
+---
+
+[2026-01-09 17:10] ✅ TEST-017 Complete - Added data-testid attributes to PoliciesPage
+
+**What was done:**
+- Added 15 data-testid attributes to PoliciesPage.tsx for test automation
+- Added attributes to all key interactive elements:
+  - policies-table: Policies list container
+  - policy-row: Each policy card (repeating element)
+  - policy-subject: Subject (Who) display within policy card
+  - policy-resource: Resource (What) display within policy card
+  - policy-action: Action (How) display within policy card
+  - policy-conditions: Conditions (When) display within policy card
+  - policy-evidence: Evidence section for code snippets
+  - policies-filter-source: Source type filter (frontend/backend/database)
+  - policy-btn-edit: Edit policy button
+  - policy-btn-find-similar: Find similar policies button
+  - policies-btn-export: Export policy button
+  - policy-btn-generate-advisory: Generate advisory button
+  - policy-btn-approve: Approve policy button (conditional)
+  - policy-btn-reject: Reject policy button (conditional)
+  - policy-detail-view: Policy detail modal
+- Followed naming convention: [page/component]-[element-type]-[descriptor]
+- All attributes placed on correct elements for reliable test automation
+- No changes to functionality or styling
+- Frontend service verified still running (HTTP 200)
+
+**Validation:**
+✓ 15 data-testid attributes added (exceeds requirement of 12+)
+✓ Table/list structure identifiable (policies-table, policy-row)
+✓ All policy field elements identifiable (subject, resource, action, conditions, evidence)
+✓ Filters identifiable (source type filter)
+✓ Detail view identifiable (policy-detail-view modal)
+✓ All action buttons identifiable (edit, export, approve, reject, etc.)
+✓ Naming convention followed consistently
+✓ No regression in UI functionality (frontend still accessible)
+
+**Note on UI Structure:**
+PoliciesPage uses a card-based layout (not a traditional table), so data-testid attributes were adapted to match the actual structure. The filter is by source type (not subject/resource as originally specified), which matches the actual implementation.
+
+**Acceptance Criteria Status:**
+✅ PoliciesPage has 12+ data-testid attributes (15 added)
+✅ Table structure identifiable (card-based list with policy-row elements)
+✅ Filters identifiable (source type filter)
+✅ Detail view identifiable (edit modal)
+
+**Next Steps:**
+Ready to implement TEST-018: Add data-testid attributes to ProvisioningPage.
+
