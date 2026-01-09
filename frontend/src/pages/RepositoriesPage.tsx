@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { GitBranch, Database, Server, ExternalLink } from 'lucide-react'
+import { GitBranch, Database, Server, ExternalLink, Play } from 'lucide-react'
 import logger from '../lib/logger'
 import AddRepositoryModal from '../components/AddRepositoryModal'
 
@@ -49,6 +49,32 @@ export default function RepositoriesPage() {
 
   const handleSuccess = () => {
     fetchRepositories()
+  }
+
+  const handleScan = async (repositoryId: number) => {
+    try {
+      logger.info('Starting scan', { repositoryId })
+      const response = await fetch('/api/v1/policies/scan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ repository_id: repositoryId }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to start scan')
+      }
+
+      const data = await response.json()
+      logger.info('Scan completed', { data })
+      alert(`Scan completed! Extracted ${data.policies_extracted} policies.`)
+      fetchRepositories()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Scan failed'
+      logger.error('Scan failed', { error: errorMessage })
+      alert(`Scan failed: ${errorMessage}`)
+    }
   }
 
   const getTypeIcon = (type: string) => {
@@ -150,7 +176,18 @@ export default function RepositoriesPage() {
                     </div>
                   </div>
                 </div>
-                <div>{getStatusBadge(repo.status)}</div>
+                <div className="flex items-center space-x-3">
+                  {getStatusBadge(repo.status)}
+                  {repo.status === 'connected' && (
+                    <button
+                      onClick={() => handleScan(repo.id)}
+                      className="inline-flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                    >
+                      <Play size={14} />
+                      <span>Start Scan</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
