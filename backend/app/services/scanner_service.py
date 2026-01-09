@@ -15,6 +15,7 @@ from app.models.repository import Repository, RepositoryStatus
 from app.models.scan_progress import ScanProgress, ScanStatus
 from app.models.secret_detection import SecretDetectionLog
 from app.services.audit_service import AuditService
+from app.services.csharp_scanner_service import CSharpScannerService
 from app.services.java_scanner_service import JavaScannerService
 from app.services.llm_provider import get_llm_provider
 from app.services.risk_scoring_service import RiskScoringService
@@ -76,6 +77,7 @@ class ScannerService:
         self.db = db
         self.llm_provider = get_llm_provider()
         self.java_scanner = JavaScannerService()
+        self.csharp_scanner = CSharpScannerService()
 
     def _classify_source_type(self, file_path: str, content: str) -> SourceType:
         """Classify whether code is frontend, backend, or database.
@@ -381,8 +383,28 @@ class ScannerService:
                         ]
                     else:
                         matches = []
+                # Use C#-specific scanner for .cs files
+                elif file_path.endswith(".cs"):
+                    if self.csharp_scanner.has_authorization_code(content):
+                        # Extract detailed authorization info via tree-sitter
+                        csharp_details = self.csharp_scanner.extract_authorization_details(
+                            content, str(relative_path)
+                        )
+
+                        # Convert to matches format
+                        matches = [
+                            {
+                                "pattern": detail.get("pattern", ""),
+                                "line": detail.get("line_start", 0),
+                                "text": detail.get("text", ""),
+                                "csharp_detail": detail,  # Store full detail for prompt enhancement
+                            }
+                            for detail in csharp_details
+                        ]
+                    else:
+                        matches = []
                 else:
-                    # Search for authorization patterns (non-Java files)
+                    # Search for authorization patterns (non-Java/C# files)
                     matches = []
                     for pattern in AUTH_PATTERNS:
                         for match in re.finditer(pattern, content, re.IGNORECASE):
@@ -521,6 +543,11 @@ class ScannerService:
         if file_path.endswith(".java"):
             java_details = [m.get("java_detail") for m in matches if m.get("java_detail")]
 
+        # Check if this is a C# file with tree-sitter details
+        csharp_details = []
+        if file_path.endswith(".cs"):
+            csharp_details = [m.get("csharp_detail") for m in matches if m.get("csharp_detail")]
+
         prompt = f"""You are a security policy extraction expert. Analyze the following code file and extract ALL authorization/access control policies.
 
 File: {file_path}
@@ -568,6 +595,10 @@ Return ONLY the JSON array, no other text."""
         # Enhance prompt with Java-specific context if available
         if java_details:
             prompt = self.java_scanner.enhance_prompt_with_java_context(prompt, java_details)
+
+        # Enhance prompt with C#-specific context if available
+        if csharp_details:
+            prompt = self.csharp_scanner.enhance_prompt_with_csharp_context(prompt, csharp_details)
 
         return prompt
 

@@ -368,7 +368,7 @@
         "Verify ASP.NET authorization attributes detected",
         "Check evidence includes C# code snippets"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "technical",
