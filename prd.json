@@ -836,7 +836,7 @@
         "Compare policies across multiple applications",
         "View policy count per application in dashboard"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

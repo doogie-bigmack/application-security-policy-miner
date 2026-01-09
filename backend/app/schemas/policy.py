@@ -49,6 +49,7 @@ class PolicyCreate(PolicyBase):
     """Schema for creating a policy."""
 
     repository_id: int
+    application_id: int | None = None
     risk_score: float | None = None
     risk_level: RiskLevel | None = None
     complexity_score: float | None = None
@@ -63,6 +64,7 @@ class Policy(PolicyBase):
 
     id: int
     repository_id: int
+    application_id: int | None = None
     status: PolicyStatus
     risk_score: float | None = None
     risk_level: RiskLevel | None = None
@@ -90,6 +92,7 @@ class PolicyUpdate(BaseModel):
     conditions: str | None = None
     description: str | None = None
     source_type: SourceType | None = None
+    application_id: int | None = None
     risk_score: float | None = None
     risk_level: RiskLevel | None = None
     complexity_score: float | None = None

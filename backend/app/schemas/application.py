@@ -78,3 +78,17 @@ class ApplicationImportResult(BaseModel):
     success: int = Field(..., description="Successfully imported applications")
     failed: int = Field(..., description="Failed imports")
     errors: list[str] = Field(default_factory=list, description="Error messages")
+
+
+class ApplicationWithPolicies(ApplicationResponse):
+    """Schema for application with policy statistics."""
+
+    policy_count: int = Field(default=0, description="Total number of policies")
+    policy_count_by_source: dict[str, int] = Field(
+        default_factory=dict,
+        description="Policy count grouped by source type (frontend/backend/database)"
+    )
+    policy_count_by_risk: dict[str, int] = Field(
+        default_factory=dict,
+        description="Policy count grouped by risk level (low/medium/high)"
+    )

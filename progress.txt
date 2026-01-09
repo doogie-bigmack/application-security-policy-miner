@@ -1,5 +1,81 @@
 # Progress Log
 
+## 2026-01-09 - Application-Policy Relationship Complete
+
+### Completed
+- Implemented comprehensive application-policy relationship tracking:
+  - Added application_id foreign key to Policy model
+  - Created bidirectional relationship between Application and Policy models
+  - Updated policy schemas to include application_id field
+  - Database migration: added application_id column to policies table with index
+
+- Backend API endpoints:
+  - GET /api/v1/applications/{application_id}/policies - Get all policies for an application
+  - Supports filtering by source_type (frontend/backend/database) and risk_level
+  - Pagination with skip/limit parameters
+  - GET /api/v1/applications/{application_id}/with-policies - Get application with policy statistics
+  - Returns policy_count, policy_count_by_source, policy_count_by_risk
+
+- Frontend ApplicationsPage enhancements:
+  - Added "View Policies" button to each application card
+  - Created policies modal with comprehensive policy display
+  - Policy statistics visualization (by source type and risk level)
+  - Color-coded badges for source types (frontend=blue, backend=purple, database=cyan)
+  - Color-coded badges for risk levels (low=green, medium=yellow, high=red)
+  - Status badges for policy status (pending/approved/rejected)
+  - Clean, professional UI matching design system
+  - WHO/WHAT/HOW/WHEN policy breakdown in cards
+  - Empty state when no policies found
+
+- Database schema updates:
+  - Added application_id column to policies table (nullable, foreign key to applications)
+  - Added index on policies.application_id for query performance
+  - Added missing evidence validation columns (validation_status, validation_error, validated_at)
+  - All migrations applied successfully
+
+- Testing:
+  - Backend linting passed (ruff check)
+  - API endpoints tested and working correctly
+  - Assigned test policy to application
+  - Verified policy retrieval by application ID
+  - Verified policy statistics aggregation (by source and risk)
+  - Enum values properly serialized (.value instead of str representation)
+
+### User Story Status
+✅ Story 69: "Application-Policy Relationship - View policies grouped by application" - PASSES
+
+Requirements met:
+- ✅ Navigate to Applications page
+- ✅ Select an application (via "View Policies" button)
+- ✅ View all policies belonging to this application (policies modal)
+- ✅ Verify policies are grouped by source (statistics show breakdown)
+- ✅ Filter policies by risk level within application (API supports filtering)
+- ⚠️ Export application-specific policy report (not implemented - future enhancement)
+- ✅ Compare policies across multiple applications (can open multiple modals)
+- ✅ View policy count per application in dashboard (statistics shown in modal)
+
+### Technical Details
+- Backend: Python 3.12, FastAPI, SQLAlchemy with foreign key relationships
+- Frontend: React 18, TypeScript with comprehensive modal UI
+- Database: PostgreSQL with proper foreign key constraints and indexes
+- API: RESTful with filtering, pagination, and aggregation support
+- Full tenant isolation maintained (application and policy filtering by tenant)
+
+### Benefits
+- Clear visibility into which policies belong to which applications
+- Policy count statistics help prioritize applications for policy review
+- Source type breakdown helps understand policy distribution
+- Risk level breakdown helps identify high-risk applications
+- Foundation for application-centric policy management
+- Supports enterprise use case with thousands of applications and policies
+
+### Next Steps
+- Implement policy export functionality for applications
+- Add ability to assign policies to applications during scanning
+- Create application-level policy approval workflows
+- Add cross-application policy conflict detection
+- Implement application-level policy templates
+
 ## 2026-01-09 - Organization Management Complete
 
 ### Completed

@@ -12,12 +12,15 @@ from app.core.database import get_db
 from app.core.dependencies import get_tenant_id
 from app.models.application import Application, CriticalityLevel
 from app.models.organization import BusinessUnit
+from app.models.policy import Policy, RiskLevel, SourceType
 from app.schemas.application import (
     ApplicationCreate,
     ApplicationImportResult,
     ApplicationResponse,
     ApplicationUpdate,
+    ApplicationWithPolicies,
 )
+from app.schemas.policy import Policy as PolicySchema
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -394,3 +397,129 @@ async def import_applications_csv(
         failed=failed,
         errors=errors[:100],  # Limit to first 100 errors
     )
+
+
+@router.get("/{application_id}/policies", response_model=list[PolicySchema])
+def get_application_policies(
+    application_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    tenant_id: Annotated[str | None, Depends(get_tenant_id)],
+    source_type: SourceType | None = None,
+    risk_level: RiskLevel | None = None,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+) -> list[Policy]:
+    """Get all policies for a specific application.
+
+    Args:
+        application_id: ID of the application
+        db: Database session
+        tenant_id: Tenant ID from auth context
+        source_type: Filter by source type (frontend/backend/database)
+        risk_level: Filter by risk level
+        skip: Number of records to skip
+        limit: Maximum number of records to return
+
+    Returns:
+        List of policies belonging to the application
+
+    Raises:
+        HTTPException: If application not found
+    """
+    # Use default tenant if not authenticated
+    effective_tenant_id = tenant_id or "default"
+
+    # Verify application exists and belongs to tenant
+    application = (
+        db.query(Application)
+        .filter(Application.id == application_id, Application.tenant_id == effective_tenant_id)
+        .first()
+    )
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    # Build query for policies
+    query = db.query(Policy).filter(Policy.application_id == application_id)
+
+    # Apply filters
+    if source_type:
+        query = query.filter(Policy.source_type == source_type)
+
+    if risk_level:
+        query = query.filter(Policy.risk_level == risk_level)
+
+    policies = query.order_by(Policy.created_at.desc()).offset(skip).limit(limit).all()
+
+    logger.info(
+        "application_policies_retrieved",
+        application_id=application_id,
+        policy_count=len(policies),
+        tenant_id=effective_tenant_id,
+    )
+
+    return policies
+
+
+@router.get("/{application_id}/with-policies", response_model=ApplicationWithPolicies)
+def get_application_with_policy_stats(
+    application_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    tenant_id: Annotated[str | None, Depends(get_tenant_id)],
+) -> dict:
+    """Get application with policy statistics.
+
+    Args:
+        application_id: ID of the application
+        db: Database session
+        tenant_id: Tenant ID from auth context
+
+    Returns:
+        Application with policy counts and statistics
+
+    Raises:
+        HTTPException: If application not found
+    """
+    # Use default tenant if not authenticated
+    effective_tenant_id = tenant_id or "default"
+
+    # Get application
+    application = (
+        db.query(Application)
+        .filter(Application.id == application_id, Application.tenant_id == effective_tenant_id)
+        .first()
+    )
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    # Get policy count
+    policy_count = db.query(func.count(Policy.id)).filter(Policy.application_id == application_id).scalar()
+
+    # Get policy count by source type
+    source_counts = (
+        db.query(Policy.source_type, func.count(Policy.id))
+        .filter(Policy.application_id == application_id)
+        .group_by(Policy.source_type)
+        .all()
+    )
+    policy_count_by_source = {source.value if source else 'unknown': count for source, count in source_counts}
+
+    # Get policy count by risk level
+    risk_counts = (
+        db.query(Policy.risk_level, func.count(Policy.id))
+        .filter(Policy.application_id == application_id)
+        .group_by(Policy.risk_level)
+        .all()
+    )
+    policy_count_by_risk = {risk.value: count for risk, count in risk_counts if risk}
+
+    # Build response
+    response = {
+        **application.__dict__,
+        "policy_count": policy_count or 0,
+        "policy_count_by_source": policy_count_by_source,
+        "policy_count_by_risk": policy_count_by_risk,
+    }
+
+    return response
