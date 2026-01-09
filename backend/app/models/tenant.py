@@ -2,6 +2,7 @@
 from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String
+from sqlalchemy.orm import relationship
 
 from .repository import Base
 
@@ -24,6 +25,9 @@ class Tenant(Base):
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
     )
+
+    # Relationships
+    pbac_providers = relationship("PBACProvider", back_populates="tenant")
 
     def __repr__(self) -> str:
         """String representation."""

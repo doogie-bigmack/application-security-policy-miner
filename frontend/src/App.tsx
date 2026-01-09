@@ -9,6 +9,7 @@ import SecretsPage from './pages/SecretsPage'
 import AuditLogsPage from './pages/AuditLogsPage'
 import { SecurityAuditPage } from './pages/SecurityAuditPage'
 import SettingsPage from './pages/SettingsPage'
+import ProvisioningPage from './pages/ProvisioningPage'
 import Layout from './components/Layout'
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
         <Route path="/audit-logs" element={<AuditLogsPage />} />
         <Route path="/security" element={<SecurityAuditPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/provisioning" element={<ProvisioningPage />} />
       </Routes>
     </Layout>
   )
