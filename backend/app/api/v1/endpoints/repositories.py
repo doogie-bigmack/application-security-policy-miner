@@ -112,6 +112,36 @@ def delete_repository(
     return None
 
 
+@router.get("/{repository_id}/scans")
+def get_repository_scans(
+    repository_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    tenant_id: Annotated[str | None, Depends(get_tenant_id)],
+):
+    """Get scan history for a repository."""
+    logger.info("api_get_repository_scans", repository_id=repository_id, tenant_id=tenant_id)
+
+    from app.models.scan_progress import ScanProgress
+
+    # Verify repository exists
+    service = RepositoryService(db)
+    repository = service.get_repository(repository_id, tenant_id=tenant_id)
+
+    if not repository:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    # Get scan history
+    scans = (
+        db.query(ScanProgress)
+        .filter(ScanProgress.repository_id == repository_id)
+        .order_by(ScanProgress.created_at.desc())
+        .limit(20)
+        .all()
+    )
+
+    return scans
+
+
 @router.post("/{repository_id}/scan")
 async def scan_repository(
     repository_id: int,

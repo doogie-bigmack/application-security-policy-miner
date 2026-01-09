@@ -716,7 +716,7 @@
         "Edit repository configuration",
         "Delete repository and associated policies"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "ui",
