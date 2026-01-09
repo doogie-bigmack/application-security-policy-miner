@@ -20,6 +20,16 @@ class RepositoryType(str, Enum):
     MAINFRAME = "mainframe"
 
 
+class GitProvider(str, Enum):
+    """Git provider types."""
+
+    GENERIC = "generic"
+    GITHUB = "github"
+    GITLAB = "gitlab"
+    BITBUCKET = "bitbucket"
+    AZURE_DEVOPS = "azure_devops"
+
+
 class DatabaseType(str, Enum):
     """Database types for database repositories."""
 
@@ -47,6 +57,7 @@ class Repository(Base):
     name = Column(String(255), nullable=False)
     description = Column(String(1000), nullable=True)
     repository_type = Column(SAEnum(RepositoryType), nullable=False)
+    git_provider = Column(SAEnum(GitProvider), nullable=True)  # Git provider (GitHub, GitLab, etc.)
     source_url = Column(String(500), nullable=True)
     connection_config = Column(EncryptedJSON, nullable=True)  # Credentials encrypted at rest
     status = Column(SAEnum(RepositoryStatus), default=RepositoryStatus.PENDING)

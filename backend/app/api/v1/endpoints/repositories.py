@@ -15,6 +15,7 @@ from app.schemas.repository import (
     RepositoryUpdate,
 )
 from app.services.evidence_validation_service import EvidenceValidationService
+from app.services.github_service import GitHubService
 from app.services.repository_service import RepositoryService
 
 logger = structlog.get_logger()
@@ -234,3 +235,69 @@ async def validate_repository_evidence(
     )
 
     return result
+
+
+@router.post("/github/list")
+async def list_github_repositories(
+    access_token: str = Query(..., description="GitHub personal access token"),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(100, ge=1, le=100, description="Results per page"),
+) -> dict:
+    """
+    List GitHub repositories accessible to the user.
+
+    Requires a GitHub personal access token with 'repo' scope.
+
+    Args:
+        access_token: GitHub personal access token
+        page: Page number (default: 1)
+        per_page: Results per page (default: 100, max: 100)
+
+    Returns:
+        List of GitHub repositories with metadata
+    """
+    logger.info("api_list_github_repositories", page=page, per_page=per_page)
+
+    try:
+        github_service = GitHubService(access_token)
+        result = await github_service.list_repositories(per_page=per_page, page=page)
+
+        logger.info("github_repositories_listed", count=result.get("total"))
+        return result
+
+    except Exception as e:
+        logger.error("failed_to_list_github_repositories", error=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to fetch GitHub repositories: {str(e)}",
+        )
+
+
+@router.post("/github/verify")
+async def verify_github_token(
+    access_token: str = Query(..., description="GitHub personal access token"),
+) -> dict:
+    """
+    Verify GitHub access token and get user information.
+
+    Args:
+        access_token: GitHub personal access token
+
+    Returns:
+        User information if token is valid
+    """
+    logger.info("api_verify_github_token")
+
+    try:
+        github_service = GitHubService(access_token)
+        user_info = await github_service.verify_access()
+
+        logger.info("github_token_verified", user=user_info.get("login"))
+        return user_info
+
+    except Exception as e:
+        logger.error("github_token_verification_failed", error=str(e))
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid GitHub access token",
+        )
