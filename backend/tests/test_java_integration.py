@@ -1,8 +1,9 @@
 """Integration test for Java scanning."""
-import pytest
-from pathlib import Path
-import tempfile
 import shutil
+import tempfile
+from pathlib import Path
+
+import pytest
 from git import Repo
 
 from app.services.java_scanner_service import JavaScannerService

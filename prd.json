@@ -383,7 +383,7 @@
         "Verify Flask/Django/FastAPI decorators detected",
         "Check evidence shows Python code snippets"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "technical",
