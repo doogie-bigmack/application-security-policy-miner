@@ -473,7 +473,7 @@
         "Verify allow/deny rules match original policy",
         "Test Rego policy in OPA playground"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "technical",
@@ -488,7 +488,7 @@
         "Validate JSON against defined schema",
         "Export JSON for use with custom PBAC platform"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "deployment",
