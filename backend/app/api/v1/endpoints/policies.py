@@ -1,12 +1,15 @@
 """Policy API endpoints."""
 import logging
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user_email, get_tenant_id
-from app.models.policy import Policy, SourceType
+from app.models.policy import Evidence, Policy, SourceType
+from app.models.repository import Repository
 from app.schemas.policy import Policy as PolicySchema
 from app.schemas.policy import PolicyList, PolicyUpdate
 from app.services.audit_service import AuditService
@@ -14,6 +17,16 @@ from app.services.audit_service import AuditService
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+class SourceFileResponse(BaseModel):
+    """Response model for source file content."""
+
+    file_path: str
+    content: str
+    total_lines: int
+    line_start: int
+    line_end: int
 
 
 @router.get("/", response_model=PolicyList)
@@ -201,3 +214,59 @@ async def delete_policy(policy_id: int, db: Session = Depends(get_db)) -> dict:
     db.commit()
 
     return {"status": "success", "message": "Policy deleted"}
+
+
+@router.get("/evidence/{evidence_id}/source", response_model=SourceFileResponse)
+async def get_source_file(evidence_id: int, db: Session = Depends(get_db)) -> SourceFileResponse:
+    """Get source file content for an evidence item.
+
+    Args:
+        evidence_id: Evidence ID
+        db: Database session
+
+    Returns:
+        Source file content with metadata
+    """
+    # Get evidence
+    evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+    if not evidence:
+        raise HTTPException(status_code=404, detail="Evidence not found")
+
+    # Get associated policy and repository
+    policy = db.query(Policy).filter(Policy.id == evidence.policy_id).first()
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    repository = db.query(Repository).filter(Repository.id == policy.repository_id).first()
+    if not repository:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    # Build path to cloned repository
+    repo_path = Path("/tmp/policy_miner_repos") / str(repository.id)
+    file_path = repo_path / evidence.file_path
+
+    # Check if file exists
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Source file not found. Repository may need to be rescanned.",
+        )
+
+    # Read file content
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            content = f.read()
+    except Exception as e:
+        logger.error(f"Failed to read source file: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to read source file: {str(e)}")
+
+    # Count total lines
+    total_lines = len(content.split("\n"))
+
+    return SourceFileResponse(
+        file_path=evidence.file_path,
+        content=content,
+        total_lines=total_lines,
+        line_start=evidence.line_start,
+        line_end=evidence.line_end,
+    )

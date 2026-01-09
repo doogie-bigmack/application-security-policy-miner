@@ -338,7 +338,7 @@
         "Click evidence link to navigate to source file",
         "Verify evidence matches actual code in repository"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "technical",
