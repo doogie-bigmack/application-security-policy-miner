@@ -1026,3 +1026,67 @@ Remaining services (Bitbucket, Azure DevOps, Scanner, Provisioning) have fixture
 
 Ready to implement TEST-020: Create database seed script with test data.
 
+---
+
+[2026-01-09 21:23] ✅ TEST-020 Complete - Database Seed Script with Test Data
+
+**What was done:**
+- Created backend/scripts/ directory
+- Created backend/scripts/seed_test_data.py (389 lines)
+- Implemented comprehensive seed_test_data() async function with:
+  - Automatic table creation using SQLAlchemy Base.metadata.create_all()
+  - Idempotency check (skips seeding if data already exists)
+  - Test tenant creation (test-tenant-001)
+  - Organizational hierarchy creation (Organization → Division → Business Unit)
+  - Test application creation with criticality level and tech stack
+  - Test repository creation (3 repositories: 2 GitHub, 1 GitLab)
+  - Sample policy creation (5 policies with evidence)
+  - Evidence linking with code snippets, file paths, and line numbers
+  - Test PBAC provider creation (OPA at localhost:8181)
+  - Transaction management with commit/rollback
+  - Comprehensive error handling and logging
+  - Detailed summary output after seeding
+- Fixed .env.test database credentials (policy_miner:dev_password)
+- Created policy_miner_test database in PostgreSQL
+- Enabled pgvector extension on test database
+- Imported all models to resolve SQLAlchemy relationships
+- All code passes ruff linting
+
+**Validation:**
+✓ Script runs without errors: TEST_MODE=true python backend/scripts/seed_test_data.py
+✓ Idempotency verified (skips seeding on second run)
+✓ Test database contains:
+  - 1 tenant (test-tenant-001)
+  - 1 organization (Test Organization)
+  - 1 division (Engineering Division)  
+  - 1 business unit (Security Team)
+  - 1 application (Test Application)
+  - 3 repositories (test-auth-patterns, application-security-policy-miner, test-gitlab-repo)
+  - 5 policies with complete evidence (Admin/User Management, Manager/Expense Report, DBA/Production Database, User/Dashboard, API Client/API Endpoint)
+  - 1 PBAC provider (Test OPA Provider)
+✓ All 6 acceptance criteria met
+
+**Sample Policies Created:**
+1. Admin → create_user → User Management (HIGH risk, backend)
+2. Manager → approve → Expense Report (MEDIUM risk, backend, conditional)
+3. Database Administrator → execute_query → Production Database (HIGH risk, database)
+4. Authenticated User → view → Dashboard (LOW risk, frontend)
+5. API Client → call → API Endpoint (MEDIUM risk, backend, rate limiting)
+
+**Acceptance Criteria Status:**
+✅ Seed script creates test organizations
+✅ Seed script creates test applications
+✅ Seed script creates test repositories
+✅ Seed script creates sample policies
+✅ Seed script creates test PBAC providers
+✅ Script runs without errors
+
+**Files Created:**
+- backend/scripts/seed_test_data.py (389 lines)
+
+**Files Modified:**
+- backend/.env.test (updated database credentials)
+
+**Next Steps:**
+Ready to implement TEST-021: Create dedicated test repository with authorization code patterns.
+
