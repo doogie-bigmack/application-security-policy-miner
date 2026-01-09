@@ -175,7 +175,7 @@
         "Return repository ID for cleanup",
         "Add cleanup function to delete test repository"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "Function successfully adds GitHub repository",
         "Returns repository ID",
