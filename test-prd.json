@@ -246,7 +246,7 @@
         "Assert provider appears in list",
         "Return provider ID for cleanup"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "Can add PBAC provider",
         "Connection test validates successfully",
@@ -270,7 +270,7 @@
         "Assert provisioning status shows 'Success'",
         "Assert provisioned policy appears in provider's policy list"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "Can provision policy to PBAC provider",
         "Provisioning completes successfully",

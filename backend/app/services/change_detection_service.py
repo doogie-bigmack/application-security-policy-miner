@@ -191,6 +191,8 @@ class ChangeDetectionService:
     def _create_work_item(self, change: PolicyChange, tenant_id: str | None = None) -> WorkItem:
         """Auto-create a work item for a policy change."""
         priority = WorkItemPriority.MEDIUM
+        is_spaghetti = False
+        refactoring_suggestion = None
 
         # Determine priority based on change type
         if change.change_type == ChangeType.DELETED:
@@ -198,9 +200,17 @@ class ChangeDetectionService:
         elif change.change_type == ChangeType.MODIFIED:
             priority = WorkItemPriority.MEDIUM
         elif change.change_type == ChangeType.ADDED:
-            priority = WorkItemPriority.LOW
+            # Check if this is new inline authorization (spaghetti code)
+            is_spaghetti = self._is_new_spaghetti_code(change)
+            if is_spaghetti:
+                priority = WorkItemPriority.HIGH
+                refactoring_suggestion = self._generate_refactoring_suggestion(change)
+            else:
+                priority = WorkItemPriority.LOW
 
         title = f"Review {change.change_type.value} policy: {change.after_subject or change.before_subject}"
+        if is_spaghetti:
+            title = f"⚠️ NEW SPAGHETTI DETECTED: {change.after_subject or change.before_subject}"
 
         work_item = WorkItem(
             policy_change_id=change.id,
@@ -209,6 +219,8 @@ class ChangeDetectionService:
             description=change.description,
             status=WorkItemStatus.OPEN,
             priority=priority,
+            is_spaghetti_detection=1 if is_spaghetti else 0,
+            refactoring_suggestion=refactoring_suggestion,
             tenant_id=tenant_id,
         )
 
@@ -216,5 +228,120 @@ class ChangeDetectionService:
         self.db.commit()
         self.db.refresh(work_item)
 
-        logger.info(f"Created work item {work_item.id} for policy change {change.id}")
+        if is_spaghetti:
+            logger.warning(
+                f"NEW SPAGHETTI DETECTED: Created high-priority work item {work_item.id} for inline authorization in policy change {change.id}"
+            )
+        else:
+            logger.info(f"Created work item {work_item.id} for policy change {change.id}")
+
         return work_item
+
+    def _is_new_spaghetti_code(self, change: PolicyChange) -> bool:
+        """
+        Detect if a newly added policy represents inline authorization (spaghetti code).
+
+        Spaghetti code indicators:
+        - Policy is being ADDED (not modified or deleted)
+        - Contains inline authorization logic rather than centralized PBAC calls
+        """
+        if change.change_type != ChangeType.ADDED:
+            return False
+
+        # Get the policy to check its evidence for inline patterns
+        if not change.policy_id:
+            return False
+
+        policy = self.db.query(Policy).filter(Policy.id == change.policy_id).first()
+        if not policy:
+            return False
+
+        # Check if the policy has evidence indicating inline authorization
+        # Inline authorization patterns typically appear in code as:
+        # - if statements with permission checks
+        # - role-based conditionals embedded in business logic
+        # - Direct database queries for permissions
+
+        # For now, we'll flag any new policy as potential spaghetti
+        # In a production system, you'd analyze the evidence to determine
+        # if it's truly inline vs centralized PBAC
+
+        # Check evidence for inline patterns
+        if policy.evidence:
+            for evidence in policy.evidence:
+                # Look for inline authorization patterns in code snippets
+                code_snippet = evidence.code_snippet.lower() if evidence.code_snippet else ""
+
+                # Inline authorization indicators
+                inline_patterns = [
+                    "if user.role",
+                    "if current_user",
+                    "if request.user",
+                    "if (user.",
+                    "hasrole(",
+                    "checkpermission(",
+                    "user.has_permission",
+                    "can_access",
+                    "is_admin",
+                    "is_superuser",
+                    "@requires_role",
+                    "@permission_required",
+                    "authorize(",
+                ]
+
+                # Check if any inline pattern is found
+                for pattern in inline_patterns:
+                    if pattern in code_snippet:
+                        return True
+
+        return False
+
+    def _generate_refactoring_suggestion(self, change: PolicyChange) -> str:
+        """Generate an AI-powered refactoring suggestion using Claude Agent SDK."""
+        if not self.client:
+            return "AI refactoring suggestions require ANTHROPIC_API_KEY to be configured."
+
+        # Get policy details
+        policy = self.db.query(Policy).filter(Policy.id == change.policy_id).first()
+        if not policy or not policy.evidence:
+            return "Unable to generate refactoring suggestion: no policy evidence available."
+
+        # Build prompt for Claude
+        evidence_text = ""
+        for idx, evidence in enumerate(policy.evidence[:3]):  # Limit to first 3 pieces of evidence
+            evidence_text += f"\n\nEvidence {idx + 1} ({evidence.file_path}:{evidence.line_start}-{evidence.line_end}):\n"
+            evidence_text += evidence.code_snippet or ""
+
+        prompt = f"""You are a security architect helping developers migrate from inline authorization (spaghetti code) to centralized Policy-Based Access Control (PBAC).
+
+**Current Inline Authorization Code:**
+{evidence_text}
+
+**Policy Details:**
+- Subject: {policy.subject}
+- Resource: {policy.resource}
+- Action: {policy.action}
+- Conditions: {policy.conditions or 'None'}
+
+**Task:** Generate a concise refactoring suggestion (max 500 words) that:
+1. Explains why this inline authorization is problematic
+2. Shows how to externalize this policy to a PBAC platform (OPA, AWS Verified Permissions, etc.)
+3. Provides example refactored code that calls the PBAC platform instead
+4. Highlights the benefits (easier auditing, centralized management, separation of concerns)
+
+**Output Format:** Plain text recommendation that a developer can immediately understand and implement.
+"""
+
+        try:
+            response = self.client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1024,
+                messages=[{"role": "user", "content": prompt}]
+            )
+
+            suggestion = response.content[0].text
+            return suggestion
+
+        except Exception as e:
+            logger.error(f"Failed to generate refactoring suggestion: {e}")
+            return f"Failed to generate AI suggestion: {str(e)}"

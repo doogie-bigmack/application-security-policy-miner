@@ -51,6 +51,8 @@ class WorkItemBase(BaseModel):
     status: WorkItemStatus = WorkItemStatus.OPEN
     priority: WorkItemPriority = WorkItemPriority.MEDIUM
     assigned_to: str | None = None
+    is_spaghetti_detection: int = 0
+    refactoring_suggestion: str | None = None
 
 
 class WorkItemCreate(WorkItemBase):
