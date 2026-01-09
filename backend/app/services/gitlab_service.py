@@ -4,6 +4,12 @@ from typing import Any
 
 import httpx
 
+from app.core.test_mode import is_test_mode
+from tests.fixtures.gitlab_responses import (
+    GITLAB_LIST_PROJECTS,
+    GITLAB_VERIFY_TOKEN,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,6 +47,34 @@ class GitLabService:
             httpx.HTTPStatusError: If GitLab API returns an error
         """
         logger.info("Fetching GitLab projects", extra={"page": page, "per_page": per_page})
+
+        # Return mock data in test mode
+        if is_test_mode():
+            logger.info("TEST_MODE: Returning mock GitLab projects")
+            formatted_repos = [
+                {
+                    "id": project["id"],
+                    "name": project["name"],
+                    "full_name": project["path_with_namespace"],
+                    "description": project.get("description"),
+                    "clone_url": project["web_url"] + ".git",
+                    "ssh_url": project["web_url"].replace("https://gitlab.com", "git@gitlab.com:") + ".git",
+                    "html_url": project["web_url"],
+                    "private": project["visibility"] != "public",
+                    "language": None,
+                    "updated_at": project["last_activity_at"],
+                    "default_branch": project.get("default_branch", "main"),
+                    "visibility": project["visibility"],
+                    "namespace": project["path_with_namespace"].split("/")[0],
+                }
+                for project in GITLAB_LIST_PROJECTS
+            ]
+            return {
+                "repositories": formatted_repos,
+                "total": len(formatted_repos),
+                "page": page,
+                "per_page": per_page,
+            }
 
         try:
             async with httpx.AsyncClient() as client:
@@ -118,6 +152,17 @@ class GitLabService:
             httpx.HTTPStatusError: If token is invalid
         """
         logger.info("Verifying GitLab access token")
+
+        # Return mock data in test mode
+        if is_test_mode():
+            logger.info("TEST_MODE: Returning mock GitLab user")
+            return {
+                "username": GITLAB_VERIFY_TOKEN["username"],
+                "name": GITLAB_VERIFY_TOKEN.get("name"),
+                "email": GITLAB_VERIFY_TOKEN.get("email"),
+                "avatar_url": GITLAB_VERIFY_TOKEN.get("avatar_url"),
+                "instance_url": self.base_url,
+            }
 
         try:
             async with httpx.AsyncClient() as client:
