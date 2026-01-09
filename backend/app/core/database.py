@@ -1,4 +1,5 @@
 """Database connection and session management."""
+
 from collections.abc import Generator
 
 from sqlalchemy import create_engine

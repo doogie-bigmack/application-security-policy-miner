@@ -1,4 +1,5 @@
 """Repository API endpoints."""
+
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -23,14 +24,16 @@ def create_repository(
     db: Session = Depends(get_db),
 ):
     """Create a new repository."""
-    logger.info("api_create_repository", name=repository.name)
+    logger.info("api_create_repository", name=repository.name, type=repository.repository_type)
 
     service = RepositoryService(db)
     created_repo = service.create_repository(repository)
 
-    # If it's a Git repository, verify the connection
+    # Verify connection based on repository type
     if created_repo.repository_type.value == "git" and created_repo.source_url:
         service.verify_git_connection(created_repo)
+    elif created_repo.repository_type.value == "database":
+        service.verify_database_connection(created_repo)
 
     return created_repo
 
