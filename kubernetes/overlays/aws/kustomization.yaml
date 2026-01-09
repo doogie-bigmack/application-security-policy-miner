@@ -1,0 +1,51 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: policy-miner
+
+resources:
+  - ../../
+
+patches:
+  # Use AWS gp3 storage class
+  - patch: |-
+      - op: replace
+        path: /spec/storageClassName
+        value: gp3
+    target:
+      kind: PersistentVolumeClaim
+
+  # Update ingress for AWS ALB
+  - patch: |-
+      - op: replace
+        path: /spec/ingressClassName
+        value: alb
+      - op: add
+        path: /metadata/annotations
+        value:
+          alb.ingress.kubernetes.io/scheme: internet-facing
+          alb.ingress.kubernetes.io/target-type: ip
+          alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+          alb.ingress.kubernetes.io/ssl-redirect: '443'
+    target:
+      kind: Ingress
+      name: policy-miner-ingress
+
+  # Configure backend to use AWS Bedrock
+  - patch: |-
+      - op: replace
+        path: /data/LLM_PROVIDER
+        value: aws_bedrock
+      - op: replace
+        path: /data/AWS_BEDROCK_REGION
+        value: us-east-1
+    target:
+      kind: ConfigMap
+      name: policy-miner-config
+
+# Scale for production
+replicas:
+  - name: backend
+    count: 5
+  - name: frontend
+    count: 3
