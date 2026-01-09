@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import HomePage from './pages/HomePage'
 import RepositoriesPage from './pages/RepositoriesPage'
+import PoliciesPage from './pages/PoliciesPage'
 import Layout from './components/Layout'
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/repositories" element={<RepositoriesPage />} />
+        <Route path="/policies" element={<PoliciesPage />} />
       </Routes>
     </Layout>
   )
