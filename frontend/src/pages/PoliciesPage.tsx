@@ -4,6 +4,7 @@ import logger from '../lib/logger'
 import PolicyDetailModal from '../components/PolicyDetailModal'
 import SourceFileViewer from '../components/SourceFileViewer'
 import PolicyExportModal from '../components/PolicyExportModal'
+import MultiFormatExportModal from '../components/MultiFormatExportModal'
 import SimilarPoliciesModal from '../components/SimilarPoliciesModal'
 
 interface Evidence {
@@ -46,6 +47,7 @@ export default function PoliciesPage() {
   const [expandedRiskPolicy, setExpandedRiskPolicy] = useState<number | null>(null)
   const [viewingSourceEvidenceId, setViewingSourceEvidenceId] = useState<number | null>(null)
   const [exportingPolicyId, setExportingPolicyId] = useState<number | null>(null)
+  const [multiExportingPolicyId, setMultiExportingPolicyId] = useState<number | null>(null)
   const [generatingAdvisory, setGeneratingAdvisory] = useState<number | null>(null)
   const [viewingSimilarPolicyId, setViewingSimilarPolicyId] = useState<number | null>(null)
 
@@ -407,6 +409,13 @@ export default function PoliciesPage() {
                   <span>Export</span>
                 </button>
                 <button
+                  onClick={() => setMultiExportingPolicyId(policy.id)}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-sm inline-flex items-center space-x-2"
+                >
+                  <Download size={16} />
+                  <span>Export All Formats</span>
+                </button>
+                <button
                   onClick={() => setViewingSimilarPolicyId(policy.id)}
                   className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-sm inline-flex items-center space-x-2"
                 >
@@ -468,6 +477,14 @@ export default function PoliciesPage() {
         <PolicyExportModal
           policyId={exportingPolicyId}
           onClose={() => setExportingPolicyId(null)}
+        />
+      )}
+
+      {/* Multi-Format Export Modal */}
+      {multiExportingPolicyId && (
+        <MultiFormatExportModal
+          policyId={multiExportingPolicyId}
+          onClose={() => setMultiExportingPolicyId(null)}
         />
       )}
 

@@ -280,3 +280,181 @@ Translate the policy above to Cedar format:
             raise ValueError("Cedar policy must end with semicolon")
 
         logger.debug("cedar_policy_validation_passed", policy_length=len(cedar_policy))
+
+    async def translate_to_all_formats(
+        self, policy: Policy
+    ) -> dict[str, str]:
+        """
+        Translate a policy to all supported formats (Rego, Cedar, JSON).
+
+        Args:
+            policy: The policy to translate
+
+        Returns:
+            dict: Dictionary with format names as keys and translated policies as values
+                 Format: {"rego": "...", "cedar": "...", "json": "..."}
+
+        Raises:
+            ValueError: If any translation fails
+        """
+        logger.info(
+            "translating_policy_to_all_formats",
+            policy_id=policy.id,
+        )
+
+        translations = {}
+
+        try:
+            # Translate to all formats
+            translations["rego"] = await self.translate_to_rego(policy)
+            translations["cedar"] = await self.translate_to_cedar(policy)
+            translations["json"] = await self.translate_to_json(policy)
+
+            logger.info(
+                "multi_format_translation_successful",
+                policy_id=policy.id,
+                formats=list(translations.keys()),
+            )
+
+            return translations
+
+        except Exception as e:
+            logger.error(
+                "multi_format_translation_failed",
+                policy_id=policy.id,
+                error=str(e),
+            )
+            raise ValueError(f"Failed to translate policy to all formats: {e}") from e
+
+    async def verify_semantic_equivalence(
+        self, policy: Policy, translations: dict[str, str]
+    ) -> dict[str, bool]:
+        """
+        Verify that all translations are semantically equivalent.
+
+        Uses Claude to analyze whether the translations preserve the same
+        authorization logic as the original policy.
+
+        Args:
+            policy: The original policy
+            translations: Dictionary of format -> translated policy
+
+        Returns:
+            dict: Dictionary with format names as keys and boolean equivalence as values
+                 Format: {"rego": True, "cedar": True, "json": True}
+        """
+        logger.info(
+            "verifying_semantic_equivalence",
+            policy_id=policy.id,
+            formats=list(translations.keys()),
+        )
+
+        equivalence_results = {}
+
+        # Build verification prompt
+        prompt = self._build_equivalence_verification_prompt(policy, translations)
+
+        try:
+            # Call Claude to verify equivalence
+            response_text = self.llm_provider.create_message(
+                prompt=prompt,
+                max_tokens=1500,
+                temperature=0,
+            )
+
+            # Parse the response to extract equivalence results
+            equivalence_results = self._parse_equivalence_response(response_text)
+
+            logger.info(
+                "semantic_equivalence_verification_complete",
+                policy_id=policy.id,
+                results=equivalence_results,
+            )
+
+            return equivalence_results
+
+        except Exception as e:
+            logger.error(
+                "semantic_equivalence_verification_failed",
+                policy_id=policy.id,
+                error=str(e),
+            )
+            # Default to False for all formats if verification fails
+            return {fmt: False for fmt in translations.keys()}
+
+    def _build_equivalence_verification_prompt(
+        self, policy: Policy, translations: dict[str, str]
+    ) -> str:
+        """Build prompt for semantic equivalence verification."""
+        return f"""You are an expert in authorization policies and semantic analysis.
+
+**Original Policy:**
+- Subject (Who): {policy.subject}
+- Resource (What): {policy.resource}
+- Action (How): {policy.action}
+- Conditions (When): {policy.conditions}
+- Description: {policy.description}
+
+**Translations:**
+
+**OPA Rego:**
+```rego
+{translations.get('rego', 'N/A')}
+```
+
+**AWS Cedar:**
+```cedar
+{translations.get('cedar', 'N/A')}
+```
+
+**Custom JSON:**
+```json
+{translations.get('json', 'N/A')}
+```
+
+**Task:** Analyze whether each translation preserves the exact same authorization logic as the original policy.
+
+For each format (Rego, Cedar, JSON), determine if it would produce the SAME authorization decisions as the original policy for ALL possible inputs.
+
+**Response Format (JSON only):**
+```json
+{{
+    "rego": true/false,
+    "cedar": true/false,
+    "json": true/false,
+    "explanation": "Brief explanation of your analysis"
+}}
+```
+
+Provide ONLY the JSON response above, no other text."""
+
+    def _parse_equivalence_response(self, response_text: str) -> dict[str, bool]:
+        """Parse the equivalence verification response from Claude."""
+        text = response_text.strip()
+
+        # Extract JSON from response
+        if "```json" in text:
+            start = text.find("```json") + len("```json")
+            end = text.find("```", start)
+            if end != -1:
+                text = text[start:end].strip()
+        elif "```" in text:
+            start = text.find("```") + 3
+            end = text.find("```", start)
+            if end != -1:
+                text = text[start:end].strip()
+
+        # Parse JSON
+        try:
+            result = json.loads(text)
+            return {
+                "rego": result.get("rego", False),
+                "cedar": result.get("cedar", False),
+                "json": result.get("json", False),
+            }
+        except json.JSONDecodeError:
+            logger.error(
+                "failed_to_parse_equivalence_response",
+                response_text=text,
+            )
+            return {"rego": False, "cedar": False, "json": False}

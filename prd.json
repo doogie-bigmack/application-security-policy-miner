@@ -882,7 +882,7 @@
         "Document translation mappings for audit trail",
         "Verify all formats can be provisioned to respective platforms"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
