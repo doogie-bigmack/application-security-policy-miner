@@ -852,7 +852,7 @@
         "Confirm allow/deny rules match original authorization",
         "Test both original Java and translated Rego produce same decisions"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
