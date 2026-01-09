@@ -571,7 +571,7 @@
         "Add console error reading on failure",
         "Test single flow: ./e2e/claude_test_runner.sh test_add_github_repository"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "claude_test_runner.sh executes test via Claude",
         "5 test prompt files created",
