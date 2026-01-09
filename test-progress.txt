@@ -885,3 +885,51 @@ PoliciesPage uses a card-based layout (not a traditional table), so data-testid 
 **Next Steps:**
 Ready to implement TEST-018: Add data-testid attributes to ProvisioningPage.
 
+
+---
+
+[2026-01-09 17:20] ✅ TEST-018 Complete - Added data-testid attributes to ProvisioningPage
+
+**What was done:**
+- Added 10 data-testid attributes to ProvisioningPage.tsx for test automation
+- Added attributes to all key interactive elements:
+  - provisioning-btn-add-provider: Add Provider button
+  - provisioning-provider-list: Provider list container
+  - provisioning-select-provider-type: Provider type dropdown (OPA/AWS/Axiomatics/PlainID)
+  - provisioning-input-name: Provider name input field
+  - provisioning-input-endpoint: Endpoint URL/AWS Region input field
+  - provisioning-input-api-key: API key input field
+  - provisioning-btn-save: Save/Add Provider button
+  - provisioning-select-target-provider: Target provider selection dropdown
+  - provisioning-btn-provision: Provision Policy button
+  - provisioning-status: Provisioning status indicator in recent operations
+- Followed naming convention: [page]-[element-type]-[descriptor]
+- All attributes placed on correct elements for reliable test automation
+- No changes to functionality or styling
+- Frontend service verified still running (HTTP 200)
+
+**Validation:**
+✓ 10 data-testid attributes added (exceeds requirement of 8+)
+✓ All interactive elements identifiable
+✓ Provider management identifiable (add, list, select)
+✓ Provisioning flow identifiable (provider selection, provision button)
+✓ Status indicators identifiable (operations list with status)
+✓ Naming convention followed consistently
+✓ No regression in UI functionality (frontend still accessible)
+
+**Note on Missing Features:**
+The test-prd.json mentioned two features that don't exist in the current implementation:
+- Test Connection button: Not implemented in the UI (provider is saved without connection test)
+- Target format dropdown: Not in the UI (format is likely auto-determined by backend based on provider type)
+
+Despite these differences, all acceptance criteria are met with 10 attributes covering all actual UI elements.
+
+**Acceptance Criteria Status:**
+✅ ProvisioningPage has 8+ data-testid attributes (10 added)
+✅ Provider management identifiable
+✅ Provisioning flow identifiable
+✅ Status indicators identifiable
+
+**Next Steps:**
+Ready to implement TEST-019: Create backend TEST_MODE infrastructure with API mocks.
+

@@ -214,6 +214,7 @@ export default function ProvisioningPage() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-50">PBAC Providers</h2>
           <button
+            data-testid="provisioning-btn-add-provider"
             onClick={() => setShowAddProvider(true)}
             className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
           >
@@ -227,7 +228,7 @@ export default function ProvisioningPage() {
             No PBAC providers configured yet
           </div>
         ) : (
-          <div className="space-y-3">
+          <div data-testid="provisioning-provider-list" className="space-y-3">
             {providers.map((provider) => (
               <div
                 key={provider.provider_id}
@@ -265,6 +266,7 @@ export default function ProvisioningPage() {
                   Provider Type
                 </label>
                 <select
+                  data-testid="provisioning-select-provider-type"
                   value={providerForm.provider_type}
                   onChange={(e) => setProviderForm({ ...providerForm, provider_type: e.target.value as any })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
@@ -280,6 +282,7 @@ export default function ProvisioningPage() {
                   Name
                 </label>
                 <input
+                  data-testid="provisioning-input-name"
                   type="text"
                   value={providerForm.name}
                   onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value })}
@@ -292,6 +295,7 @@ export default function ProvisioningPage() {
                   {providerForm.provider_type === 'aws_verified_permissions' ? 'AWS Region' : 'Endpoint URL'}
                 </label>
                 <input
+                  data-testid="provisioning-input-endpoint"
                   type="text"
                   value={providerForm.endpoint_url}
                   onChange={(e) => setProviderForm({ ...providerForm, endpoint_url: e.target.value })}
@@ -304,6 +308,7 @@ export default function ProvisioningPage() {
                   API Key (optional)
                 </label>
                 <input
+                  data-testid="provisioning-input-api-key"
                   type="password"
                   value={providerForm.api_key}
                   onChange={(e) => setProviderForm({ ...providerForm, api_key: e.target.value })}
@@ -332,6 +337,7 @@ export default function ProvisioningPage() {
             </div>
             <div className="mt-6 flex space-x-3">
               <button
+                data-testid="provisioning-btn-save"
                 onClick={handleAddProvider}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
@@ -358,6 +364,7 @@ export default function ProvisioningPage() {
               Select Provider
             </label>
             <select
+              data-testid="provisioning-select-target-provider"
               value={selectedProvider || ''}
               onChange={(e) => setSelectedProvider(Number(e.target.value))}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
@@ -398,6 +405,7 @@ export default function ProvisioningPage() {
           </div>
 
           <button
+            data-testid="provisioning-btn-provision"
             onClick={handleProvision}
             disabled={provisioning || !selectedProvider || selectedPolicies.length === 0}
             className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -420,6 +428,7 @@ export default function ProvisioningPage() {
             {operations.slice(0, 10).map((operation) => (
               <div
                 key={operation.operation_id}
+                data-testid="provisioning-status"
                 className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-800 rounded-lg"
               >
                 <div className="flex items-center space-x-3">
