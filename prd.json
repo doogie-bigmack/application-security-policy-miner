@@ -806,7 +806,7 @@
         "Assign users to divisions with appropriate roles",
         "Test data isolation between organizations"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

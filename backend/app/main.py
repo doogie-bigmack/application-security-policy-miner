@@ -95,6 +95,9 @@ async def startup_event():
     from app.core.database import engine
     from app.models.repository import Base
 
+    # Import all models to ensure they're registered with Base
+    import app.models  # noqa: F401
+
     logger.info("creating_database_tables")
     Base.metadata.create_all(bind=engine)
     logger.info("database_tables_created")
