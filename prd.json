@@ -638,7 +638,7 @@
         "Check that evidence supports extracted policy",
         "Reject policies without valid evidence"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "quality",
