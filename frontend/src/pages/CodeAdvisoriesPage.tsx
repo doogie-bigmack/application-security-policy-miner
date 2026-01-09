@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { FileCode, Download, CheckCircle, XCircle, Clock, AlertCircle, TestTube } from "lucide-react";
+import { FileCode, Download, CheckCircle, XCircle, Clock, AlertCircle, TestTube, FileText } from "lucide-react";
 import { CodeAdvisory, AdvisoryStatus, TestCase } from "../types/codeAdvisory";
+import DiffViewer from "../components/DiffViewer";
 
 const API_BASE = "/api/v1";
 
@@ -79,6 +80,27 @@ export default function CodeAdvisoriesPage() {
     a.href = url;
     const fileName = advisory.file_path.split("/").pop() || "refactored_code.txt";
     a.download = `refactored_${fileName}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadPatchFile = (advisory: CodeAdvisory) => {
+    // Generate unified diff format patch
+    const fileName = advisory.file_path.split("/").pop() || "file";
+    const now = new Date().toISOString();
+
+    const patch = `--- a/${advisory.file_path}\t${now}
++++ b/${advisory.file_path}\t${now}
+@@ -${advisory.line_start},${advisory.line_end - advisory.line_start + 1} +${advisory.line_start},${advisory.line_end - advisory.line_start + 1} @@
+${advisory.original_code.split('\n').map(line => `-${line}`).join('\n')}
+${advisory.refactored_code.split('\n').map(line => `+${line}`).join('\n')}
+`;
+
+    const blob = new Blob([patch], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fileName}.patch`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -228,20 +250,15 @@ export default function CodeAdvisoriesPage() {
                 </p>
               </div>
 
-              {/* Side-by-side diff */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-2">Original Code</h3>
-                  <pre className="text-xs bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg overflow-x-auto">
-                    <code className="text-gray-900 dark:text-gray-50">{selectedAdvisory.original_code}</code>
-                  </pre>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-2">Refactored Code</h3>
-                  <pre className="text-xs bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 rounded-lg overflow-x-auto">
-                    <code className="text-gray-900 dark:text-gray-50">{selectedAdvisory.refactored_code}</code>
-                  </pre>
-                </div>
+              {/* Side-by-side diff with highlighting */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">Code Diff</h3>
+                <DiffViewer
+                  originalCode={selectedAdvisory.original_code}
+                  refactoredCode={selectedAdvisory.refactored_code}
+                  fileName={selectedAdvisory.file_path.split("/").pop()}
+                  language="javascript"
+                />
               </div>
 
               {/* Test Cases */}
@@ -328,6 +345,13 @@ export default function CodeAdvisoriesPage() {
                 >
                   <Download className="w-4 h-4" />
                   Download Code
+                </button>
+                <button
+                  onClick={() => downloadPatchFile(selectedAdvisory)}
+                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  Download Patch
                 </button>
                 {selectedAdvisory.status === "pending" && (
                   <>
