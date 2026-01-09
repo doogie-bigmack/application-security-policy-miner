@@ -37,6 +37,9 @@ class CodeAdvisory(Base):
     refactored_code = Column(Text, nullable=False)
     explanation = Column(Text, nullable=False)
 
+    # Test cases
+    test_cases = Column(Text, nullable=True)  # JSON string of test cases
+
     # Metadata
     status = Column(Enum(AdvisoryStatus), default=AdvisoryStatus.PENDING, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)

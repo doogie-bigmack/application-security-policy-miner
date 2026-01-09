@@ -32,6 +32,7 @@ class CodeAdvisory(CodeAdvisoryBase):
 
     id: int
     tenant_id: str
+    test_cases: str | None = None  # JSON string of test cases
     status: AdvisoryStatus
     created_at: datetime
     reviewed_at: datetime | None

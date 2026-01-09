@@ -30,8 +30,8 @@ def db_session():
     """Create a test database session."""
     engine = create_engine("postgresql://policy_miner:dev_password@postgres:5432/policy_miner")
     Base.metadata.create_all(engine)
-    SessionLocal = sessionmaker(bind=engine)
-    session = SessionLocal()
+    session_local = sessionmaker(bind=engine)
+    session = session_local()
 
     # Create test tenant if not exists
     tenant = session.query(Tenant).filter_by(tenant_id="test-tenant").first()
