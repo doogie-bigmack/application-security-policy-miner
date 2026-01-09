@@ -1,48 +1,40 @@
-"""Policy and Evidence models."""
+"""Policy models for storing extracted authorization policies."""
+
 from datetime import UTC, datetime
 from enum import Enum
 
-from pgvector.sqlalchemy import Vector
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import relationship
 
-from .repository import Base
+from app.models.repository import Base
 
 
 class PolicyStatus(str, Enum):
     """Policy status."""
 
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
+    EXTRACTED = "EXTRACTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    PENDING_REVIEW = "PENDING_REVIEW"
 
 
 class RiskLevel(str, Enum):
     """Risk level for policies."""
 
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
 
 
 class SourceType(str, Enum):
     """Source type for policies."""
 
-    FRONTEND = "frontend"
-    BACKEND = "backend"
-    DATABASE = "database"
-    UNKNOWN = "unknown"
-
-
-class ValidationStatus(str, Enum):
-    """Evidence validation status."""
-
-    PENDING = "pending"  # Not yet validated
-    VALID = "valid"  # Evidence matches source file
-    INVALID = "invalid"  # Evidence does not match source file
-    FILE_NOT_FOUND = "file_not_found"  # Source file no longer exists
-    LINE_MISMATCH = "line_mismatch"  # Line numbers out of range
+    FRONTEND = "FRONTEND"
+    BACKEND = "BACKEND"
+    DATABASE = "DATABASE"
+    UNKNOWN = "UNKNOWN"
 
 
 class Policy(Base):
@@ -51,42 +43,32 @@ class Policy(Base):
     __tablename__ = "policies"
 
     id = Column(Integer, primary_key=True, index=True)
-    repository_id = Column(Integer, ForeignKey("repositories.id"), nullable=False)
-    application_id = Column(Integer, ForeignKey("applications.id", ondelete="SET NULL"), nullable=True, index=True)
+    repository_id = Column(Integer, ForeignKey("repositories.id"), nullable=False, index=True)
 
-    # Who/What/How/When components
-    subject = Column(String(500), nullable=False)  # Who (e.g., "Manager", "Admin")
-    resource = Column(String(500), nullable=False)  # What (e.g., "Expense Report", "User Account")
-    action = Column(String(500), nullable=False)  # How (e.g., "approve", "delete")
-    conditions = Column(Text, nullable=True)  # When (e.g., "amount < $5000", "user.department == request.department")
+    # Policy Components (Who/What/How/When)
+    subject = Column(String(500), nullable=False)  # Who: user role, group, etc.
+    resource = Column(String(500), nullable=False)  # What: resource being accessed
+    action = Column(String(500), nullable=False)  # How: action being performed
+    conditions = Column(Text, nullable=True)  # When: conditions, constraints
 
-    # Risk scoring
-    risk_score = Column(Float, nullable=True)  # Overall risk score (0-100)
-    risk_level = Column(SAEnum(RiskLevel), nullable=True)
-    complexity_score = Column(Float, nullable=True)
-    impact_score = Column(Float, nullable=True)
-    confidence_score = Column(Float, nullable=True)
-    historical_score = Column(Float, nullable=True)  # Historical change frequency score
-    embedding = Column(Vector(1536), nullable=True)  # Policy embedding for similarity search (1536 dims for Claude embeddings)
+    # Metadata
+    description = Column(Text, nullable=True)
+    status = Column(SAEnum(PolicyStatus), default=PolicyStatus.EXTRACTED)
+    risk_level = Column(SAEnum(RiskLevel), default=RiskLevel.MEDIUM)
+    risk_score = Column(Integer, default=50)  # 0-100
+    complexity_score = Column(Integer, nullable=True)
+    impact_score = Column(Integer, nullable=True)
+    confidence_score = Column(Integer, nullable=True)
+    historical_score = Column(Integer, nullable=True)
+    source_type = Column(SAEnum(SourceType), nullable=False, default=SourceType.UNKNOWN)
 
-    # Status and metadata
-    status = Column(SAEnum(PolicyStatus), default=PolicyStatus.PENDING)
-    description = Column(Text, nullable=True)  # AI-generated description
-    source_type = Column(SAEnum(SourceType), default=SourceType.UNKNOWN, nullable=False)  # Frontend/Backend/Database
-    approval_comment = Column(Text, nullable=True)  # Comment when approving/rejecting
-    reviewed_by = Column(String(255), nullable=True)  # Email of user who reviewed
-    reviewed_at = Column(DateTime(timezone=True), nullable=True)  # When the review happened
+    # Review fields
+    approval_comment = Column(Text, nullable=True)
+    reviewed_by = Column(String(255), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
 
-    # Relationships
-    evidence = relationship("Evidence", back_populates="policy", cascade="all, delete-orphan")
-    advisories = relationship("CodeAdvisory", back_populates="policy", cascade="all, delete-orphan")
-    fixes = relationship("PolicyFix", back_populates="policy", cascade="all, delete-orphan")
-    application = relationship("Application", foreign_keys=[application_id])
-    duplicate_groups = relationship(
-        "DuplicatePolicyGroup",
-        secondary="duplicate_policy_group_members",
-        back_populates="policies",
-    )
+    # Application reference
+    application_id = Column(Integer, nullable=True)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
@@ -95,40 +77,40 @@ class Policy(Base):
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
     )
+
+    # Multi-tenancy
     tenant_id = Column(String(100), nullable=True, index=True)
+
+    # Relationships
+    evidence = relationship("PolicyEvidence", back_populates="policy", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"<Policy {self.subject} -> {self.action} -> {self.resource}>"
+        return f"<Policy {self.subject} -> {self.action} on {self.resource}>"
 
 
-class Evidence(Base):
-    """Evidence model for storing code snippets that support policies."""
+class PolicyEvidence(Base):
+    """Evidence linking policies to source code."""
 
-    __tablename__ = "evidence"
+    __tablename__ = "policy_evidence"
 
     id = Column(Integer, primary_key=True, index=True)
-    policy_id = Column(Integer, ForeignKey("policies.id"), nullable=False)
+    policy_id = Column(Integer, ForeignKey("policies.id"), nullable=False, index=True)
 
     # Source location
     file_path = Column(String(1000), nullable=False)
-    line_start = Column(Integer, nullable=False)
-    line_end = Column(Integer, nullable=False)
+    start_line = Column(Integer, nullable=False)
+    end_line = Column(Integer, nullable=False)
 
     # Code snippet
     code_snippet = Column(Text, nullable=False)
 
-    # Validation status
-    validation_status = Column(SAEnum(ValidationStatus), default=ValidationStatus.PENDING, nullable=False)
-    validation_error = Column(Text, nullable=True)  # Details if validation fails
-    validated_at = Column(DateTime(timezone=True), nullable=True)
-
-    # Relationship
-    policy = relationship("Policy", back_populates="evidence")
-
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
+    # Relationships
+    policy = relationship("Policy", back_populates="evidence")
+
     def __repr__(self) -> str:
         """String representation."""
-        return f"<Evidence {self.file_path}:{self.line_start}-{self.line_end}>"
+        return f"<PolicyEvidence {self.file_path}:{self.start_line}-{self.end_line}>"

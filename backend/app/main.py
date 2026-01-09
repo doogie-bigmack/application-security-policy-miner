@@ -55,7 +55,9 @@ async def startup_event():
 
     # Create database tables
     from app.core.database import engine
-    from app.models.repository import Base
+    from app.models import Base  # Import Base from models package
+    from app.models.policy import Policy, PolicyEvidence  # Import to register tables
+    from app.models.repository import Repository  # Import to register tables
 
     logger.info("creating_database_tables")
     Base.metadata.create_all(bind=engine)
