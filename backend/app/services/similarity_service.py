@@ -200,7 +200,3 @@ class SimilarityService:
                 similar_policies.append((policy, float(row[1])))
 
         return similar_policies
-
-
-# Singleton instance for import
-similarity_service = SimilarityService()
