@@ -656,3 +656,93 @@ All acceptance criteria met:
 Only TEST-013 remains: Update TESTING.md with actual usage examples.
 After TEST-013, all test infrastructure will be complete.
 
+
+---
+
+[2026-01-09 11:40] ✅ TEST-013 Complete - TESTING.md Documentation
+
+**What was done:**
+- Created comprehensive TESTING.md documentation (800+ lines)
+- Documented all E2E testing workflows and commands
+- Added schema documentation with examples
+- Included debugging guides and troubleshooting
+
+**Sections Added:**
+
+1. **Quick Start**
+   - Basic commands for getting started
+   - make docker-up, make e2e, make status
+
+2. **Running E2E Tests Manually**
+   - Prerequisites and setup
+   - Running all tests
+   - Command line options reference table
+   - Filtering tests by priority and story ID
+   - Exit codes
+   - Example commands with expected output
+
+3. **Understanding Test Results**
+   - Complete test-results.json schema with annotations
+   - Explanation of all sections: metadata, summary, test_results, recommendations, coverage_analysis
+   - How to view results with make status
+
+4. **Debugging Failed Tests**
+   - Error diagnostics structure
+   - Error types reference table (7 types)
+   - Using screenshots for visual debugging
+   - Step-by-step debugging workflow
+   - Common debugging scenarios with solutions:
+     - Element not found
+     - Timeout errors
+     - Assertion failures
+   - Screenshot naming patterns
+
+5. **Writing New Test Scenarios**
+   - Complete e2e-tests.json schema
+   - Supported actions reference table
+   - Environment variable substitution
+   - Test priority levels
+   - Example: Adding a new test
+   - Using reusable scenario modules
+
+6. **Troubleshooting**
+   - Common issues with solutions:
+     - ModuleNotFoundError
+     - Connection refused
+     - CI/CD failures
+     - Missing screenshots
+     - Hanging tests
+   - Getting help checklist
+   - Reporting issues template
+
+7. **Additional Resources & Quick Reference**
+   - Links to key files
+   - Quick command reference
+   - jq commands for parsing test-results.json
+
+**Documentation Quality:**
+✅ Comprehensive command examples with output
+✅ Schema documentation with JSON examples
+✅ Error type reference tables
+✅ Step-by-step debugging guides
+✅ Troubleshooting for common issues
+✅ Quick reference commands
+✅ Clear section organization with table of contents
+
+**Validation:**
+✓ TESTING.md created (800+ lines)
+✓ All command examples tested and verified
+✓ Includes schema documentation with examples
+✓ Provides debugging guidance with scenarios
+✓ All 4 acceptance criteria met
+
+**Acceptance Criteria Status:**
+✅ TESTING.md updated with manual testing guide
+✅ Includes command examples with output
+✅ Documents schemas with examples
+✅ Provides debugging guidance
+
+**Next Steps:**
+All 14 test infrastructure stories (TEST-001 through TEST-014) are now complete!
+Test infrastructure is ready for production use.
+

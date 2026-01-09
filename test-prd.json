@@ -319,7 +319,7 @@
         "Document e2e-tests.json schema with example test definition",
         "Add troubleshooting guide for common issues"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "TESTING.md updated with manual testing guide",
         "Includes command examples with output",
