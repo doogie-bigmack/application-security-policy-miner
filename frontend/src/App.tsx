@@ -11,6 +11,7 @@ import { SecurityAuditPage } from './pages/SecurityAuditPage'
 import SettingsPage from './pages/SettingsPage'
 import ProvisioningPage from './pages/ProvisioningPage'
 import CodeAdvisoriesPage from './pages/CodeAdvisoriesPage'
+import AutoApprovalPage from './pages/AutoApprovalPage'
 import Layout from './components/Layout'
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/provisioning" element={<ProvisioningPage />} />
         <Route path="/code-advisories" element={<CodeAdvisoriesPage />} />
+        <Route path="/auto-approval" element={<AutoApprovalPage />} />
       </Routes>
     </Layout>
   )

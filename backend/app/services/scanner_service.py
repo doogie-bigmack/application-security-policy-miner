@@ -13,7 +13,7 @@ from git import Repo
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.models.policy import Evidence, Policy, RiskLevel, SourceType
+from app.models.policy import Evidence, Policy, PolicyStatus, RiskLevel, SourceType
 from app.models.repository import Repository, RepositoryStatus
 from app.models.scan_progress import ScanProgress, ScanStatus
 from app.models.secret_detection import SecretDetectionLog
@@ -759,6 +759,28 @@ class ScannerService:
                 self.db.add(policy)
 
             self.db.commit()
+
+            # Apply auto-approval if enabled
+            if repo.tenant_id:
+                from app.services.auto_approval_service import AutoApprovalService
+                auto_approval_service = AutoApprovalService(self.db)
+
+                for policy in policies:
+                    try:
+                        should_approve, reasoning = auto_approval_service.evaluate_policy(
+                            repo.tenant_id, policy
+                        )
+                        if should_approve:
+                            policy.status = PolicyStatus.APPROVED
+                            logger.info(
+                                f"Auto-approved policy {policy.id}: {reasoning}",
+                                tenant_id=repo.tenant_id
+                            )
+                    except Exception as e:
+                        logger.error(f"Error in auto-approval for policy {policy.id}: {e}")
+                        # Continue without auto-approval
+
+                self.db.commit()
 
             return policies
 
