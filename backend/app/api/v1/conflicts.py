@@ -1,6 +1,5 @@
 """Conflict API endpoints."""
 import logging
-import os
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -31,11 +30,7 @@ def detect_conflicts(
     Returns:
         List of detected conflicts
     """
-    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not anthropic_api_key:
-        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
-
-    service = ConflictDetectionService(db, anthropic_api_key)
+    service = ConflictDetectionService(db)
     service.detect_conflicts(repository_id)
 
     # Get all conflicts (including previously detected ones)

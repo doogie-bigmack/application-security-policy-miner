@@ -6,6 +6,7 @@ import PoliciesPage from './pages/PoliciesPage'
 import ConflictsPage from './pages/ConflictsPage'
 import ChangesPage from './pages/ChangesPage'
 import SecretsPage from './pages/SecretsPage'
+import SettingsPage from './pages/SettingsPage'
 import Layout from './components/Layout'
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
         <Route path="/conflicts" element={<ConflictsPage />} />
         <Route path="/changes" element={<ChangesPage />} />
         <Route path="/secrets" element={<SecretsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </Layout>
   )

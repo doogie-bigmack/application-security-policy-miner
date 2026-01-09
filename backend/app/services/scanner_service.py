@@ -6,7 +6,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import anthropic
 from git import Repo
 from sqlalchemy.orm import Session
 
@@ -15,6 +14,7 @@ from app.models.policy import Evidence, Policy, RiskLevel, SourceType
 from app.models.repository import Repository, RepositoryStatus
 from app.models.scan_progress import ScanProgress, ScanStatus
 from app.models.secret_detection import SecretDetectionLog
+from app.services.llm_provider import get_llm_provider
 from app.services.risk_scoring_service import RiskScoringService
 from app.services.secret_detection_service import SecretDetectionService
 
@@ -72,7 +72,7 @@ class ScannerService:
     def __init__(self, db: Session):
         """Initialize scanner service."""
         self.db = db
-        self.client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        self.llm_provider = get_llm_provider()
 
     def _classify_source_type(self, file_path: str, content: str) -> SourceType:
         """Classify whether code is frontend, backend, or database.
@@ -244,7 +244,7 @@ class ScannerService:
                 try:
                     from app.services.change_detection_service import ChangeDetectionService
 
-                    change_service = ChangeDetectionService(self.db, settings.ANTHROPIC_API_KEY)
+                    change_service = ChangeDetectionService(self.db)
                     changes = change_service.detect_changes(repo.id, repo.tenant_id)
                     changes_detected = len(changes)
                     logger.info(f"Change detection: found {changes_detected} policy changes")
@@ -411,16 +411,14 @@ class ScannerService:
         SecretDetectionService.validate_no_secrets_in_prompt(prompt, file_path)
 
         try:
-            # Call Claude API
-            message = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+            # Call LLM provider (AWS Bedrock or Azure OpenAI)
+            response_text = self.llm_provider.create_message(
+                prompt=prompt,
                 max_tokens=4096,
                 temperature=0,
-                messages=[{"role": "user", "content": prompt}],
             )
 
             # Parse response
-            response_text = message.content[0].text
             policies = self._parse_claude_response(response_text, repo, file_path, content)
 
             # Save policies to database
@@ -432,7 +430,7 @@ class ScannerService:
             return policies
 
         except Exception as e:
-            logger.error(f"Error calling Claude API: {e}")
+            logger.error(f"Error calling LLM provider: {e}")
             return []
 
     def _build_extraction_prompt(self, file_path: str, content: str, matches: list[dict]) -> str:

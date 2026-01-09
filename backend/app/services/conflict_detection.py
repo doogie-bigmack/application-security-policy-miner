@@ -2,11 +2,11 @@
 import logging
 from typing import Any
 
-from anthropic import Anthropic
 from sqlalchemy.orm import Session
 
 from app.models.conflict import ConflictType, PolicyConflict
 from app.models.policy import Policy
+from app.services.llm_provider import get_llm_provider
 
 logger = logging.getLogger(__name__)
 
@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 class ConflictDetectionService:
     """Service for detecting and analyzing policy conflicts."""
 
-    def __init__(self, db: Session, anthropic_api_key: str):
+    def __init__(self, db: Session):
         """Initialize the conflict detection service."""
         self.db = db
-        self.client = Anthropic(api_key=anthropic_api_key)
+        self.llm_provider = get_llm_provider()
 
     def detect_conflicts(self, repository_id: int | None = None) -> list[PolicyConflict]:
         """
@@ -142,13 +142,14 @@ Respond in this exact JSON format:
 Only set has_conflict to true if there is a real conflict. Similar policies are not conflicts."""
 
         try:
-            response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+            # Call LLM provider (AWS Bedrock or Azure OpenAI)
+            response_text = self.llm_provider.create_message(
+                prompt=prompt,
                 max_tokens=1000,
-                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
             )
 
-            result = self._parse_ai_response(response.content[0].text)
+            result = self._parse_ai_response(response_text)
 
             if not result.get("has_conflict"):
                 return None
