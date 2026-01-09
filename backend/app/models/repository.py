@@ -59,6 +59,7 @@ class Repository(Base):
 
     # Relationships
     scan_progresses = relationship("ScanProgress", back_populates="repository", cascade="all, delete-orphan")
+    secret_logs = relationship("SecretDetectionLog", back_populates="repository", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         """String representation."""

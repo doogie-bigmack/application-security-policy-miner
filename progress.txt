@@ -532,3 +532,86 @@
 - Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
 - Story 12: Change Detection - Git integration and PBAC sync
 
+
+## 2026-01-08 - Pre-scan Secret Detection Complete
+
+### Completed
+- Backend secret detection service:
+  - Created SecretDetectionService with 15+ secret patterns
+  - Patterns include: AWS keys, GitHub tokens, API keys, private keys, passwords, JWT tokens, database connection strings, Stripe keys, Google API keys, Azure keys, Slack tokens
+  - Automatic secret scanning BEFORE sending code to LLM
+  - Redaction system replaces secrets with [REDACTED_SECRET] marker
+  - Validation system prevents any secrets from leaking into LLM prompts
+
+- Backend SecretDetectionLog model:
+  - Stores audit trail of all detected secrets
+  - Fields: repository_id, tenant_id, file_path, secret_type, description, line_number, preview
+  - Full multi-tenancy support with tenant isolation
+
+- Scanner integration:
+  - Modified _find_authorization_files to scan each file for secrets
+  - Logs detected secrets to database immediately
+  - Redacts secrets from content before storing
+  - Validates prompts before sending to Claude API (throws ValueError if secrets found)
+  - Pre-scan happens automatically during repository scanning
+
+- Backend API endpoints:
+  - GET /api/v1/secrets/ - List all secret detection logs with filtering
+  - GET /api/v1/secrets/{id} - Get single secret log
+  - DELETE /api/v1/secrets/{id} - Delete secret log
+  - All endpoints support tenant filtering for multi-tenancy
+
+- Frontend SecretsPage:
+  - Clean, professional UI matching design system
+  - Lists all detected secrets with color-coded severity
+  - Shows file path, line number, secret type, and preview
+  - Green checkmark when no secrets detected
+  - Amber warning banner when secrets found
+  - Full dark mode support
+
+- Frontend navigation:
+  - Added "Secrets" link to main navigation
+  - Route configured in App.tsx
+  - Layout component updated
+
+- Testing:
+  - Created comprehensive unit tests for SecretDetectionService
+  - 18 test cases covering: detection of AWS keys, API keys, passwords, JWT tokens, database strings, Stripe keys, Google API keys, redaction, validation, line numbers, multiple secrets
+  - All 18 tests passing ✅
+  - Backend linting passed (ruff check)
+
+### Implementation Details
+- Secret detection runs BEFORE AI analysis to prevent credential leakage
+- Secrets are redacted from code before sending to LLM
+- Final validation step ensures no secrets in prompts (throws error if found)
+- Audit logs created for all detected secrets with tenant isolation
+- Redaction marker: [REDACTED_SECRET]
+- 15+ secret patterns covering common credential types
+- Preview truncated to 20 chars for safety
+
+### Security Features
+- Pre-scan secret detection (runs before LLM analysis)
+- Automatic redaction of detected secrets
+- Validation to prevent secrets in LLM prompts
+- Full audit trail of detected secrets
+- Tenant-aware secret logs
+- No credentials sent to LLM (guaranteed by validation layer)
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
+✅ Story 8: "Conflict Resolution - Flag conflicts and AI recommendations" - PASSES
+✅ Story 9: "Multi-tenancy - Tenant-aware policy mining with full isolation" - PASSES
+✅ Story 10: "Unlimited Repository Size - Streaming analysis with batching" - PASSES
+✅ Story 11: "Change Detection - Auto-create work items and diff visualization" - PASSES
+✅ Story 22: "Pre-scan secret detection - No credentials sent to LLM" - PASSES
+
+### Next Steps
+- Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
+- Story 12: Change Detection - Git integration and PBAC sync
+- Story 23: Private LLM endpoints - AWS Bedrock or Azure OpenAI
+

@@ -14,7 +14,9 @@ from app.core.config import settings
 from app.models.policy import Evidence, Policy, RiskLevel, SourceType
 from app.models.repository import Repository, RepositoryStatus
 from app.models.scan_progress import ScanProgress, ScanStatus
+from app.models.secret_detection import SecretDetectionLog
 from app.services.risk_scoring_service import RiskScoringService
+from app.services.secret_detection_service import SecretDetectionService
 
 logger = logging.getLogger(__name__)
 
@@ -160,8 +162,8 @@ class ScannerService:
             # Clone repository to temp directory
             repo_path = await self._clone_repository(repo)
 
-            # Find files with potential authorization code
-            auth_files = await self._find_authorization_files(repo_path)
+            # Find files with potential authorization code (with secret detection)
+            auth_files = await self._find_authorization_files(repo_path, repo)
 
             logger.info(f"Found {len(auth_files)} files with potential authorization code")
 
@@ -302,11 +304,12 @@ class ScannerService:
 
         return clone_dir
 
-    async def _find_authorization_files(self, repo_path: Path) -> list[dict[str, Any]]:
-        """Find files containing authorization code.
+    async def _find_authorization_files(self, repo_path: Path, repository: Repository) -> list[dict[str, Any]]:
+        """Find files containing authorization code and scan for secrets.
 
         Args:
             repo_path: Path to repository
+            repository: Repository model instance for logging secrets
 
         Returns:
             List of file information dictionaries
@@ -328,6 +331,32 @@ class ScannerService:
 
             try:
                 content = file_path.read_text(encoding="utf-8", errors="ignore")
+                relative_path = file_path.relative_to(repo_path)
+
+                # PRE-SCAN: Detect secrets BEFORE processing
+                secret_result = SecretDetectionService.scan_content(content, str(relative_path))
+
+                # Log detected secrets to audit trail
+                if secret_result.has_secrets:
+                    for secret in secret_result.secrets_found:
+                        secret_log = SecretDetectionLog(
+                            repository_id=repository.id,
+                            tenant_id=repository.tenant_id,
+                            file_path=str(relative_path),
+                            secret_type=secret["type"],
+                            description=secret["description"],
+                            line_number=secret["line"],
+                            preview=secret["preview"],
+                        )
+                        self.db.add(secret_log)
+
+                    # Commit secret logs immediately
+                    self.db.commit()
+
+                    logger.warning(
+                        f"Found {len(secret_result.secrets_found)} secrets in {relative_path}. "
+                        "Secrets will be redacted before sending to LLM."
+                    )
 
                 # Search for authorization patterns
                 matches = []
@@ -341,11 +370,17 @@ class ScannerService:
                         })
 
                 if matches:
-                    # Get relative path from repo root
-                    relative_path = file_path.relative_to(repo_path)
+                    # Redact secrets from content before storing
+                    redacted_content, secrets_count = SecretDetectionService.redact_secrets(content)
+
+                    if secrets_count > 0:
+                        logger.info(
+                            f"Redacted {secrets_count} secrets from {relative_path} before LLM processing"
+                        )
+
                     auth_files.append({
                         "path": str(relative_path),
-                        "content": content,
+                        "content": redacted_content,  # Use redacted content
                         "matches": matches,
                     })
 
@@ -363,7 +398,7 @@ class ScannerService:
         Args:
             repo: Repository model
             file_path: Path to the file
-            content: File content
+            content: File content (should already be redacted)
             matches: Authorization pattern matches
 
         Returns:
@@ -371,6 +406,9 @@ class ScannerService:
         """
         # Prepare prompt for Claude
         prompt = self._build_extraction_prompt(file_path, content, matches)
+
+        # CRITICAL SECURITY CHECK: Validate no secrets in prompt before sending to LLM
+        SecretDetectionService.validate_no_secrets_in_prompt(prompt, file_path)
 
         try:
             # Call Claude API
