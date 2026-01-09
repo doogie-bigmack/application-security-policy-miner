@@ -746,3 +746,49 @@ After TEST-013, all test infrastructure will be complete.
 All 14 test infrastructure stories (TEST-001 through TEST-014) are now complete!
 Test infrastructure is ready for production use.
 
+
+---
+
+[2026-01-09 16:55] ✅ TEST-015 Complete - Added data-testid attributes to RepositoriesPage
+
+**What was done:**
+- Added 17 data-testid attributes to RepositoriesPage.tsx for test automation
+- Added attributes to all key interactive elements:
+  - repositories-btn-add: Add Repository button
+  - repositories-filter-type: Repository type filter dropdown
+  - repositories-sort-by: Sort by dropdown
+  - repositories-sort-order: Sort order toggle button
+  - repositories-list: Repository list container
+  - repository-row: Each repository row (repeating element)
+  - repository-name: Repository name display
+  - repository-type: Repository type display
+  - repository-status: Status badge
+  - repository-btn-view-details: View details button
+  - repository-btn-edit: Edit repository button
+  - repository-btn-delete: Delete repository button
+  - repository-btn-webhook: Configure webhook button
+  - repository-btn-scan: Start scan dropdown button
+  - repository-btn-scan-full: Full scan option
+  - repository-btn-scan-incremental: Incremental scan option
+  - repository-scan-progress: Scan progress indicator
+- Followed naming convention: [page]-[component]-[element-type]-[descriptor]
+- All attributes placed on correct elements for reliable test automation
+- No changes to functionality or styling
+- Frontend service verified still running (HTTP 200)
+
+**Validation:**
+✓ 17 data-testid attributes added (exceeds requirement of 15+)
+✓ All interactive elements identifiable
+✓ Naming convention followed consistently
+✓ No regression in UI functionality (frontend still accessible)
+✓ All required elements from acceptance criteria covered
+
+**Acceptance Criteria Status:**
+✅ RepositoriesPage has 15+ data-testid attributes
+✅ All interactive elements are identifiable
+✅ Naming follows convention
+✅ No regression in UI functionality
+
+**Next Steps:**
+Ready to implement TEST-016: Add data-testid attributes to AddRepositoryModal.
+

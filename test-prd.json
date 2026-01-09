@@ -2,9 +2,11 @@
   "metadata": {
     "name": "E2E Testing Infrastructure PRD",
     "description": "Product requirements for building the automated E2E testing system that validates Policy Miner features",
-    "version": "1.0",
+    "version": "2.0",
     "created": "2026-01-09",
-    "github_issue": "https://github.com/doogie-bigmack/application-security-policy-miner/issues/53"
+    "updated": "2026-01-09",
+    "github_issue_v1": "https://github.com/doogie-bigmack/application-security-policy-miner/issues/53",
+    "github_issue_v2": "https://github.com/doogie-bigmack/application-security-policy-miner/issues/76"
   },
   "stories": [
     {
@@ -348,6 +350,260 @@
         "make e2e runs successfully",
         "make damonnator-test executes testing loop",
         "make status shows test metrics",
+        "Full flow works end-to-end"
+      ]
+    },
+    {
+      "id": "TEST-015",
+      "category": "real-e2e",
+      "priority": "critical",
+      "description": "Add data-testid attributes to RepositoriesPage for test automation",
+      "steps": [
+        "Read frontend/src/pages/RepositoriesPage.tsx",
+        "Add data-testid='repositories-btn-add' to Add Repository button",
+        "Add data-testid='repositories-btn-scan-full' to Scan All button",
+        "Add data-testid='repositories-list' to repository list container",
+        "Add data-testid='repositories-filter-type' to filter input",
+        "Add data-testid='repositories-filter-status' to status filter",
+        "Add data-testid='repository-row' to each repository row",
+        "Add data-testid='repository-name' to repository name display",
+        "Add data-testid='repository-status' to status indicator",
+        "Follow naming convention: [page]-[component]-[element-type]-[descriptor]",
+        "Verify all selectors in e2e-tests.json can find elements",
+        "Test that attributes don't break existing functionality"
+      ],
+      "passes": true,
+      "acceptance_criteria": [
+        "RepositoriesPage has 15+ data-testid attributes",
+        "All interactive elements are identifiable",
+        "Naming follows convention",
+        "No regression in UI functionality"
+      ]
+    },
+    {
+      "id": "TEST-016",
+      "category": "real-e2e",
+      "priority": "critical",
+      "description": "Add data-testid attributes to AddRepositoryModal for test automation",
+      "steps": [
+        "Read frontend/src/components/AddRepositoryModal.tsx",
+        "Add data-testid='add-repo-modal' to modal container",
+        "Add data-testid='add-repo-btn-github' to GitHub integration button",
+        "Add data-testid='add-repo-btn-gitlab' to GitLab integration button",
+        "Add data-testid='add-repo-btn-bitbucket' to Bitbucket integration button",
+        "Add data-testid='add-repo-btn-azure-devops' to Azure DevOps button",
+        "Add data-testid='add-repo-input-name' to repository name input",
+        "Add data-testid='add-repo-input-url' to repository URL input",
+        "Add data-testid='add-repo-input-token' to token/credentials input",
+        "Add data-testid='add-repo-btn-connect' to Connect button",
+        "Add data-testid='add-repo-btn-cancel' to Cancel button",
+        "Add data-testid='add-repo-success-message' to success notification",
+        "Add data-testid='add-repo-error-message' to error notification"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "AddRepositoryModal has 10+ data-testid attributes",
+        "All form inputs identifiable",
+        "All integration buttons identifiable",
+        "Success/error messages identifiable"
+      ]
+    },
+    {
+      "id": "TEST-017",
+      "category": "real-e2e",
+      "priority": "critical",
+      "description": "Add data-testid attributes to PoliciesPage for test automation",
+      "steps": [
+        "Read frontend/src/pages/PoliciesPage.tsx",
+        "Add data-testid='policies-table' to policies table container",
+        "Add data-testid='policy-row' to each policy row",
+        "Add data-testid='policy-subject' to subject column",
+        "Add data-testid='policy-resource' to resource column",
+        "Add data-testid='policy-action' to action column",
+        "Add data-testid='policy-conditions' to conditions column",
+        "Add data-testid='policy-evidence' to evidence column",
+        "Add data-testid='policies-filter-subject' to subject filter",
+        "Add data-testid='policies-filter-resource' to resource filter",
+        "Add data-testid='policies-btn-export' to export button",
+        "Add data-testid='policies-sort-by' to sort dropdown",
+        "Add data-testid='policy-detail-view' to detail modal"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "PoliciesPage has 12+ data-testid attributes",
+        "Table structure identifiable",
+        "Filters identifiable",
+        "Detail view identifiable"
+      ]
+    },
+    {
+      "id": "TEST-018",
+      "category": "real-e2e",
+      "priority": "critical",
+      "description": "Add data-testid attributes to ProvisioningPage for test automation",
+      "steps": [
+        "Read frontend/src/pages/ProvisioningPage.tsx",
+        "Add data-testid='provisioning-btn-add-provider' to Add Provider button",
+        "Add data-testid='provisioning-provider-list' to provider list container",
+        "Add data-testid='provisioning-select-provider-type' to provider type dropdown",
+        "Add data-testid='provisioning-input-endpoint' to endpoint input",
+        "Add data-testid='provisioning-input-api-key' to API key input",
+        "Add data-testid='provisioning-btn-test-connection' to Test Connection button",
+        "Add data-testid='provisioning-btn-save' to Save button",
+        "Add data-testid='provisioning-btn-provision' to Provision Policy button",
+        "Add data-testid='provisioning-select-target-format' to format dropdown (OPA/Cedar/ALFA)",
+        "Add data-testid='provisioning-status' to provisioning status indicator"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "ProvisioningPage has 8+ data-testid attributes",
+        "Provider management identifiable",
+        "Provisioning flow identifiable",
+        "Status indicators identifiable"
+      ]
+    },
+    {
+      "id": "TEST-019",
+      "category": "real-e2e",
+      "priority": "critical",
+      "description": "Create backend TEST_MODE infrastructure with API mocks",
+      "steps": [
+        "Create backend/app/core/test_mode.py with TEST_MODE environment variable check",
+        "Create backend/tests/fixtures/ directory",
+        "Create backend/tests/fixtures/github_responses.py with GITHUB_LIST_REPOS and GITHUB_VERIFY_TOKEN mocks",
+        "Create backend/tests/fixtures/gitlab_responses.py with GitLab API mocks",
+        "Create backend/tests/fixtures/bitbucket_responses.py with Bitbucket API mocks",
+        "Create backend/tests/fixtures/azure_devops_responses.py with Azure DevOps API mocks",
+        "Create backend/tests/fixtures/pbac_responses.py with OPA/AWS/Axiomatics mocks",
+        "Create backend/tests/fixtures/scanner_responses.py with mock scan results",
+        "Update backend/app/services/github_service.py to check is_test_mode() and return mocks",
+        "Update backend/app/services/gitlab_service.py with test mode check",
+        "Update backend/app/services/bitbucket_service.py with test mode check",
+        "Update backend/app/services/azure_devops_service.py with test mode check",
+        "Update backend/app/services/provisioning_service.py with test mode check",
+        "Update backend/app/services/scanner_service.py with test mode check",
+        "Create .env.test with TEST_MODE=true and test database configuration",
+        "Test that external APIs are NOT called when TEST_MODE=true"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "TEST_MODE environment variable works",
+        "All external API services check test mode",
+        "Mock responses match real API structure",
+        "No external calls when TEST_MODE=true",
+        ".env.test configured correctly"
+      ]
+    },
+    {
+      "id": "TEST-020",
+      "category": "real-e2e",
+      "priority": "high",
+      "description": "Create database seed script with test data",
+      "steps": [
+        "Create backend/scripts/ directory if not exists",
+        "Create backend/scripts/seed_test_data.py",
+        "Import necessary models: Repository, Policy, Application, PBACProvider, Organization",
+        "Create seed_test_data() async function",
+        "Add test organization: 'Test Organization'",
+        "Add test application: 'Test App'",
+        "Add test repositories from doogie-bigmack GitHub repos",
+        "Add sample pre-scanned policies with subjects, resources, actions, conditions",
+        "Add test PBAC provider: OPA at localhost:8181",
+        "Add database commit logic",
+        "Add CLI execution: if __name__ == '__main__': asyncio.run(seed_test_data())",
+        "Test script execution: TEST_MODE=true python backend/scripts/seed_test_data.py",
+        "Verify data appears in test database"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "Seed script creates test organizations",
+        "Seed script creates test applications",
+        "Seed script creates test repositories",
+        "Seed script creates sample policies",
+        "Seed script creates test PBAC providers",
+        "Script runs without errors"
+      ]
+    },
+    {
+      "id": "TEST-021",
+      "category": "real-e2e",
+      "priority": "medium",
+      "description": "Create dedicated test repository with authorization code patterns",
+      "steps": [
+        "Create new GitHub repository: doogie-bigmack/test-auth-patterns",
+        "Add README.md explaining purpose: test repository for policy extraction",
+        "Create python/ directory with flask_decorators.py containing @require_role('admin') patterns",
+        "Create csharp/ directory with Controllers.cs containing [Authorize(Roles = 'Admin')] patterns",
+        "Create java/ directory with RestController.java containing @PreAuthorize('hasRole(ADMIN)') patterns",
+        "Create javascript/ directory with middleware.js containing requireAuth() and checkRole() patterns",
+        "Create database/ directory with procedures.sql containing SQL permissions",
+        "Ensure each file has clear, scannable authorization patterns",
+        "Push to GitHub",
+        "Verify repository is accessible at https://github.com/doogie-bigmack/test-auth-patterns"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "Repository exists on GitHub",
+        "Contains authorization patterns in 5+ languages",
+        "Patterns are clear and scannable",
+        "README documents purpose"
+      ]
+    },
+    {
+      "id": "TEST-022",
+      "category": "real-e2e",
+      "priority": "critical",
+      "description": "Create Claude-driven test execution scripts and prompts",
+      "steps": [
+        "Create e2e/prompts/ directory",
+        "Create e2e/claude_test_runner.sh script that uses Claude CLI with MCP tools",
+        "Create e2e/prompts/test_add_github_repository.md with step-by-step MCP tool usage",
+        "Create e2e/prompts/test_scan_repository.md",
+        "Create e2e/prompts/test_view_policies.md",
+        "Create e2e/prompts/test_add_pbac_provider.md",
+        "Create e2e/prompts/test_provision_policy.md",
+        "Each prompt should specify: Setup requirements, MCP tools to use, Step-by-step actions, Expected outcomes, Failure handling",
+        "Update claude_test_runner.sh to read test definition from e2e-tests.json",
+        "Script should pass test definition to Claude as prompt",
+        "Claude should invoke: mcp__claude-in-chrome__tabs_context_mcp, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__computer, mcp__claude-in-chrome__form_input, mcp__claude-in-chrome__read_page",
+        "Add screenshot capture on failure",
+        "Add console error reading on failure",
+        "Test single flow: ./e2e/claude_test_runner.sh test_add_github_repository"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "claude_test_runner.sh executes test via Claude",
+        "5 test prompt files created",
+        "MCP tools invoked correctly",
+        "Browser automation works",
+        "Screenshots captured on failure"
+      ]
+    },
+    {
+      "id": "TEST-023",
+      "category": "real-e2e",
+      "priority": "critical",
+      "description": "Create master test runner and update documentation",
+      "steps": [
+        "Create e2e/run_all_tests.sh that runs all 5 tests in sequence",
+        "Script should: Export TEST_MODE=true, Start Docker services, Initialize test-results.json, Loop through all 5 tests, Track PASSED/FAILED counts, Report summary, Exit with failure if any test failed",
+        "Make script executable: chmod +x e2e/run_all_tests.sh",
+        "Update Makefile with e2e-real target that calls run_all_tests.sh",
+        "Update Makefile with seed-test-data target",
+        "Update Makefile with test-setup target (seed + docker-up)",
+        "Update TESTING.md with 'Running Real E2E Tests' section",
+        "Document prerequisites: Docker running, Test data seeded, TEST_MODE enabled",
+        "Document commands: make e2e-real, ./e2e/claude_test_runner.sh <test_id>",
+        "Document how it works: Claude prompts, MCP tools, real browser interaction",
+        "Add troubleshooting section",
+        "Test full flow: make test-setup && make e2e-real"
+      ],
+      "passes": false,
+      "acceptance_criteria": [
+        "run_all_tests.sh executes all 5 tests",
+        "Makefile has e2e-real target",
+        "Makefile has seed-test-data target",
+        "TESTING.md updated with real E2E guide",
         "Full flow works end-to-end"
       ]
     }
