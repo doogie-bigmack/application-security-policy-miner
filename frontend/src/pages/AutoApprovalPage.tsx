@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Brain, CheckCircle2, TrendingUp, Settings as SettingsIcon } from 'lucide-react';
-import { logger } from '../utils/logger';
+import logger from '../lib/logger';
 import {
   autoApprovalApi,
   AutoApprovalSettings,

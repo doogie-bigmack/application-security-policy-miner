@@ -12,6 +12,7 @@ import SettingsPage from './pages/SettingsPage'
 import ProvisioningPage from './pages/ProvisioningPage'
 import CodeAdvisoriesPage from './pages/CodeAdvisoriesPage'
 import AutoApprovalPage from './pages/AutoApprovalPage'
+import RiskDashboardPage from './pages/RiskDashboardPage'
 import Layout from './components/Layout'
 
 function App() {
@@ -46,6 +47,7 @@ function App() {
         <Route path="/provisioning" element={<ProvisioningPage />} />
         <Route path="/code-advisories" element={<CodeAdvisoriesPage />} />
         <Route path="/auto-approval" element={<AutoApprovalPage />} />
+        <Route path="/risk" element={<RiskDashboardPage />} />
       </Routes>
     </Layout>
   )

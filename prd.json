@@ -746,7 +746,7 @@
         "Set custom risk thresholds",
         "Receive alerts for high-risk policies"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "ui",

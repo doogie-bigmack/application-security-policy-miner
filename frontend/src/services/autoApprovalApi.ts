@@ -1,4 +1,4 @@
-import { logger } from '../utils/logger';
+import logger from '../lib/logger';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:7777';
 const API_V1 = `${API_BASE_URL}/api/v1`;

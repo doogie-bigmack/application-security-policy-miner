@@ -87,6 +87,12 @@ class PolicyUpdate(BaseModel):
     conditions: str | None = None
     description: str | None = None
     source_type: SourceType | None = None
+    risk_score: float | None = None
+    risk_level: RiskLevel | None = None
+    complexity_score: float | None = None
+    impact_score: float | None = None
+    confidence_score: float | None = None
+    historical_score: float | None = None
 
 
 class PolicyList(BaseModel):

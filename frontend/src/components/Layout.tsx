@@ -73,6 +73,12 @@ export default function Layout({ children, darkMode, setDarkMode }: LayoutProps)
                 Auto-Approval
               </Link>
               <Link
+                to="/risk"
+                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
+              >
+                Risk
+              </Link>
+              <Link
                 to="/audit-logs"
                 className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
               >
