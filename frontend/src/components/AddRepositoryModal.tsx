@@ -1,7 +1,8 @@
 import { FormEvent, useState } from 'react'
-import { X, Github } from 'lucide-react'
+import { X, Github, GitlabIcon } from 'lucide-react'
 import logger from '../lib/logger'
 import GitHubRepositoryBrowser from './GitHubRepositoryBrowser'
+import GitLabRepositoryBrowser from './GitLabRepositoryBrowser'
 
 interface AddRepositoryModalProps {
   isOpen: boolean
@@ -31,6 +32,9 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
 
   // GitHub browser state
   const [showGitHubBrowser, setShowGitHubBrowser] = useState(false)
+
+  // GitLab browser state
+  const [showGitLabBrowser, setShowGitLabBrowser] = useState(false)
 
   if (!isOpen) return null
 
@@ -173,6 +177,68 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
     }
   }
 
+  const handleGitLabRepositorySelect = async (repo: any, accessToken: string, baseUrl: string) => {
+    logger.info('GitLab repository selected', { repo: repo.full_name })
+
+    setShowGitLabBrowser(false)
+
+    // Pre-fill the form with GitLab repository data
+    setName(repo.name)
+    setDescription(repo.description || '')
+    setGitUrl(repo.clone_url)
+    setAuthType('token')
+    setToken(accessToken)
+    setSourceType('git')
+
+    // Auto-submit the form
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/v1/repositories/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: repo.name,
+          description: repo.description || '',
+          repository_type: 'git',
+          git_provider: 'gitlab',
+          source_url: repo.clone_url,
+          connection_config: {
+            token: accessToken,
+            base_url: baseUrl,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to create repository')
+      }
+
+      const data = await response.json()
+      logger.info('GitLab repository imported successfully', { repositoryId: data.id })
+
+      // Reset form
+      setName('')
+      setDescription('')
+      setGitUrl('')
+      setAuthType('none')
+      setToken('')
+
+      onSuccess()
+      onClose()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      logger.error('Failed to import GitLab repository', { error: errorMessage })
+      setError(errorMessage)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-2xl mx-4">
@@ -250,16 +316,26 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
           {/* Git-specific fields */}
           {sourceType === 'git' && (
             <>
-              {/* GitHub Integration Button */}
+              {/* Git Integration Buttons */}
               <div>
-                <button
-                  type="button"
-                  onClick={() => setShowGitHubBrowser(true)}
-                  className="w-full px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center space-x-2 transition"
-                >
-                  <Github size={20} />
-                  <span>Import from GitHub</span>
-                </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowGitHubBrowser(true)}
+                    className="px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center space-x-2 transition"
+                  >
+                    <Github size={20} />
+                    <span>Import from GitHub</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowGitLabBrowser(true)}
+                    className="px-4 py-3 bg-orange-600 dark:bg-orange-700 text-white rounded-lg hover:bg-orange-700 dark:hover:bg-orange-600 flex items-center justify-center space-x-2 transition"
+                  >
+                    <GitlabIcon size={20} />
+                    <span>Import from GitLab</span>
+                  </button>
+                </div>
                 <p className="mt-2 text-sm text-gray-600 dark:text-dark-text-secondary text-center">
                   Or manually enter repository details below
                 </p>
@@ -524,6 +600,14 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
         <GitHubRepositoryBrowser
           onSelectRepository={handleGitHubRepositorySelect}
           onClose={() => setShowGitHubBrowser(false)}
+        />
+      )}
+
+      {/* GitLab Repository Browser */}
+      {showGitLabBrowser && (
+        <GitLabRepositoryBrowser
+          onSelectRepository={handleGitLabRepositorySelect}
+          onClose={() => setShowGitLabBrowser(false)}
         />
       )}
     </div>

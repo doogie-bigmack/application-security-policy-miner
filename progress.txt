@@ -1,5 +1,86 @@
 # Progress Log
 
+## 2026-01-09 - GitLab Integration for Repository Scanning Complete
+
+### Completed
+- Implemented GitLab integration for easy repository importing:
+  - Created GitLabService for GitLab API integration using httpx
+  - Implemented GitLab project listing via GitLab REST API v4
+  - Added token verification endpoint to validate GitLab access tokens
+  - Lists user's projects with metadata (name, description, visibility, namespace)
+  - Supports both GitLab.com and self-hosted GitLab instances
+
+- Backend API endpoints:
+  - POST /api/v1/repositories/gitlab/list - List accessible GitLab projects
+  - POST /api/v1/repositories/gitlab/verify - Verify GitLab access token
+  - Supports pagination (100 projects per page)
+  - Returns formatted project data with clone URLs (HTTP and SSH)
+  - Accepts base_url parameter for self-hosted GitLab instances
+
+- Frontend GitLab browser component:
+  - Created GitLabRepositoryBrowser modal with token authentication
+  - Clean, professional UI matching design system
+  - GitLab instance URL input (supports GitLab.com and self-hosted)
+  - Token input with verification step
+  - Project search and filtering
+  - Visual indicators for visibility levels (public, internal, private)
+  - Color-coded visibility icons (green for public, yellow for internal, red for private)
+  - Namespace display for project organization
+  - Last activity dates
+  - Direct links to view projects on GitLab
+  - One-click import with automatic form population
+
+- Integration with AddRepositoryModal:
+  - Added "Import from GitLab" button with GitLab icon (orange theme)
+  - Placed side-by-side with GitHub button for consistent UX
+  - Seamless modal overlay system
+  - Auto-fills repository details on selection
+  - Stores git_provider='gitlab' for tracking source
+  - Encrypted token storage in connection_config
+  - Stores base_url in connection_config for self-hosted instances
+
+- Code quality:
+  - All backend code passes Ruff linting
+  - Follows established patterns from GitHub integration
+  - Proper error handling and logging
+  - Structured logging with context
+
+### User Story Status
+✅ Story: "GitLab integration for repository scanning" - PASSES
+
+Requirements met:
+- ✅ Navigate to Add Repository
+- ✅ Select GitLab as source (via "Import from GitLab" button)
+- ✅ Provide GitLab personal access token (with verification)
+- ✅ Enter GitLab project URL (optional - browse projects instead)
+- ✅ Test connection (verify endpoint validates token and retrieves user info)
+- ✅ Clone repository for scanning (uses clone_url from GitLab API)
+- ✅ Verify repository is accessible (connection test before adding)
+- ✅ Initiate scan on GitLab repository (existing scan functionality)
+
+### Technical Details
+- Backend: Python, FastAPI, httpx for GitLab API calls
+- Frontend: React, TypeScript with GitLabRepositoryBrowser component
+- Security: Token encrypted at rest using EncryptedJSON
+- API: GitLab REST API v4 with personal access tokens
+- UX: Two-step flow - verify token, then browse projects
+- Self-hosted support: Accepts custom base_url for on-premises GitLab
+
+### Benefits
+- Dramatically simplifies GitLab repository onboarding
+- No manual URL copying or credential entry needed
+- Browse all accessible projects in one view
+- Visual feedback on project visibility levels
+- Supports both GitLab.com and self-hosted instances
+- Reduces human error in URL/token entry
+- Professional, intuitive user experience
+- Consistent with GitHub integration patterns
+
+### Next Steps
+- Bitbucket and Azure DevOps integrations can follow same pattern
+- Consider OAuth flow for production deployment
+- Add webhook auto-configuration during import
+
 ## 2026-01-09 - GitHub Integration for Repository Scanning Complete
 
 ### Completed

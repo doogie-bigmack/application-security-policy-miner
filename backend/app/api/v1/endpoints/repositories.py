@@ -16,6 +16,7 @@ from app.schemas.repository import (
 )
 from app.services.evidence_validation_service import EvidenceValidationService
 from app.services.github_service import GitHubService
+from app.services.gitlab_service import GitLabService
 from app.services.repository_service import RepositoryService
 
 logger = structlog.get_logger()
@@ -300,4 +301,74 @@ async def verify_github_token(
         raise HTTPException(
             status_code=401,
             detail="Invalid GitHub access token",
+        )
+
+
+@router.post("/gitlab/list")
+async def list_gitlab_repositories(
+    access_token: str = Query(..., description="GitLab personal access token"),
+    base_url: str = Query("https://gitlab.com", description="GitLab instance URL"),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(100, ge=1, le=100, description="Results per page"),
+) -> dict:
+    """
+    List GitLab projects accessible to the user.
+
+    Requires a GitLab personal access token with 'api' or 'read_api' scope.
+
+    Args:
+        access_token: GitLab personal access token
+        base_url: GitLab instance URL (default: https://gitlab.com)
+        page: Page number (default: 1)
+        per_page: Results per page (default: 100, max: 100)
+
+    Returns:
+        List of GitLab projects with metadata
+    """
+    logger.info("api_list_gitlab_repositories", page=page, per_page=per_page, base_url=base_url)
+
+    try:
+        gitlab_service = GitLabService(access_token, base_url)
+        result = await gitlab_service.list_repositories(per_page=per_page, page=page)
+
+        logger.info("gitlab_repositories_listed", count=result.get("total"))
+        return result
+
+    except Exception as e:
+        logger.error("failed_to_list_gitlab_repositories", error=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to fetch GitLab repositories: {str(e)}",
+        )
+
+
+@router.post("/gitlab/verify")
+async def verify_gitlab_token(
+    access_token: str = Query(..., description="GitLab personal access token"),
+    base_url: str = Query("https://gitlab.com", description="GitLab instance URL"),
+) -> dict:
+    """
+    Verify GitLab access token and get user information.
+
+    Args:
+        access_token: GitLab personal access token
+        base_url: GitLab instance URL (default: https://gitlab.com)
+
+    Returns:
+        User information if token is valid
+    """
+    logger.info("api_verify_gitlab_token", base_url=base_url)
+
+    try:
+        gitlab_service = GitLabService(access_token, base_url)
+        user_info = await gitlab_service.verify_access()
+
+        logger.info("gitlab_token_verified", user=user_info.get("username"))
+        return user_info
+
+    except Exception as e:
+        logger.error("gitlab_token_verification_failed", error=str(e))
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid GitLab access token",
         )
