@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X, Save, FileCode, CheckCircle, XCircle, Clock, History } from 'lucide-react'
+import { X, Save, FileCode, CheckCircle, XCircle, Clock, History, AlertTriangle, ShieldCheck, HelpCircle } from 'lucide-react'
 import Editor from '@monaco-editor/react'
 import logger from '../lib/logger'
 
@@ -9,6 +9,9 @@ interface Evidence {
   line_start: number
   line_end: number
   code_snippet: string
+  validation_status: 'pending' | 'valid' | 'invalid' | 'file_not_found' | 'line_mismatch'
+  validation_error: string | null
+  validated_at: string | null
 }
 
 type SourceType = 'frontend' | 'backend' | 'database' | 'unknown'
@@ -313,24 +316,59 @@ export default function PolicyDetailModal({ policy, onClose, onSave }: PolicyDet
                 <h3 className="text-lg font-semibold">Evidence ({policy.evidence.length})</h3>
               </div>
               <div className="space-y-3">
-                {policy.evidence.map((ev) => (
-                  <div
-                    key={ev.id}
-                    className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-800"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {ev.file_path}
+                {policy.evidence.map((ev) => {
+                  // Determine validation badge
+                  let validationBadge = null
+                  if (ev.validation_status === 'valid') {
+                    validationBadge = (
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                        <ShieldCheck size={12} className="mr-1" />
+                        Validated
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        Lines {ev.line_start}-{ev.line_end}
+                    )
+                  } else if (ev.validation_status === 'invalid' || ev.validation_status === 'file_not_found' || ev.validation_status === 'line_mismatch') {
+                    validationBadge = (
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                        <AlertTriangle size={12} className="mr-1" />
+                        Invalid
                       </span>
+                    )
+                  } else if (ev.validation_status === 'pending') {
+                    validationBadge = (
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                        <HelpCircle size={12} className="mr-1" />
+                        Pending
+                      </span>
+                    )
+                  }
+
+                  return (
+                    <div
+                      key={ev.id}
+                      className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-800"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {ev.file_path}
+                          </span>
+                          {validationBadge}
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          Lines {ev.line_start}-{ev.line_end}
+                        </span>
+                      </div>
+                      {ev.validation_error && (
+                        <div className="mb-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 p-2 rounded">
+                          <strong>Validation Error:</strong> {ev.validation_error}
+                        </div>
+                      )}
+                      <pre className="text-xs bg-white dark:bg-gray-950 p-3 rounded border border-gray-200 dark:border-gray-800 overflow-x-auto">
+                        <code>{ev.code_snippet}</code>
+                      </pre>
                     </div>
-                    <pre className="text-xs bg-white dark:bg-gray-950 p-3 rounded border border-gray-200 dark:border-gray-800 overflow-x-auto">
-                      <code>{ev.code_snippet}</code>
-                    </pre>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}

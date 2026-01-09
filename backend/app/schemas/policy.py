@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.policy import PolicyStatus, RiskLevel, SourceType
+from app.models.policy import PolicyStatus, RiskLevel, SourceType, ValidationStatus
 
 
 class EvidenceBase(BaseModel):
@@ -26,6 +26,9 @@ class Evidence(EvidenceBase):
 
     id: int
     policy_id: int
+    validation_status: ValidationStatus = ValidationStatus.PENDING
+    validation_error: str | None = None
+    validated_at: datetime | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
