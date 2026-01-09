@@ -1,5 +1,4 @@
 """Tests for streaming batch processing in scanner service."""
-import math
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

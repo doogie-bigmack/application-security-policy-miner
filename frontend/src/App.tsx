@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage'
 import RepositoriesPage from './pages/RepositoriesPage'
 import PoliciesPage from './pages/PoliciesPage'
 import ConflictsPage from './pages/ConflictsPage'
+import ChangesPage from './pages/ChangesPage'
 import Layout from './components/Layout'
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
         <Route path="/repositories" element={<RepositoriesPage />} />
         <Route path="/policies" element={<PoliciesPage />} />
         <Route path="/conflicts" element={<ConflictsPage />} />
+        <Route path="/changes" element={<ChangesPage />} />
       </Routes>
     </Layout>
   )

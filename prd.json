@@ -162,7 +162,7 @@
         "View diff visualization showing before/after",
         "Confirm work items are automatically created for changes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

@@ -42,6 +42,12 @@ export default function Layout({ children, darkMode, setDarkMode }: LayoutProps)
               >
                 Conflicts
               </Link>
+              <Link
+                to="/changes"
+                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
+              >
+                Changes
+              </Link>
               <button
                 onClick={toggleDarkMode}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
