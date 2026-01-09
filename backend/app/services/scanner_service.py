@@ -865,6 +865,17 @@ class ScannerService:
 
             self.db.commit()
 
+            # Validate evidence immediately after extraction
+            from app.services.evidence_validation_service import EvidenceValidationService
+            validation_service = EvidenceValidationService(self.db)
+
+            for policy in policies:
+                for evidence in policy.evidence:
+                    try:
+                        validation_service.validate_evidence(evidence.id, repo_path)
+                    except Exception as e:
+                        logger.error(f"Failed to validate evidence {evidence.id}: {e}")
+
             # Apply auto-approval if enabled
             if repo.tenant_id:
                 from app.services.auto_approval_service import AutoApprovalService

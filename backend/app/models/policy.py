@@ -34,6 +34,16 @@ class SourceType(str, Enum):
     UNKNOWN = "unknown"
 
 
+class ValidationStatus(str, Enum):
+    """Evidence validation status."""
+
+    PENDING = "pending"  # Not yet validated
+    VALID = "valid"  # Evidence matches source file
+    INVALID = "invalid"  # Evidence does not match source file
+    FILE_NOT_FOUND = "file_not_found"  # Source file no longer exists
+    LINE_MISMATCH = "line_mismatch"  # Line numbers out of range
+
+
 class Policy(Base):
     """Policy model for storing extracted authorization policies."""
 
@@ -97,6 +107,11 @@ class Evidence(Base):
 
     # Code snippet
     code_snippet = Column(Text, nullable=False)
+
+    # Validation status
+    validation_status = Column(SAEnum(ValidationStatus), default=ValidationStatus.PENDING, nullable=False)
+    validation_error = Column(Text, nullable=True)  # Details if validation fails
+    validated_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationship
     policy = relationship("Policy", back_populates="evidence")

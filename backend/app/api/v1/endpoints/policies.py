@@ -13,6 +13,7 @@ from app.models.repository import Repository
 from app.schemas.policy import Policy as PolicySchema
 from app.schemas.policy import PolicyList, PolicyUpdate
 from app.services.audit_service import AuditService
+from app.services.evidence_validation_service import EvidenceValidationService
 from app.services.translation_service import TranslationService
 
 logger = logging.getLogger(__name__)
@@ -439,3 +440,72 @@ async def export_policy_json(policy_id: int, db: Session = Depends(get_db)) -> P
     except Exception as e:
         logger.error(f"Failed to export policy to JSON: {e}", extra={"policy_id": policy_id})
         raise HTTPException(status_code=500, detail=f"Failed to export policy to JSON: {str(e)}")
+
+
+@router.post("/evidence/{evidence_id}/validate")
+async def validate_evidence(evidence_id: int, db: Session = Depends(get_db)) -> dict:
+    """Validate a single evidence item against its source file.
+
+    Args:
+        evidence_id: Evidence ID
+        db: Database session
+
+    Returns:
+        Validation result
+    """
+    # Get evidence and associated repository
+    evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+    if not evidence:
+        raise HTTPException(status_code=404, detail="Evidence not found")
+
+    policy = db.query(Policy).filter(Policy.id == evidence.policy_id).first()
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    repository = db.query(Repository).filter(Repository.id == policy.repository_id).first()
+    if not repository:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    # Get repository path
+    repo_path = Path("/tmp/policy_miner_repos") / str(repository.id)
+
+    # Validate evidence
+    validation_service = EvidenceValidationService(db)
+    result = validation_service.validate_evidence(evidence_id, str(repo_path))
+
+    logger.info(f"Evidence {evidence_id} validation result: {result.get('status')}")
+
+    return result
+
+
+@router.post("/{policy_id}/validate-evidence")
+async def validate_policy_evidence(policy_id: int, db: Session = Depends(get_db)) -> dict:
+    """Validate all evidence items for a policy.
+
+    Args:
+        policy_id: Policy ID
+        db: Database session
+
+    Returns:
+        Validation summary
+    """
+    policy = db.query(Policy).filter(Policy.id == policy_id).first()
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    repository = db.query(Repository).filter(Repository.id == policy.repository_id).first()
+    if not repository:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    # Get repository path
+    repo_path = Path("/tmp/policy_miner_repos") / str(repository.id)
+
+    # Validate all evidence for this policy
+    validation_service = EvidenceValidationService(db)
+    result = validation_service.validate_policy_evidence(policy_id, str(repo_path))
+
+    logger.info(
+        f"Policy {policy_id} evidence validation complete: {result.get('valid')}/{result.get('total')} valid"
+    )
+
+    return result

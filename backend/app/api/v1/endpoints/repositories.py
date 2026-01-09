@@ -1,4 +1,5 @@
 """Repository API endpoints."""
+from pathlib import Path
 from typing import Annotated
 
 import structlog
@@ -13,6 +14,7 @@ from app.schemas.repository import (
     RepositoryResponse,
     RepositoryUpdate,
 )
+from app.services.evidence_validation_service import EvidenceValidationService
 from app.services.repository_service import RepositoryService
 
 logger = structlog.get_logger()
@@ -181,3 +183,54 @@ async def scan_repository(
     except Exception as e:
         logger.error("scan_failed", repository_id=repository_id, error=str(e))
         raise HTTPException(status_code=500, detail=f"Scan failed: {str(e)}")
+
+
+@router.post("/{repository_id}/validate-evidence")
+async def validate_repository_evidence(
+    repository_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    tenant_id: Annotated[str | None, Depends(get_tenant_id)],
+) -> dict:
+    """Validate all evidence items for all policies in a repository.
+
+    This prevents AI hallucination by verifying that evidence matches source files.
+
+    Args:
+        repository_id: Repository ID
+        db: Database session
+        tenant_id: Tenant ID
+
+    Returns:
+        Validation summary with statistics
+    """
+    logger.info("api_validate_repository_evidence", repository_id=repository_id, tenant_id=tenant_id)
+
+    # Verify repository exists
+    service = RepositoryService(db)
+    repository = service.get_repository(repository_id, tenant_id=tenant_id)
+
+    if not repository:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    # Get repository path
+    repo_path = Path("/tmp/policy_miner_repos") / str(repository_id)
+
+    if not repo_path.exists():
+        raise HTTPException(
+            status_code=400,
+            detail="Repository not found on disk. Please scan the repository first.",
+        )
+
+    # Validate all evidence
+    validation_service = EvidenceValidationService(db)
+    result = validation_service.validate_repository_evidence(repository_id, str(repo_path))
+
+    logger.info(
+        "repository_evidence_validated",
+        repository_id=repository_id,
+        total_evidence=result.get("total_evidence"),
+        valid=result.get("valid"),
+        invalid=result.get("invalid"),
+    )
+
+    return result
