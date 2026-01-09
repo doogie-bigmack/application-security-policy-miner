@@ -1,5 +1,5 @@
-.PHONY: help install dev docker-up docker-down docker-rebuild test e2e lint lint-backend lint-frontend \
-        damonnator damonnator-test damonnator-infra damonnator-all status clean
+.PHONY: help install dev docker-up docker-down docker-rebuild test e2e e2e-real seed-test-data test-setup \
+        lint lint-backend lint-frontend damonnator damonnator-test damonnator-infra damonnator-all status clean
 
 ##@ General
 
@@ -66,6 +66,30 @@ e2e: ## Run E2E tests manually (requires e2e/ infrastructure)
 	fi
 	e2e/.venv/bin/python3 e2e/e2e_runner.py --test-suite e2e-tests.json --prd prd.json --output test-results.json
 	@echo "✅ E2E tests complete. See test-results.json"
+
+e2e-real: ## Run real E2E tests with Claude and browser automation
+	@echo "Running real E2E tests with Claude..."
+	@if [ ! -d "e2e" ]; then \
+		echo "❌ e2e/ directory not found. Run 'make damonnator-infra' first to build test infrastructure."; \
+		exit 1; \
+	fi
+	@if [ ! -f "e2e/run_all_tests.sh" ]; then \
+		echo "❌ run_all_tests.sh not found. Test infrastructure incomplete."; \
+		exit 1; \
+	fi
+	@export TEST_MODE=true && ./e2e/run_all_tests.sh
+	@echo "✅ Real E2E tests complete. See test-results.json"
+
+seed-test-data: ## Seed test database with sample data
+	@echo "Seeding test database..."
+	@export TEST_MODE=true && python3 backend/scripts/seed_test_data.py
+	@echo "✅ Test data seeded"
+
+test-setup: docker-up seed-test-data ## Setup complete test environment (Docker + seed data)
+	@echo "✅ Test environment ready"
+	@echo "Frontend: http://localhost:3333"
+	@echo "Backend: http://localhost:7777"
+	@echo "Run 'make e2e-real' to execute tests"
 
 ##@ Code Quality
 
