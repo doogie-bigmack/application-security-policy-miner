@@ -221,7 +221,7 @@
         "Confirm policies are pushed via REST API",
         "Validate policies in target platform"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

@@ -1474,6 +1474,81 @@
 ✅ Story 29: "Support Python language scanning" - PASSES
 ✅ Story 30: "Support JavaScript/TypeScript scanning" - PASSES
 
+## 2026-01-08 - Axiomatics and PlainID Provisioning Complete
+
+### Completed
+- Backend Axiomatics provisioning:
+  - Implemented _push_to_axiomatics() method in ProvisioningService
+  - Supports bearer token and API key authentication
+  - PUT/POST strategy (update if exists, create if not)
+  - Configurable auth_type via JSON configuration
+  - Supports additional custom headers
+  - Full error handling and logging
+
+- Backend PlainID provisioning:
+  - Implemented _push_to_plainid() method in ProvisioningService
+  - Bearer token authentication
+  - PUT/POST strategy for policy upsert
+  - Tenant ID support via configuration
+  - Rich metadata inclusion (source, risk scores, etc.)
+  - JSON policy format with automatic parsing
+  - Full error handling and logging
+
+- Backend integration:
+  - Updated _push_to_platform() dispatcher to route Axiomatics and PlainID calls
+  - Fixed bug: changed Policy.policy_id to Policy.id in provision_policy()
+  - Both provider types use translate_to_json() for policy translation
+
+- Testing:
+  - Created comprehensive test suite: test_axiomatics_plainid_provisioning.py
+  - 11 test cases covering:
+    - Axiomatics provisioning with bearer and API key auth
+    - Axiomatics create-if-not-exists logic
+    - PlainID provisioning with JSON policies
+    - PlainID metadata inclusion
+    - Integration tests for end-to-end provisioning workflow
+  - All 11 tests passing ✅
+
+- Frontend verification:
+  - Confirmed ProvisioningPage has Axiomatics option in provider dropdown
+  - Confirmed ProvisioningPage has PlainID option in provider dropdown
+  - Badge colors configured: Axiomatics (purple), PlainID (green)
+  - All UI components already implemented (no changes needed)
+
+### Implementation Details
+- Axiomatics API: PUT /api/policies/{policy_id}, POST /api/policies
+- PlainID API: PUT /api/v1/policies/{policy_id}, POST /api/v1/policies
+- Both use httpx.AsyncClient for HTTP requests
+- Configurable authentication via provider.configuration JSON
+- Policy translation happens before provisioning (uses TranslationService)
+- Full tenant isolation maintained
+- Error messages captured in provisioning_operations table
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
+✅ Story 8: "Conflict Resolution - Flag conflicts and AI recommendations" - PASSES
+✅ Story 9: "Multi-tenancy - Tenant-aware policy mining with full isolation" - PASSES
+✅ Story 10: "Unlimited Repository Size - Streaming analysis with batching" - PASSES
+✅ Story 11: "Change Detection - Auto-create work items and diff visualization" - PASSES
+✅ Story 12: "Change Detection - Git integration and PBAC sync" - PASSES
+✅ Story 13: "Policy Provisioning - Auto-provision to OPA" - PASSES
+✅ Story 14: "Policy Provisioning - Auto-provision to AWS Verified Permissions" - PASSES
+✅ Story 15: "Policy Provisioning - Auto-provision to Axiomatics/PlainID" - PASSES
+✅ Story 22: "Pre-scan secret detection - No credentials sent to LLM" - PASSES
+✅ Story 23: "Private LLM endpoints - AWS Bedrock or Azure OpenAI only" - PASSES
+✅ Story 24: "Encryption at rest and in transit" - PASSES
+✅ Story 25: "Full audit logging - All prompts, responses, decisions" - PASSES
+✅ Story 26: "Evidence-based output - Quote exact code lines" - PASSES
+✅ Story 27: "Support Java language scanning with tree-sitter" - PASSES
+✅ Story 28: "Support C#/.NET language scanning with tree-sitter" - PASSES
+✅ Story 29: "Support Python language scanning" - PASSES
+✅ Story 30: "Support JavaScript/TypeScript scanning" - PASSES
+
 ### Next Steps
 - Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
-- Story 15: Policy Provisioning - Auto-provision to Axiomatics/PlainID
+- Story 16: Code Change Advisory - AI generates refactoring code
