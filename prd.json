@@ -563,7 +563,7 @@
         "Check that unchanged policies remain intact",
         "Verify new/modified policies are detected"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "integration",

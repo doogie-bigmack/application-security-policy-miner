@@ -147,12 +147,15 @@ async def scan_repository(
     repository_id: int,
     db: Annotated[Session, Depends(get_db)],
     tenant_id: Annotated[str | None, Depends(get_tenant_id)],
+    incremental: bool = Query(False, description="Perform incremental scan (only changed files)"),
 ):
     """Trigger a scan for a repository.
 
     This will clone the repository, analyze the code, and extract authorization policies.
+    If incremental=true, only files changed since the last scan will be processed.
     """
-    logger.info("api_scan_repository", repository_id=repository_id, tenant_id=tenant_id)
+    scan_type = "incremental" if incremental else "full"
+    logger.info("api_scan_repository", repository_id=repository_id, tenant_id=tenant_id, scan_type=scan_type)
 
     from app.services.scanner_service import ScannerService
 
@@ -173,7 +176,7 @@ async def scan_repository(
     # Start scan
     scanner = ScannerService(db)
     try:
-        result = await scanner.scan_repository(repository_id, tenant_id=tenant_id)
+        result = await scanner.scan_repository(repository_id, tenant_id=tenant_id, incremental=incremental)
         return result
     except Exception as e:
         logger.error("scan_failed", repository_id=repository_id, error=str(e))

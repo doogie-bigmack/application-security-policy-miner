@@ -38,6 +38,10 @@ class ScanProgress(Base):
     errors_count = Column(Integer, default=0)
     error_message = Column(Text, nullable=True)
 
+    # Git tracking for incremental scans
+    git_commit_hash = Column(String(40), nullable=True)  # SHA-1 hash of the commit
+    is_incremental = Column(Integer, default=0)  # Boolean: 0=full scan, 1=incremental
+
     # Timestamps
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)

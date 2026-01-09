@@ -153,12 +153,15 @@ class ScannerService:
         else:
             return SourceType.UNKNOWN
 
-    async def scan_repository(self, repository_id: int, tenant_id: str | None = None) -> dict[str, Any]:
+    async def scan_repository(
+        self, repository_id: int, tenant_id: str | None = None, incremental: bool = False
+    ) -> dict[str, Any]:
         """Scan a repository and extract policies using streaming analysis.
 
         Args:
             repository_id: ID of the repository to scan
             tenant_id: Optional tenant ID for multi-tenancy
+            incremental: If True, only scan changed files since last scan
 
         Returns:
             Dictionary with scan results including memory metrics
@@ -167,8 +170,9 @@ class ScannerService:
         start_memory_mb = self._get_memory_usage_mb()
         peak_memory_mb = start_memory_mb
 
+        scan_type = "incremental" if incremental else "full"
         logger.info(
-            f"Starting streaming scan for repository {repository_id}",
+            f"Starting {scan_type} streaming scan for repository {repository_id}",
             tenant_id=tenant_id,
             initial_memory_mb=round(start_memory_mb, 2)
         )
@@ -200,9 +204,26 @@ class ScannerService:
             # Clone repository to temp directory
             repo_path = await self._clone_repository(repo)
 
+            # Get current commit hash
+            git_repo = Repo(repo_path)
+            current_commit = git_repo.head.commit.hexsha
+            scan_progress.git_commit_hash = current_commit
+            scan_progress.is_incremental = 1 if incremental else 0
+
+            # Get changed files if incremental scan
+            changed_files = set()
+            if incremental:
+                last_commit = self._get_last_scan_commit(repository_id)
+                if last_commit:
+                    changed_files = self._get_changed_files_since_commit(repo_path, last_commit)
+                    logger.info(f"Incremental scan: {len(changed_files)} files changed")
+                else:
+                    logger.info("No previous scan found, performing full scan")
+                    incremental = False  # Fall back to full scan
+
             # STREAMING: Count files first without loading into memory
-            total_files = await self._count_authorization_files(repo_path)
-            total_batches = math.ceil(total_files / settings.BATCH_SIZE)
+            total_files = await self._count_authorization_files(repo_path, changed_files if incremental else None)
+            total_batches = math.ceil(total_files / settings.BATCH_SIZE) if total_files > 0 else 0
 
             logger.info(
                 f"Found {total_files} files to scan, will process in {total_batches} batches"
@@ -220,7 +241,9 @@ class ScannerService:
             current_batch = []
             batch_num = 0
 
-            async for file_info in self._stream_authorization_files(repo_path, repo):
+            async for file_info in self._stream_authorization_files(
+                repo_path, repo, changed_files if incremental else None
+            ):
                 current_batch.append(file_info)
 
                 # Process batch when it reaches BATCH_SIZE
@@ -340,6 +363,8 @@ class ScannerService:
             return {
                 "status": "completed",
                 "scan_id": scan_progress.id,
+                "scan_type": "incremental" if scan_progress.is_incremental else "full",
+                "git_commit": current_commit[:7] if 'current_commit' in locals() else None,
                 "files_scanned": total_files,
                 "policies_extracted": policies_created,
                 "errors_count": errors_count,
@@ -363,6 +388,67 @@ class ScannerService:
             self.db.commit()
             raise
 
+    def _get_last_scan_commit(self, repository_id: int) -> str | None:
+        """Get the git commit hash from the last successful scan.
+
+        Args:
+            repository_id: Repository ID
+
+        Returns:
+            Git commit hash or None if no previous scan
+        """
+        last_scan = (
+            self.db.query(ScanProgress)
+            .filter(
+                ScanProgress.repository_id == repository_id,
+                ScanProgress.status == ScanStatus.COMPLETED,
+                ScanProgress.git_commit_hash.isnot(None)
+            )
+            .order_by(ScanProgress.completed_at.desc())
+            .first()
+        )
+        return last_scan.git_commit_hash if last_scan else None
+
+    def _get_changed_files_since_commit(self, repo_path: Path, base_commit: str) -> set[str]:
+        """Get list of changed files since a specific commit using git diff.
+
+        Args:
+            repo_path: Path to the git repository
+            base_commit: Base commit hash to compare against
+
+        Returns:
+            Set of file paths that have changed
+        """
+        try:
+            git_repo = Repo(repo_path)
+            current_commit = git_repo.head.commit.hexsha
+
+            if base_commit == current_commit:
+                logger.info("No changes since last scan (same commit)")
+                return set()
+
+            # Get diff between base commit and current HEAD
+            diff_index = git_repo.commit(base_commit).diff(git_repo.head.commit)
+
+            changed_files = set()
+            for diff in diff_index:
+                # Include both modified and added files (a_path for deletions, b_path for additions)
+                if diff.b_path:  # File was added or modified
+                    changed_files.add(diff.b_path)
+                elif diff.a_path:  # File was deleted (we won't scan deleted files)
+                    pass
+
+            logger.info(
+                f"Git diff: found {len(changed_files)} changed files between "
+                f"{base_commit[:7]} and {current_commit[:7]}"
+            )
+            return changed_files
+
+        except Exception as e:
+            logger.error(f"Error getting git diff: {e}")
+            # If we can't get the diff, fall back to full scan
+            return set()
+
     async def _clone_repository(self, repo: Repository) -> Path:
         """Clone repository to temporary directory.
 
@@ -376,7 +462,11 @@ class ScannerService:
         clone_dir.mkdir(parents=True, exist_ok=True)
 
         if (clone_dir / ".git").exists():
-            logger.info(f"Repository already cloned at {clone_dir}")
+            logger.info(f"Repository already cloned at {clone_dir}, pulling latest changes")
+            # Pull latest changes instead of re-cloning
+            git_repo = Repo(clone_dir)
+            origin = git_repo.remotes.origin
+            origin.pull()
             return clone_dir
 
         # Build clone URL with credentials if provided
@@ -393,15 +483,17 @@ class ScannerService:
                 clone_url = clone_url.replace("https://", f"https://{username}:{password}@")
 
         logger.info(f"Cloning repository to {clone_dir}")
-        Repo.clone_from(clone_url, clone_dir, depth=1)
+        # Don't use depth=1 anymore so we can do git diff
+        Repo.clone_from(clone_url, clone_dir)
 
         return clone_dir
 
-    async def _count_authorization_files(self, repo_path: Path) -> int:
+    async def _count_authorization_files(self, repo_path: Path, changed_files: set[str] | None = None) -> int:
         """Count files with potential authorization code without loading them into memory.
 
         Args:
             repo_path: Path to repository
+            changed_files: Optional set of changed files to filter by (for incremental scans)
 
         Returns:
             Count of files to be scanned
@@ -420,12 +512,18 @@ class ScannerService:
             if file_path.stat().st_size > settings.MAX_FILE_SIZE_MB * 1024 * 1024:
                 continue
 
+            # Filter by changed files if incremental scan
+            if changed_files is not None:
+                relative_path = str(file_path.relative_to(repo_path))
+                if relative_path not in changed_files:
+                    continue
+
             count += 1
 
         return count
 
     async def _stream_authorization_files(
-        self, repo_path: Path, repository: Repository
+        self, repo_path: Path, repository: Repository, changed_files: set[str] | None = None
     ) -> AsyncGenerator[dict[str, Any], None]:
         """Stream files containing authorization code one at a time (generator).
 
@@ -435,6 +533,7 @@ class ScannerService:
         Args:
             repo_path: Path to repository
             repository: Repository model instance for logging secrets
+            changed_files: Optional set of changed files to filter by (for incremental scans)
 
         Yields:
             File information dictionaries one at a time
@@ -452,9 +551,15 @@ class ScannerService:
             if file_path.stat().st_size > settings.MAX_FILE_SIZE_MB * 1024 * 1024:
                 continue
 
+            relative_path = file_path.relative_to(repo_path)
+
+            # Filter by changed files if incremental scan
+            if changed_files is not None:
+                if str(relative_path) not in changed_files:
+                    continue
+
             try:
                 content = file_path.read_text(encoding="utf-8", errors="ignore")
-                relative_path = file_path.relative_to(repo_path)
 
                 # PRE-SCAN: Detect secrets BEFORE processing
                 secret_result = SecretDetectionService.scan_content(content, str(relative_path))
