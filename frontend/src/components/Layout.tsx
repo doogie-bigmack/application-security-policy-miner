@@ -91,6 +91,12 @@ export default function Layout({ children, darkMode, setDarkMode }: LayoutProps)
                 Applications
               </Link>
               <Link
+                to="/normalization"
+                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
+              >
+                Normalization
+              </Link>
+              <Link
                 to="/audit-logs"
                 className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
               >
