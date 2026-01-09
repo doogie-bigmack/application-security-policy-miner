@@ -5,7 +5,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, get_tenant_id
+from app.core.database import get_db
+from app.core.dependencies import get_tenant_id
 from app.models.secret_detection import SecretDetectionLog
 from app.schemas.secret_detection import SecretDetectionLogResponse
 

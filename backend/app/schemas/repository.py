@@ -31,6 +31,7 @@ class RepositoryUpdate(BaseModel):
     source_url: str | None = Field(None, max_length=500)
     connection_config: dict | None = None
     status: RepositoryStatus | None = None
+    webhook_enabled: bool | None = None
 
 
 class RepositoryResponse(RepositoryBase):
@@ -41,6 +42,8 @@ class RepositoryResponse(RepositoryBase):
     id: int
     status: RepositoryStatus
     last_scan_at: datetime | None = None
+    webhook_secret: str | None = None
+    webhook_enabled: bool = False
     created_at: datetime
     updated_at: datetime
 

@@ -81,6 +81,9 @@ class RepositoryService:
 
         update_data = repository_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
+            # Convert webhook_enabled bool to int for database
+            if field == "webhook_enabled" and isinstance(value, bool):
+                value = 1 if value else 0
             setattr(repository, field, value)
 
         self.db.commit()

@@ -176,7 +176,7 @@
         "Verify changes are synced to PBAC platform",
         "Confirm PBAC platform reflects updated policies"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
