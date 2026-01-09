@@ -21,7 +21,7 @@ cx-oracle==8.3.0
 pytest==8.3.4
 pytest-asyncio==0.24.0
 ruff==0.8.4
-tree-sitter==0.23.2
+tree-sitter==0.21.3
 tree-sitter-languages==1.10.2
 boto3==1.35.94
 openai==1.59.4

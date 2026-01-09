@@ -1,6 +1,7 @@
 """Tests for encryption service."""
 
 import pytest
+
 from app.services.encryption_service import EncryptionService
 
 

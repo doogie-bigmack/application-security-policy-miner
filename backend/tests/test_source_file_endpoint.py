@@ -1,5 +1,4 @@
 """Tests for source file endpoint."""
-import tempfile
 from pathlib import Path
 
 import pytest
