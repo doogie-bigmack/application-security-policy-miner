@@ -791,7 +791,7 @@
         "Review generated test cases",
         "Download patch file or apply changes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

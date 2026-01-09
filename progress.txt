@@ -2258,3 +2258,71 @@ Requirements met:
 ### Next Steps
 - Continue with remaining UI task (Code change advisory viewer with diff)
 - Or tackle integration/deployment tasks
+
+## 2026-01-09 - Code Advisory Diff Viewer with Patch Download Complete
+
+### Completed
+- Enhanced Code Advisories page with professional diff viewer:
+  - Installed react-diff-viewer-continued library for side-by-side diff display
+  - Created DiffViewer component with custom styling for light and dark modes
+  - Integrated DiffViewer into CodeAdvisoriesPage modal
+  - Replaced simple red/green code blocks with professional diff highlighting
+
+- Side-by-side diff features:
+  - Word-level diff highlighting (DiffMethod.WORDS)
+  - Split view with original code on left, refactored code on right
+  - Line numbers for easy reference
+  - Color-coded additions (green) and removals (red)
+  - Custom styling that matches application design system
+  - Support for both light and dark color schemes
+
+- Download patch file functionality:
+  - Added downloadPatchFile function that generates unified diff format
+  - Patch files include file path, line numbers, and full diff
+  - Added "Download Patch" button to advisory modal
+  - Patch files can be applied using standard git/patch tools
+
+- UI improvements:
+  - "Download Code" button for downloading refactored code only
+  - "Download Patch" button for downloading unified diff patch
+  - Both buttons use appropriate icons (Download and FileText)
+  - Modal layout optimized for diff viewer display
+  - Consistent styling with rest of application
+
+- Technical implementation:
+  - DiffViewer component with customizable props (originalCode, refactoredCode, language, fileName)
+  - Support for dark mode detection via prefers-color-scheme
+  - Monospace font for code display
+  - Proper TypeScript types for all components
+  - ESLint compliant code
+
+- Testing:
+  - Created test code advisory in database
+  - Verified API endpoint returns advisory data correctly
+  - Frontend rebuilds without errors
+  - No linting errors
+  - All Docker containers running successfully
+
+### User Story Status
+✅ Story: "Code change advisory viewer with diff" - PASSES
+
+Requirements met:
+- ✅ Navigate to Code Advisories page
+- ✅ Select an advisory to review  
+- ✅ View original code in left pane (professional diff viewer)
+- ✅ View suggested code in right pane (professional diff viewer)
+- ✅ Review side-by-side diff with highlighting (word-level highlighting)
+- ✅ Read AI explanation of changes
+- ✅ Review generated test cases
+- ✅ Download patch file or apply changes (both patch and code download)
+
+### Technical Details
+Files modified:
+- frontend/src/components/DiffViewer.tsx (new file)
+- frontend/src/pages/CodeAdvisoriesPage.tsx
+- frontend/package.json (added react-diff-viewer-continued@3.4.0)
+- frontend/bun.lockb (updated)
+
+### Next Steps
+- Continue with remaining tasks (organization management, application management, policy translation, etc.)
+
