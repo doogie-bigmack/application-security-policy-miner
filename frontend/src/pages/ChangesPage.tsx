@@ -28,6 +28,17 @@ interface WorkItem {
   priority: 'low' | 'medium' | 'high' | 'critical';
   assigned_to?: string;
   created_at: string;
+  is_spaghetti_detection: number;
+  refactoring_suggestion?: string;
+}
+
+interface SpaghettiMetrics {
+  total_spaghetti_detected: number;
+  spaghetti_resolved: number;
+  spaghetti_open: number;
+  spaghetti_in_progress: number;
+  prevention_rate: number;
+  total_work_items: number;
 }
 
 export default function ChangesPage() {
@@ -35,10 +46,12 @@ export default function ChangesPage() {
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedChanges, setExpandedChanges] = useState<Set<number>>(new Set());
+  const [spaghettiMetrics, setSpaghettiMetrics] = useState<SpaghettiMetrics | null>(null);
 
   useEffect(() => {
     fetchChanges();
     fetchWorkItems();
+    fetchSpaghettiMetrics();
   }, []);
 
   const fetchChanges = async () => {
@@ -64,6 +77,18 @@ export default function ChangesPage() {
       }
     } catch (error) {
       console.error('Error fetching work items:', error);
+    }
+  };
+
+  const fetchSpaghettiMetrics = async () => {
+    try {
+      const response = await fetch('/api/v1/changes/spaghetti-metrics');
+      if (response.ok) {
+        const data = await response.json();
+        setSpaghettiMetrics(data);
+      }
+    } catch (error) {
+      console.error('Error fetching spaghetti metrics:', error);
     }
   };
 
@@ -181,6 +206,50 @@ export default function ChangesPage() {
         </p>
       </div>
 
+      {/* Spaghetti Prevention Metrics */}
+      {spaghettiMetrics && spaghettiMetrics.total_spaghetti_detected > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <h2 className="text-lg font-semibold text-amber-900 dark:text-amber-100">
+              Spaghetti Code Prevention Dashboard
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                {spaghettiMetrics.total_spaghetti_detected}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Detected</div>
+            </div>
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                {spaghettiMetrics.spaghetti_open}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Open</div>
+            </div>
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {spaghettiMetrics.spaghetti_in_progress}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">In Progress</div>
+            </div>
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {spaghettiMetrics.spaghetti_resolved}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Resolved</div>
+            </div>
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {spaghettiMetrics.prevention_rate}%
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Prevention Rate</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {changes.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-12 text-center">
           <CheckCircle2 className="h-16 w-16 text-green-600 dark:text-green-400 mx-auto mb-4" />
@@ -254,25 +323,45 @@ export default function ChangesPage() {
                             {changeWorkItems.map((workItem) => (
                               <div
                                 key={workItem.id}
-                                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700"
+                                className={`p-3 rounded border ${workItem.is_spaghetti_detection === 1 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}
                               >
-                                <div className="flex-1">
-                                  <div className="text-sm font-medium text-gray-900 dark:text-gray-50">
-                                    {workItem.title}
-                                  </div>
-                                  {workItem.assigned_to && (
-                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                      Assigned to: {workItem.assigned_to}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      {workItem.is_spaghetti_detection === 1 && (
+                                        <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                      )}
+                                      <div className="text-sm font-medium text-gray-900 dark:text-gray-50">
+                                        {workItem.title}
+                                      </div>
                                     </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className={getPriorityBadge(workItem.priority)}>
-                                    {workItem.priority}
-                                  </span>
-                                  <span className={getStatusBadge(workItem.status)}>
-                                    {workItem.status.replace('_', ' ')}
-                                  </span>
+                                    {workItem.assigned_to && (
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        Assigned to: {workItem.assigned_to}
+                                      </div>
+                                    )}
+                                    {workItem.is_spaghetti_detection === 1 && (
+                                      <div className="mt-2 p-2 bg-white dark:bg-gray-900 rounded border border-amber-200 dark:border-amber-800">
+                                        <div className="text-xs font-medium text-amber-900 dark:text-amber-100 mb-1">
+                                          ⚡ Use centralized PBAC instead
+                                        </div>
+                                        {workItem.refactoring_suggestion && (
+                                          <div className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap max-h-32 overflow-y-auto">
+                                            {workItem.refactoring_suggestion.substring(0, 500)}
+                                            {workItem.refactoring_suggestion.length > 500 && '...'}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 ml-4">
+                                    <span className={getPriorityBadge(workItem.priority)}>
+                                      {workItem.priority}
+                                    </span>
+                                    <span className={getStatusBadge(workItem.status)}>
+                                      {workItem.status.replace('_', ' ')}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             ))}

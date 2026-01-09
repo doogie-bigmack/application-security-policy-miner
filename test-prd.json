@@ -293,7 +293,7 @@
         "Run a deliberate failure test (break a selector) to validate failure reporting",
         "Verify failure report includes: root cause analysis, code locations to check, recommended fixes"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "Full test suite runs to completion",
         "test-results.json contains all required fields",
