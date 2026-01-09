@@ -91,3 +91,42 @@ Ready to implement TEST-002: ClaudeChromeExecutor wrapper for browser automation
 
 **Next Steps:**
 Ready to implement TEST-003: Create e2e-tests.json schema with 5 critical test definitions.
+
+
+---
+
+[2026-01-09 16:45] ✅ TEST-003 Complete - e2e-tests.json Schema Created
+
+**What was done:**
+- Created e2e-tests.json in project root (241 lines)
+- Defined schema version 1.0 and test_suites structure  
+- Created 3 test suites:
+  1. repository_management - Tests for adding and scanning repos
+  2. policy_viewing - Tests for viewing and filtering policies
+  3. pbac_integration - Tests for PBAC provider and provisioning
+- Implemented 5 critical test definitions:
+  1. test_add_github_repository (maps to FUNC-001)
+  2. test_scan_repository (maps to AI-001)
+  3. test_view_policies (maps to UI-001)
+  4. test_add_pbac_provider (maps to PROV-001)
+  5. test_provision_policy (maps to PROV-002)
+- Each test includes:
+  - test_id, prd_story_id, name, priority fields
+  - Detailed steps with actions: navigate, click, fill, wait_for_element, assert_element_visible
+  - Prerequisites section (services, test_data)
+  - Expected outcomes list
+  - Cleanup steps for teardown
+- All test steps use proper selectors (data-testid attributes)
+- Timeout values configured appropriately (3s-120s depending on operation)
+- Environment variable substitution pattern defined (${VAR_NAME})
+
+**Validation:**
+✓ e2e-tests.json is valid JSON (validated with json.tool)
+✓ Contains 5 test definitions across 3 test suites
+✓ Each test maps to a prd.json story ID (FUNC-001, AI-001, UI-001, PROV-001, PROV-002)
+✓ All required fields present: test_id, prd_story_id, name, priority, steps
+✓ Steps include comprehensive actions covering full user flows
+✓ Prerequisites and cleanup steps defined
+
+**Next Steps:**
+Ready to implement TEST-004: Create test-results.json schema and TestReporter implementation.

@@ -73,7 +73,7 @@
         "Add prerequisites (services, test_data) for each test",
         "Validate JSON syntax"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "e2e-tests.json is valid JSON",
         "Contains 5 test definitions",
