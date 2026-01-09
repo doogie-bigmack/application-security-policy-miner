@@ -396,3 +396,47 @@ Ready to implement TEST-007: Create reusable test scenario for Add GitHub Reposi
 Ready to implement TEST-008: Create reusable test scenario for Scan Repository (already done as bonus!).
 TEST-009: Create reusable test scenario for View and Filter Policies.
 
+
+---
+
+[2026-01-09 11:09] ✅ TEST-008 Complete - Reusable Test Scenario: Scan Repository
+
+**What was done:**
+- scan_repository() function was already implemented in TEST-007 as a bonus
+- Located in e2e/scenarios/repository_crud.py
+- Fully functional with comprehensive error handling
+- Integrated with ClaudeChromeExecutor
+
+**scan_repository() Features:**
+- Accepts repository_id as parameter
+- Navigates to repository detail page (http://localhost:3333/repositories/{id})
+- Clicks Start Scan button
+- Waits for scan to start (data-status='running')
+- Waits for scan to complete with 2-minute timeout (data-status='completed')
+- Navigates to policies page to verify extraction
+- Verifies policies table is visible
+- Verifies at least one policy row exists (policies were extracted)
+- Returns scan results dict with:
+  - scan_id: Identifier for the completed scan
+  - policies_count: Number of policies extracted
+  - duration_seconds: Scan duration
+- Comprehensive error handling (ElementNotFoundError, BrowserError)
+- Structured logging throughout execution
+- Screenshot capture on failure for debugging
+
+**Validation:**
+✓ Function successfully triggers repository scan
+✓ Waits for scan completion (up to 2 minutes)
+✓ Validates policies were extracted (count > 0)
+✓ Returns scan results dict with required fields
+✓ Error handling and logging present
+✓ Unit test coverage included in test_repository_crud.py
+✓ Ruff linting passes
+
+**Files:**
+- e2e/scenarios/repository_crud.py (scan_repository function)
+- e2e/scenarios/test_repository_crud.py (unit tests)
+
+**Next Steps:**
+Ready to implement TEST-009: Create reusable test scenario for View and Filter Policies.
+

@@ -197,7 +197,7 @@
         "Assert policies were extracted (count > 0)",
         "Return scan results"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "Function triggers scan successfully",
         "Waits for scan completion",
