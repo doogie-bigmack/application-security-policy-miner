@@ -63,3 +63,59 @@
 ### User Story Status
 ✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
 ✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+
+## 2026-01-09 - AI Rule Mining Complete
+
+### Completed
+- Created Policy and PolicyEvidence database models:
+  - Policy model with WHO/WHAT/HOW/WHEN pattern
+    - subject (Who): user role, group, service
+    - resource (What): API endpoint, data, feature
+    - action (How): read, write, delete, execute
+    - conditions (When): time-based, attribute-based constraints
+  - PolicyEvidence model for code snippets with file paths and line numbers
+  - Added SourceType enum (FRONTEND, BACKEND, DATABASE, UNKNOWN)
+  - Integrated with existing database schema (source_type, risk scores, review fields)
+
+- Fixed database enum mismatches:
+  - Added missing PolicyStatus values (EXTRACTED, PENDING_REVIEW) to PostgreSQL enum
+  - Added missing RiskLevel value (CRITICAL) to PostgreSQL enum
+  - Updated Python enums to match database schema
+
+- Implemented ScanService with Claude Anthropic integration:
+  - Git repository cloning with authentication support
+  - File filtering (Python, Java, C#, JavaScript, TypeScript, Go, Ruby, PHP, C/C++)
+  - Batch processing (50 files per batch)
+  - Claude API integration for policy extraction with fallback to mock policies
+  - Policy storage with evidence tracking
+
+- Created API endpoints (backend/app/api/v1/endpoints/policies.py):
+  - POST /api/v1/policies/scan - trigger repository scan
+  - GET /api/v1/policies/ - list policies with optional repository filtering
+  - GET /api/v1/policies/{id} - get single policy with evidence
+
+- Built frontend UI for policies:
+  - PoliciesPage displays extracted policies in card layout
+  - WHO/WHAT/HOW/WHEN details clearly labeled
+  - Risk level badges (LOW/MEDIUM/HIGH/CRITICAL) with color coding
+  - Evidence count indicator
+  - Modal view for detailed policy inspection
+  - Evidence display with file paths, line numbers, and code snippets
+  - Risk score visualization
+
+- Updated RepositoriesPage:
+  - Added "Start Scan" button for connected repositories
+  - Scan status feedback via alert dialog
+  - Disabled scan button for non-connected repositories
+
+- Tested end-to-end workflow in browser:
+  - Clicked "Start Scan" on Flask Auth Example repository
+  - Verified scan extracted 2 policies
+  - Confirmed policies display with all WHO/WHAT/HOW/WHEN fields
+  - Verified evidence shows correct file paths and code snippets
+  - Confirmed modal view works correctly
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
