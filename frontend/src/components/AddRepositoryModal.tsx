@@ -375,7 +375,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-2xl mx-4">
+      <div data-testid="add-repo-modal" className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-2xl mx-4">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-dark-border">
           <h3 className="text-xl font-semibold">Add Repository</h3>
@@ -390,7 +390,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-800 dark:text-red-200">
+            <div data-testid="add-repo-error-message" className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-800 dark:text-red-200">
               {error}
             </div>
           )}
@@ -424,6 +424,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
             <input
               type="text"
               id="name"
+              data-testid="add-repo-input-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -455,6 +456,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
+                    data-testid="add-repo-btn-github"
                     onClick={() => setShowGitHubBrowser(true)}
                     className="px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center space-x-2 transition"
                   >
@@ -463,6 +465,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
                   </button>
                   <button
                     type="button"
+                    data-testid="add-repo-btn-gitlab"
                     onClick={() => setShowGitLabBrowser(true)}
                     className="px-4 py-3 bg-orange-600 dark:bg-orange-700 text-white rounded-lg hover:bg-orange-700 dark:hover:bg-orange-600 flex items-center justify-center space-x-2 transition"
                   >
@@ -471,6 +474,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
                   </button>
                   <button
                     type="button"
+                    data-testid="add-repo-btn-bitbucket"
                     onClick={() => setShowBitbucketBrowser(true)}
                     className="px-4 py-3 bg-blue-700 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-800 dark:hover:bg-blue-700 flex items-center justify-center space-x-2 transition"
                   >
@@ -481,6 +485,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
                   </button>
                   <button
                     type="button"
+                    data-testid="add-repo-btn-azure-devops"
                     onClick={() => setShowAzureDevOpsBrowser(true)}
                     className="px-4 py-3 bg-sky-600 dark:bg-sky-700 text-white rounded-lg hover:bg-sky-700 dark:hover:bg-sky-600 flex items-center justify-center space-x-2 transition"
                   >
@@ -512,6 +517,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
                 <input
                   type="url"
                   id="gitUrl"
+                  data-testid="add-repo-input-url"
                   value={gitUrl}
                   onChange={(e) => setGitUrl(e.target.value)}
                   required
@@ -559,6 +565,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
                     <div className="ml-7">
                       <input
                         type="password"
+                        data-testid="add-repo-input-token"
                         value={token}
                         onChange={(e) => setToken(e.target.value)}
                         className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -733,6 +740,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-dark-border">
             <button
               type="button"
+              data-testid="add-repo-btn-cancel"
               onClick={onClose}
               className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
@@ -740,6 +748,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
             </button>
             <button
               type="submit"
+              data-testid="add-repo-btn-connect"
               disabled={isSubmitting}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >

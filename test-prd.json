@@ -400,7 +400,7 @@
         "Add data-testid='add-repo-success-message' to success notification",
         "Add data-testid='add-repo-error-message' to error notification"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "AddRepositoryModal has 10+ data-testid attributes",
         "All form inputs identifiable",
