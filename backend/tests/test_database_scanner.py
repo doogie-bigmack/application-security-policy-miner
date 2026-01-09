@@ -1,10 +1,9 @@
 """Tests for database scanner service."""
-import json
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
-from app.models.repository import DatabaseType, Repository
+from app.models.repository import Repository
 from app.services.database_scanner_service import DatabaseScannerService
 
 

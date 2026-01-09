@@ -1,11 +1,12 @@
 """Integration tests for database stored procedure scanning."""
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import patch, Mock, MagicMock
 from sqlalchemy.orm import Session
 
+from app.models.repository import Repository, RepositoryStatus, RepositoryType
+from app.models.scan_progress import ScanProgress
 from app.services.scanner_service import ScannerService
-from app.models.repository import Repository, RepositoryType, RepositoryStatus
-from app.models.scan_progress import ScanProgress, ScanStatus
 
 
 @pytest.fixture
