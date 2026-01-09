@@ -1166,3 +1166,64 @@
 ### Next Steps
 - Story 29: Support Python language scanning
 - Story 30: Support JavaScript/TypeScript scanning
+
+## 2026-01-08 - Python Language Scanning with Tree-Sitter Complete
+
+### Completed
+- Backend Python scanner service:
+  - Created PythonScannerService using tree-sitter-languages package
+  - Supports detection of Flask decorators (@login_required, @roles_required, @permissions_required, etc.)
+  - Supports detection of Django decorators (@login_required, @permission_required, @user_passes_test, etc.)
+  - Supports detection of FastAPI dependencies (Depends, Security, HTTPBearer, OAuth2PasswordBearer)
+  - Detects authorization method calls (has_permission, check_role, is_authenticated, etc.)
+  - Detects authorization conditionals in if-statements
+  - Accurate line number tracking for all detected patterns
+  - Context extraction around authorization code
+
+- Backend scanner integration:
+  - Integrated PythonScannerService into main ScannerService
+  - Python files (.py) automatically routed to Python-specific scanner
+  - Enhanced AI prompts with Python-specific context from tree-sitter analysis
+  - Tree-sitter AST traversal for decorator, method call, and conditional detection
+
+- Testing:
+  - Created 10 comprehensive unit tests for PythonScannerService
+  - All 10 tests passing ✅
+  - Tests cover: Flask decorators, Django decorators, FastAPI dependencies, method calls, conditionals, line numbers, prompt enhancement
+  - Created manual verification script - all tests pass
+  - Verified tree-sitter correctly parses Python AST
+
+### Implementation Details
+- Tree-sitter parser initialized once per PythonScannerService instance
+- AST traversal extracts detailed authorization context
+- Decorators detected via decorator nodes
+- Method calls detected via call nodes
+- Conditionals detected via if_statement nodes with authorization keywords
+- Enhanced prompts include Python-specific context (Flask, Django, FastAPI, method calls)
+- Full integration with existing scanner batching and progress tracking
+
+### User Story Status
+✅ Story 1: "Discovery Initiation - Integrate with asset management and accept Git repositories" - PASSES
+✅ Story 2: "Discovery Initiation - Accept database connections" - PASSES
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - PASSES
+✅ Story 4: "Frontend + Backend Authorization - Scan UI components and backend APIs" - PASSES
+✅ Story 6: "Policy Review UI - Web interface for app owners and PBAC admins" - PASSES
+✅ Story 7: "Risk Scoring - Multi-dimensional risk analysis" - PASSES
+✅ Story 8: "Conflict Resolution - Flag conflicts and AI recommendations" - PASSES
+✅ Story 9: "Multi-tenancy - Tenant-aware policy mining with full isolation" - PASSES
+✅ Story 10: "Unlimited Repository Size - Streaming analysis with batching" - PASSES
+✅ Story 11: "Change Detection - Auto-create work items and diff visualization" - PASSES
+✅ Story 12: "Change Detection - Git integration and PBAC sync" - PASSES
+✅ Story 22: "Pre-scan secret detection - No credentials sent to LLM" - PASSES
+✅ Story 23: "Private LLM endpoints - AWS Bedrock or Azure OpenAI only" - PASSES
+✅ Story 24: "Encryption at rest and in transit" - PASSES
+✅ Story 25: "Full audit logging - All prompts, responses, decisions" - PASSES
+✅ Story 26: "Evidence-based output - Quote exact code lines" - PASSES
+✅ Story 27: "Support Java language scanning with tree-sitter" - PASSES
+✅ Story 28: "Support C#/.NET language scanning with tree-sitter" - PASSES
+✅ Story 29: "Support Python language scanning" - PASSES
+
+### Next Steps
+- Story 30: Support JavaScript/TypeScript scanning
+- Story 5: Mainframe Support (COBOL with RACF and Top Secret/ACF2)
+- Story 13: Policy Provisioning - Auto-provision to OPA

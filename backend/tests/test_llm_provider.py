@@ -33,7 +33,7 @@ class TestAWSBedrockProvider:
                 mock_settings.AWS_ACCESS_KEY_ID = "test-key"
                 mock_settings.AWS_SECRET_ACCESS_KEY = "test-secret"
 
-                provider = AWSBedrockProvider()
+                AWSBedrockProvider()
 
                 # Verify boto3 client was created with credentials
                 mock_boto3.client.assert_called_once()
@@ -97,7 +97,7 @@ class TestAzureOpenAIProvider:
             mock_settings.AZURE_OPENAI_API_VERSION = "2024-10-01-preview"
             mock_settings.AZURE_OPENAI_DEPLOYMENT_NAME = "claude-sonnet-4"
 
-            provider = AzureOpenAIProvider()
+            AzureOpenAIProvider()
 
             # Verify AzureOpenAI client was created
             mock_azure_openai.assert_called_once()
