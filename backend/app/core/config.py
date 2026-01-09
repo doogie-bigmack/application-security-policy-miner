@@ -57,5 +57,10 @@ class Settings(BaseSettings):
     BATCH_SIZE: int = 50
     MAX_FILE_SIZE_MB: int = 10
 
+    # Encryption
+    # In production, use a secure key from KMS/Vault
+    # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    ENCRYPTION_KEY: str = "J2mtpOQ4ilLflT91hDBdAe9AT9Tw4ugn9k_3xYxtb30="
+
 
 settings = Settings()

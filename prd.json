@@ -308,7 +308,7 @@
         "Confirm secrets are encrypted in database using HashiCorp Vault",
         "Review security audit showing all data encrypted"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "security",

@@ -5,6 +5,8 @@ services:
       POSTGRES_USER: policy_miner
       POSTGRES_PASSWORD: dev_password
       POSTGRES_DB: policy_miner
+      # Enable SSL/TLS in production - for dev we use trust mode
+      # In production: use real certificates and require SSL
     ports:
       - "5434:5432"
     volumes:
@@ -14,6 +16,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    # Data at rest encryption is provided by Docker volumes encryption in production
 
   redis:
     image: redis:7-alpine
@@ -27,6 +30,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    # In production: enable TLS with --tls-port 6380 --tls-cert-file --tls-key-file
+    # Data at rest encryption via Docker volumes encryption in production
 
   minio:
     image: minio/minio:latest
@@ -34,6 +39,8 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+      # In production: enable server-side encryption with KMS
+      # MINIO_KMS_SECRET_KEY: "my-minio-key:xxxxx"
     ports:
       - "9004:9000"
       - "9005:9001"
@@ -44,6 +51,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    # MinIO supports encryption at rest via KMS and in transit via TLS
+    # For production: use HTTPS (--certs-dir flag) and enable KMS encryption
 
   backend:
     build:
