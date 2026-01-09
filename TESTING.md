@@ -10,6 +10,7 @@ This guide covers end-to-end testing for the Policy Miner application.
 - [Debugging Failed Tests](#debugging-failed-tests)
 - [Writing New Test Scenarios](#writing-new-test-scenarios)
 - [Troubleshooting](#troubleshooting)
+- [Running Real E2E Tests with Claude](#running-real-e2e-tests-with-claude)
 
 ## Quick Start
 
@@ -702,4 +703,333 @@ cat test-results.json | jq '.recommendations'
 
 # Clean screenshots
 rm -f e2e/screenshots/*.png
+```
+
+## Running Real E2E Tests with Claude
+
+The Policy Miner includes a Claude-driven E2E testing system that uses real browser automation through MCP (Model Context Protocol) tools. This provides true end-to-end testing that simulates actual user interactions.
+
+### Overview
+
+**How It Works:**
+1. Test definitions from `e2e-tests.json` define test steps
+2. Detailed test prompts in `e2e/prompts/` provide Claude with step-by-step instructions
+3. `claude_test_runner.sh` combines the test definition with the prompt
+4. Claude executes the test using browser automation MCP tools
+5. Screenshots are captured on failure for debugging
+6. Results are reported and saved
+
+**MCP Tools Used:**
+- `mcp__MCP_DOCKER__browser_navigate` - Navigate to URLs
+- `mcp__MCP_DOCKER__browser_snapshot` - Get page accessibility tree
+- `mcp__MCP_DOCKER__browser_click` - Click elements
+- `mcp__MCP_DOCKER__browser_type` - Type into inputs
+- `mcp__MCP_DOCKER__browser_select_option` - Select dropdown options
+- `mcp__MCP_DOCKER__browser_wait_for` - Wait for text/time
+- `mcp__MCP_DOCKER__browser_take_screenshot` - Capture screenshots
+
+### Prerequisites
+
+1. **Docker Services Running**
+   ```bash
+   make docker-up
+   ```
+
+2. **Test Data Seeded**
+   ```bash
+   make seed-test-data
+   ```
+   
+   Or use the combined setup command:
+   ```bash
+   make test-setup
+   ```
+
+3. **TEST_MODE Environment Variable** (Recommended)
+   ```bash
+   export TEST_MODE=true
+   ```
+   
+   When `TEST_MODE=true`:
+   - Backend returns mocked API responses (no real GitHub/GitLab/etc calls)
+   - Tests complete faster (~5-10 seconds per test vs 30-120 seconds)
+   - Predictable results for CI/CD
+   - No external service dependencies
+
+### Running All Real E2E Tests
+
+Execute all 5 E2E tests in sequence:
+
+```bash
+make e2e-real
+```
+
+This will:
+1. Check prerequisites (Docker services, TEST_MODE)
+2. Initialize test results file
+3. Run all 5 tests in order:
+   - `test_add_github_repository`
+   - `test_scan_repository`
+   - `test_view_policies`
+   - `test_add_pbac_provider`
+   - `test_provision_policy`
+4. Report summary (passed/failed counts, pass rate, duration)
+5. Exit with code 0 (all passed) or 1 (any failed)
+
+### Running Individual Tests
+
+Execute a single test using Claude:
+
+```bash
+./e2e/claude_test_runner.sh test_add_github_repository
+./e2e/claude_test_runner.sh test_scan_repository
+./e2e/claude_test_runner.sh test_view_policies
+./e2e/claude_test_runner.sh test_add_pbac_provider
+./e2e/claude_test_runner.sh test_provision_policy
+```
+
+### Available Tests
+
+| Test ID | Name | Purpose | Estimated Time |
+|---------|------|---------|----------------|
+| `test_add_github_repository` | Add GitHub Repository | Tests repository integration setup | 10-15s (TEST_MODE) |
+| `test_scan_repository` | Scan Repository | Tests policy extraction from code | 10-20s (TEST_MODE) |
+| `test_view_policies` | View and Filter Policies | Tests policy viewing and filtering UI | 10-15s (TEST_MODE) |
+| `test_add_pbac_provider` | Add PBAC Provider | Tests PBAC provider configuration | 10-15s (TEST_MODE) |
+| `test_provision_policy` | Provision Policy | Tests policy translation and provisioning | 10-20s (TEST_MODE) |
+
+### Test Output and Artifacts
+
+After running tests, the following artifacts are created:
+
+**Test Results:**
+- `test-results.json` - Summary and detailed results
+- `e2e/screenshots/<test_id>_output.txt` - Claude's execution output
+- `e2e/screenshots/<test_id>_prompt.txt` - Combined prompt sent to Claude
+- `e2e/screenshots/<test_id>*.png` - Screenshots (if failures occurred)
+
+**View Results:**
+```bash
+# View summary
+cat test-results.json | jq '.summary'
+
+# View full results
+cat test-results.json | jq '.'
+
+# View specific test output
+cat e2e/screenshots/test_add_github_repository_output.txt
+
+# List screenshots
+ls -lh e2e/screenshots/*.png
+```
+
+### Test Execution Flow
+
+```mermaid
+graph TD
+    A[Start] --> B[Load test definition from e2e-tests.json]
+    B --> C[Load test prompt from e2e/prompts/]
+    C --> D[Combine definition + prompt]
+    D --> E[Pass to Claude CLI]
+    E --> F[Claude executes with MCP browser tools]
+    F --> G{Test Success?}
+    G -->|Yes| H[Save success screenshot]
+    G -->|No| I[Save failure screenshot + diagnostics]
+    H --> J[Report PASSED]
+    I --> K[Report FAILED]
+    J --> L[End]
+    K --> L
+```
+
+### Test Prompts
+
+Each test has a detailed prompt in `e2e/prompts/<test_id>.md` that includes:
+
+- **Test ID and PRD Story**: Maps test to requirements
+- **Description**: What the test validates
+- **Setup Requirements**: Prerequisites and environment
+- **MCP Tools Reference**: Which tools to use
+- **Step-by-Step Instructions**: 10-13 detailed test steps
+- **Expected Outcomes**: What should happen at each step
+- **Failure Handling**: 5-8 failure scenarios with debugging steps
+- **Cleanup Instructions**: Post-test cleanup
+- **Test Mode Notes**: Behavior differences in TEST_MODE
+
+**Example Test Steps (test_add_github_repository):**
+1. Navigate to repositories page
+2. Verify page loaded
+3. Click "Add Repository" button
+4. Select GitHub integration
+5. Fill repository name
+6. Fill repository URL
+7. Fill GitHub token
+8. Click Connect button
+9. Wait for success confirmation
+10. Verify repository in list
+11. Take success screenshot
+
+### Debugging Failed Tests
+
+When a test fails, Claude captures diagnostic information:
+
+**1. Check Claude's Output**
+```bash
+cat e2e/screenshots/<test_id>_output.txt
+```
+This shows Claude's step-by-step execution and where it failed.
+
+**2. View Screenshots**
+```bash
+ls e2e/screenshots/<test_id>*.png
+open e2e/screenshots/<test_id>_failure.png  # macOS
+```
+Screenshots show the browser state when failure occurred.
+
+**3. Review Console Errors**
+Claude automatically reads console errors when tests fail. Check the output file for JavaScript errors.
+
+**4. Common Failure Scenarios**
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "Navigation failed" | Frontend service down | Check `docker-compose ps`, restart with `make docker-up` |
+| "Element not found" | UI changed or selector wrong | Check data-testid attributes in UI components |
+| "Connection failed" | Backend service down | Check backend logs: `docker-compose logs backend` |
+| "Timeout" | Test waiting too long | Check if TEST_MODE=true, increase timeout in prompt |
+| "Repository not in list" | State update issue | Check if backend actually saved data, try refresh |
+| "Scan failed" | Scanner service error | Check backend logs for scanner errors |
+| "Provisioning failed" | PBAC provider unreachable | Check if OPA running (if not TEST_MODE), check logs |
+
+**5. Manual Verification**
+```bash
+# Check frontend is accessible
+curl http://localhost:3333
+
+# Check backend health
+curl http://localhost:7777/health
+
+# Check if services are running
+docker-compose ps
+
+# Check backend logs
+docker-compose logs -f backend
+
+# Check frontend logs
+docker-compose logs -f frontend
+
+# Check database
+docker-compose exec postgres psql -U policy_miner -d policy_miner_test -c "SELECT COUNT(*) FROM policies;"
+```
+
+### Troubleshooting
+
+**Claude CLI Not Found**
+```bash
+# Install Claude CLI if not available
+npm install -g @anthropic-ai/claude-cli
+
+# Or use via npx (automatic in script)
+npx @anthropic-ai/claude-cli --version
+```
+
+**MCP Docker Server Not Available**
+Ensure MCP Docker server is running and Claude can access browser automation tools.
+
+**Tests Hang or Timeout**
+- Ensure TEST_MODE=true for faster execution
+- Check if Docker services are responsive
+- Increase timeout values in test prompts if needed
+- Check for hung browser processes
+
+**Flaky Tests**
+- Real browser automation can be flaky due to timing issues
+- Use TEST_MODE=true for more reliable results
+- Check if selectors (data-testid attributes) are correct
+- Ensure proper wait conditions in test prompts
+
+**No Screenshots Generated**
+- Screenshots are only captured on failure or at end of test
+- Check `e2e/screenshots/` directory exists
+- Verify Claude has write permissions
+
+### CI/CD Integration
+
+The real E2E tests can be integrated into CI/CD pipelines:
+
+```yaml
+# Example GitHub Actions workflow
+- name: Setup Test Environment
+  run: make test-setup
+
+- name: Run E2E Tests
+  env:
+    TEST_MODE: true
+  run: make e2e-real
+
+- name: Upload Screenshots on Failure
+  if: failure()
+  uses: actions/upload-artifact@v3
+  with:
+    name: e2e-screenshots
+    path: e2e/screenshots/
+```
+
+**Best Practices for CI:**
+1. Always use `TEST_MODE=true` in CI
+2. Upload screenshots as artifacts on failure
+3. Set appropriate timeouts (2-3 minutes per test)
+4. Run tests in sequence (not parallel) to avoid conflicts
+5. Clean up test data between runs
+
+### Advanced Usage
+
+**Running Specific Test Steps**
+Edit test prompts in `e2e/prompts/<test_id>.md` to:
+- Add new test steps
+- Modify failure handling
+- Adjust timeouts
+- Add additional verifications
+
+**Creating New Tests**
+1. Add test definition to `e2e-tests.json`
+2. Create prompt file in `e2e/prompts/<test_id>.md`
+3. Follow existing prompt structure
+4. Test with: `./e2e/claude_test_runner.sh <test_id>`
+5. Add to `e2e/run_all_tests.sh` TESTS array
+
+**Custom Test Environments**
+```bash
+# Test against different environments
+export FRONTEND_URL=http://staging.example.com:3333
+export BACKEND_URL=http://staging.example.com:7777
+export TEST_MODE=false
+./e2e/claude_test_runner.sh test_add_github_repository
+```
+
+### Quick Reference
+
+```bash
+# Complete setup and run all tests
+make test-setup && make e2e-real
+
+# Run single test
+./e2e/claude_test_runner.sh test_add_github_repository
+
+# View available tests
+./e2e/claude_test_runner.sh
+
+# Check test results
+cat test-results.json | jq '.summary'
+
+# View test output
+cat e2e/screenshots/test_add_github_repository_output.txt
+
+# Clean up screenshots
+rm -f e2e/screenshots/*.png
+
+# Re-seed test data
+make seed-test-data
+
+# Restart services
+make docker-down && make docker-up
 ```

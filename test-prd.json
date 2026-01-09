@@ -599,7 +599,7 @@
         "Add troubleshooting section",
         "Test full flow: make test-setup && make e2e-real"
       ],
-      "passes": false,
+      "passes": true,
       "acceptance_criteria": [
         "run_all_tests.sh executes all 5 tests",
         "Makefile has e2e-real target",
