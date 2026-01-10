@@ -17,6 +17,7 @@ from app.api.v1.endpoints import (
     code_advisories,
     organizations,
     policies,
+    policy_fixes,
     repositories,
     risk,
     secrets,
@@ -45,3 +46,4 @@ api_router.include_router(organizations.router, prefix="/organizations", tags=["
 api_router.include_router(applications.router, prefix="/applications", tags=["applications"])
 api_router.include_router(similarity.router, prefix="/similarity", tags=["similarity"])
 api_router.include_router(translation_verification.router, prefix="/translation-verification", tags=["translation-verification"])
+api_router.include_router(policy_fixes.router, prefix="/policy-fixes", tags=["policy-fixes"])

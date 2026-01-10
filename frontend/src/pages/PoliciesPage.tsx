@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit, Download, Wrench, GitCompare } from 'lucide-react'
+import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit, Download, Wrench, GitCompare, AlertTriangle } from 'lucide-react'
 import logger from '../lib/logger'
 import PolicyDetailModal from '../components/PolicyDetailModal'
 import SourceFileViewer from '../components/SourceFileViewer'
@@ -48,6 +48,7 @@ export default function PoliciesPage() {
   const [exportingPolicyId, setExportingPolicyId] = useState<number | null>(null)
   const [generatingAdvisory, setGeneratingAdvisory] = useState<number | null>(null)
   const [viewingSimilarPolicyId, setViewingSimilarPolicyId] = useState<number | null>(null)
+  const [analyzingPolicy, setAnalyzingPolicy] = useState<number | null>(null)
 
   const fetchPolicies = async (sourceType?: SourceType | 'all') => {
     try {
@@ -188,6 +189,38 @@ export default function PoliciesPage() {
       alert(`Failed to generate advisory: ${errorMessage}`)
     } finally {
       setGeneratingAdvisory(null)
+    }
+  }
+
+  const handleAnalyzeForGaps = async (policyId: number) => {
+    try {
+      setAnalyzingPolicy(policyId)
+      const response = await fetch('/api/v1/policy-fixes/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ policy_id: policyId }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'Failed to analyze policy')
+      }
+
+      const result = await response.json()
+
+      if (result.has_gaps === false) {
+        logger.info('No security gaps found', { policyId })
+        alert('No security gaps detected! This policy appears to have complete authorization logic.')
+      } else {
+        logger.info('Security gaps detected', { fixId: result.id, policyId })
+        alert(`Security gaps detected! Severity: ${result.severity.toUpperCase()}. Check the Policy Fixes page to review the recommended fix.`)
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      logger.error('Failed to analyze policy', { error: errorMessage, policyId })
+      alert(`Failed to analyze policy: ${errorMessage}`)
+    } finally {
+      setAnalyzingPolicy(null)
     }
   }
 
@@ -425,6 +458,15 @@ export default function PoliciesPage() {
                 >
                   <Wrench size={16} />
                   <span>{generatingAdvisory === policy.id ? 'Generating...' : 'Generate Advisory'}</span>
+                </button>
+                <button
+                  data-testid="policy-btn-analyze-gaps"
+                  onClick={() => handleAnalyzeForGaps(policy.id)}
+                  disabled={analyzingPolicy === policy.id}
+                  className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-sm inline-flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <AlertTriangle size={16} />
+                  <span>{analyzingPolicy === policy.id ? 'Analyzing...' : 'Analyze for Gaps'}</span>
                 </button>
                 {policy.status === 'pending' && (
                   <>

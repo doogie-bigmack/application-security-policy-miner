@@ -13,6 +13,7 @@ from app.models.policy_change import (
     WorkItemPriority,
     WorkItemStatus,
 )
+from app.models.policy_fix import FixSeverity, FixStatus, PolicyFix
 from app.models.provisioning import (
     PBACProvider,
     ProviderType,
@@ -61,4 +62,7 @@ __all__ = [
     "BusinessUnit",
     "Application",
     "CriticalityLevel",
+    "PolicyFix",
+    "FixStatus",
+    "FixSeverity",
 ]

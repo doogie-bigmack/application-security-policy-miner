@@ -16,6 +16,7 @@ import RiskDashboardPage from './pages/RiskDashboardPage'
 import OrganizationsPage from './pages/OrganizationsPage'
 import ApplicationsPage from './pages/ApplicationsPage'
 import NormalizationPage from './pages/NormalizationPage'
+import PolicyFixesPage from './pages/PolicyFixesPage'
 import Layout from './components/Layout'
 
 function App() {
@@ -54,6 +55,7 @@ function App() {
         <Route path="/organizations" element={<OrganizationsPage />} />
         <Route path="/applications" element={<ApplicationsPage />} />
         <Route path="/normalization" element={<NormalizationPage />} />
+        <Route path="/policy-fixes" element={<PolicyFixesPage />} />
       </Routes>
     </Layout>
   )
