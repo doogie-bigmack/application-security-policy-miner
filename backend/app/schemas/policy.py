@@ -1,9 +1,22 @@
 """Policy schemas."""
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.policy import PolicyStatus, RiskLevel, SourceType, ValidationStatus
+
+
+# Simple application schema to avoid circular imports
+class SimpleApplication(BaseModel):
+    """Simplified application schema for policy responses."""
+
+    id: int
+    name: str
+    criticality: str
+    business_unit_id: int
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EvidenceBase(BaseModel):
@@ -79,6 +92,7 @@ class Policy(PolicyBase):
     created_at: datetime
     updated_at: datetime
     tenant_id: str | None = None
+    application: SimpleApplication | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
