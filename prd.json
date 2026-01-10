@@ -462,7 +462,7 @@
         "Confirm user permission checks detected",
         "Verify evidence shows MySQL code snippets"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "technical",
