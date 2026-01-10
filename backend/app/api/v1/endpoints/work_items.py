@@ -1,11 +1,10 @@
 """Work items and spaghetti detection API endpoints."""
-import logging
 from typing import Annotated
 
 import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db

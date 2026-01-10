@@ -1083,7 +1083,7 @@
         "Verify application enforces OPA decision",
         "Measure latency of centralized check vs inline check"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

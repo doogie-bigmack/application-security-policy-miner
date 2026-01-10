@@ -21,6 +21,7 @@ from app.api.v1.endpoints import (
     inconsistent_enforcement,
     migration_waves,
     monitoring,
+    opa_verifications,
     organizations,
     policies,
     policy_fixes,
@@ -61,3 +62,4 @@ api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monito
 api_router.include_router(migration_waves.router, prefix="/migration-waves", tags=["migration-waves"])
 api_router.include_router(divisions.router, prefix="/divisions", tags=["divisions"])
 api_router.include_router(work_items.router, prefix="/work-items", tags=["work-items"])
+api_router.include_router(opa_verifications.router, prefix="/opa-verifications", tags=["opa-verifications"])

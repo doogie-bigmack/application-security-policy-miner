@@ -23,6 +23,7 @@ import BulkScanPage from './pages/BulkScanPage'
 import AutoscalerPage from './pages/AutoscalerPage'
 import MigrationWavesPage from './pages/MigrationWavesPage'
 import GovernancePage from './pages/GovernancePage'
+import OPAVerificationsPage from './pages/OPAVerificationsPage'
 import Layout from './components/Layout'
 
 function App() {
@@ -68,6 +69,7 @@ function App() {
         <Route path="/autoscaler" element={<AutoscalerPage />} />
         <Route path="/migration-waves" element={<MigrationWavesPage />} />
         <Route path="/governance" element={<GovernancePage />} />
+        <Route path="/opa-verifications" element={<OPAVerificationsPage />} />
       </Routes>
     </Layout>
   )
