@@ -20,6 +20,7 @@ def mock_db():
 @pytest.fixture
 def mock_policy():
     """Mock policy for testing."""
+    from app.models.policy import RiskLevel
     policy = MagicMock(spec=Policy)
     policy.id = 1
     policy.subject = "Manager"
@@ -28,6 +29,7 @@ def mock_policy():
     policy.conditions = "None"
     policy.description = "Managers can approve expense reports"
     policy.evidence = []
+    policy.risk_level = RiskLevel.MEDIUM
     return policy
 
 
@@ -387,3 +389,146 @@ class TestPolicyFixingService:
         assert service._parse_severity("high") == FixSeverity.HIGH
         assert service._parse_severity("critical") == FixSeverity.CRITICAL
         assert service._parse_severity("unknown") == FixSeverity.MEDIUM  # Default
+
+
+class TestPrivilegeEscalationDetection:
+    """Tests for privilege escalation detection and attack scenario generation."""
+
+    @pytest.mark.asyncio
+    async def test_analyze_policy_with_privilege_escalation(self, mock_db, mock_policy):
+        """Test analyzing policy with privilege escalation vulnerability."""
+        # Setup
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_policy
+
+        service = PolicyFixingService(mock_db, "test-tenant")
+
+        # Mock AI response with privilege escalation gap
+        analysis_result = {
+            "has_gaps": True,
+            "gap_type": "privilege_escalation",
+            "severity": "high",
+            "gap_description": "Missing role validation allows any authenticated user to perform admin actions",
+            "missing_checks": [
+                "Verify user has ADMIN role",
+                "Check user account is active",
+                "Validate user has permission for this specific resource"
+            ],
+            "fixed_policy": {
+                "subject": "Admin (active, with admin role)",
+                "resource": "System Configuration",
+                "action": "modify",
+                "conditions": "user.role == 'ADMIN' AND user.status == 'active' AND user.hasPermission('system.config.modify')"
+            },
+            "fix_explanation": "The original policy only checked authentication, allowing any logged-in user to modify system configuration. The fix adds explicit role validation, active status check, and granular permission verification."
+        }
+
+        # Mock attack scenario
+        attack_scenario = """### Attack Scenario: Privilege Escalation via Missing Role Validation
+
+**Attacker Profile:**
+- Name: Bob (Standard User)
+- Current Role: User
+
+**Attack Goal:**
+Gain unauthorized ability to modify critical system configuration without admin role.
+
+**Attack Steps:**
+1. Bob logs in with standard user credentials
+2. He discovers the /api/system/config endpoint
+3. The request succeeds despite Bob not being an admin
+
+**Prevention:**
+The fix adds explicit role validation."""
+
+        with patch.object(service, "_analyze_policy_with_ai") as mock_analyze:
+            mock_analyze.return_value = analysis_result
+
+            with patch.object(service, "_generate_attack_scenario") as mock_attack:
+                mock_attack.return_value = attack_scenario
+
+                # Execute
+                result = await service.analyze_policy(1)
+
+                # Verify
+                assert result is not None
+                assert result.security_gap_type == "privilege_escalation"
+                assert result.severity == FixSeverity.HIGH
+                assert result.attack_scenario is not None
+                assert "Attack Scenario" in result.attack_scenario
+                assert "Attacker Profile" in result.attack_scenario
+                mock_attack.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_attack_scenario_only_for_privilege_escalation(self, mock_db, mock_policy):
+        """Test that attack scenarios are only generated for privilege escalation gaps."""
+        # Setup
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_policy
+
+        service = PolicyFixingService(mock_db, "test-tenant")
+
+        # Mock AI response with incomplete_logic gap (not privilege_escalation)
+        analysis_result = {
+            "has_gaps": True,
+            "gap_type": "incomplete_logic",
+            "severity": "medium",
+            "gap_description": "Missing validation for amount limits",
+            "missing_checks": ["Check approval amount limit"],
+            "fixed_policy": {
+                "subject": "Manager",
+                "resource": "Expense Report",
+                "action": "approve",
+                "conditions": "amount < manager.approvalLimit"
+            },
+            "fix_explanation": "Added amount limit check"
+        }
+
+        with patch.object(service, "_analyze_policy_with_ai") as mock_analyze:
+            mock_analyze.return_value = analysis_result
+
+            # Execute
+            result = await service.analyze_policy(1)
+
+            # Verify - attack_scenario should be None for non-privilege-escalation gaps
+            assert result is not None
+            assert result.security_gap_type == "incomplete_logic"
+            assert result.attack_scenario is None
+
+    @pytest.mark.asyncio
+    async def test_privilege_escalation_high_severity(self, mock_db, mock_policy):
+        """Test that privilege escalation gaps are marked as high/critical severity."""
+        # Setup
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_policy
+
+        service = PolicyFixingService(mock_db, "test-tenant")
+
+        # Mock AI response with critical privilege escalation
+        analysis_result = {
+            "has_gaps": True,
+            "gap_type": "privilege_escalation",
+            "severity": "critical",
+            "gap_description": "Critical: Any user can delete any data",
+            "missing_checks": ["Verify admin role", "Verify ownership"],
+            "fixed_policy": {
+                "subject": "Admin or Owner",
+                "resource": "User Data",
+                "action": "delete",
+                "conditions": "user.role == 'ADMIN' OR data.owner == user.id"
+            },
+            "fix_explanation": "Added role and ownership checks"
+        }
+
+        attack_scenario = "Attack scenario content"
+
+        with patch.object(service, "_analyze_policy_with_ai") as mock_analyze:
+            mock_analyze.return_value = analysis_result
+
+            with patch.object(service, "_generate_attack_scenario") as mock_attack:
+                mock_attack.return_value = attack_scenario
+
+                # Execute
+                result = await service.analyze_policy(1)
+
+                # Verify
+                assert result is not None
+                assert result.severity == FixSeverity.CRITICAL
+                assert result.security_gap_type == "privilege_escalation"

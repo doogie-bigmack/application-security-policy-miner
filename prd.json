@@ -901,7 +901,7 @@
         "Identify App1 uses 'admin', App2 uses 'administrator', App3 uses 'sysadmin'",
         "Claude Agent SDK detects semantic equivalence across apps",
         "Navigate to Normalization Dashboard",
-        "Review AI-suggested role mapping (admin ↔ administrator ↔ sysadmin)",
+        "Review AI-suggested role mapping (admin \u2194 administrator \u2194 sysadmin)",
         "Approve normalization to standard taxonomy (ADMIN)",
         "Verify all policies are updated to use standard role names",
         "Confirm mapping is documented in audit trail"
@@ -953,7 +953,7 @@
         "Verify vulnerability is closed",
         "Add to security audit report"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

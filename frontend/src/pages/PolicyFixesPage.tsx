@@ -25,6 +25,7 @@ interface PolicyFix {
   fixed_policy: string;
   fix_explanation: string;
   test_cases: string | null;
+  attack_scenario: string | null;
   status: "pending" | "reviewed" | "applied" | "rejected";
   reviewed_by: string | null;
   reviewed_at: string | null;
@@ -336,6 +337,21 @@ export default function PolicyFixesPage() {
                       {fix.fix_explanation}
                     </p>
                   </div>
+
+                  {/* Attack Scenario (for privilege escalation) */}
+                  {fix.attack_scenario && fix.security_gap_type === "privilege_escalation" && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-gray-50 mb-2 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                        Attack Scenario
+                      </h4>
+                      <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                        <pre className="text-xs text-gray-900 dark:text-gray-50 whitespace-pre-wrap font-mono">
+                          {fix.attack_scenario}
+                        </pre>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Test Cases */}
                   {fix.test_cases ? (

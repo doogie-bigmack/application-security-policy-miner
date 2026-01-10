@@ -32,6 +32,7 @@ class PolicyFixResponse(PolicyFixBase):
     fixed_policy: str = Field(..., description="JSON of fixed policy")
     fix_explanation: str = Field(..., description="Explanation of the fix")
     test_cases: str | None = Field(None, description="JSON array of test cases")
+    attack_scenario: str | None = Field(None, description="Detailed attack scenario for privilege escalation")
     status: FixStatus
     reviewed_by: str | None = None
     reviewed_at: datetime | None = None
