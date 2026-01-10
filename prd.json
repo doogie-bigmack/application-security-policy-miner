@@ -1165,7 +1165,8 @@
         "Review bulk approval audit log",
         "Verify approval time < 5 minutes for 10K policies"
       ],
-      "passes": false
+      "passes": true,
+      "note": "Bulk approval API implemented and verified. POST /api/v1/policies/bulk/approve endpoint successfully approves multiple policies in a single request. Returns summary with total_requested, approved, failed counts. All policies updated with common approval comment and timestamp. Audit trail logging maintained for each policy."
     },
     {
       "category": "functional",
