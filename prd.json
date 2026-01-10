@@ -968,7 +968,7 @@
         "Verify policy now has meaningful authorization check",
         "Log fix in audit trail with before/after comparison"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
