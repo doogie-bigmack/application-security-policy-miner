@@ -444,3 +444,5 @@ def delete_business_unit(
     logger.info("business_unit_deleted", business_unit_id=business_unit_id)
 
     return {"message": "Business unit deleted successfully"}
+
+

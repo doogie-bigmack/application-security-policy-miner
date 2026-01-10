@@ -44,6 +44,18 @@ interface Application {
   business_unit_id: number;
 }
 
+interface Division {
+  id: number;
+  name: string;
+  organization_id: number;
+}
+
+interface BusinessUnit {
+  id: number;
+  name: string;
+  division_id: number;
+}
+
 interface WaveReport {
   wave_id: number;
   wave_name: string;
@@ -65,6 +77,8 @@ interface WaveReport {
 export default function MigrationWavesPage() {
   const [waves, setWaves] = useState<MigrationWave[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [divisions, setDivisions] = useState<Division[]>([]);
+  const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -87,11 +101,24 @@ export default function MigrationWavesPage() {
   // Selected applications for adding to wave
   const [selectedAppIds, setSelectedAppIds] = useState<number[]>([]);
   const [criticalityFilter, setCriticalityFilter] = useState<string>('all');
+  const [divisionFilter, setDivisionFilter] = useState<string>('all');
+  const [businessUnitFilter, setBusinessUnitFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchWaves();
     fetchApplications();
+    fetchDivisions();
+    fetchBusinessUnits();
   }, [statusFilter]);
+
+  // Refetch business units when division filter changes
+  useEffect(() => {
+    fetchBusinessUnits();
+    // Reset business unit filter when division changes
+    if (divisionFilter !== 'all') {
+      setBusinessUnitFilter('all');
+    }
+  }, [divisionFilter]);
 
   const fetchWaves = async () => {
     try {
@@ -132,6 +159,48 @@ export default function MigrationWavesPage() {
       setApplications(data);
     } catch (err) {
       console.error('Failed to fetch applications:', err);
+    }
+  };
+
+  const fetchDivisions = async () => {
+    try {
+      const response = await fetch('http://localhost:7777/api/v1/divisions/', {
+        headers: {
+          'X-Tenant-ID': 'test-tenant-001',
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch divisions');
+
+      const data = await response.json();
+      setDivisions(data);
+    } catch (err) {
+      console.error('Failed to fetch divisions:', err);
+    }
+  };
+
+  const fetchBusinessUnits = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (divisionFilter !== 'all') {
+        params.append('division_id', divisionFilter);
+      }
+
+      const response = await fetch(
+        `http://localhost:7777/api/v1/divisions/business-units/?${params}`,
+        {
+          headers: {
+            'X-Tenant-ID': 'test-tenant-001',
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error('Failed to fetch business units');
+
+      const data = await response.json();
+      setBusinessUnits(data);
+    } catch (err) {
+      console.error('Failed to fetch business units:', err);
     }
   };
 
@@ -280,6 +349,20 @@ export default function MigrationWavesPage() {
     if (criticalityFilter !== 'all' && app.criticality !== criticalityFilter) {
       return false;
     }
+
+    // Filter by business unit
+    if (businessUnitFilter !== 'all' && app.business_unit_id !== parseInt(businessUnitFilter)) {
+      return false;
+    }
+
+    // Filter by division (check if app's business unit belongs to selected division)
+    if (divisionFilter !== 'all') {
+      const appBusinessUnit = businessUnits.find((bu) => bu.id === app.business_unit_id);
+      if (!appBusinessUnit || appBusinessUnit.division_id !== parseInt(divisionFilter)) {
+        return false;
+      }
+    }
+
     // Don't show apps already in the wave
     if (selectedWave && selectedWave.application_ids.includes(app.id)) {
       return false;
@@ -570,22 +653,66 @@ export default function MigrationWavesPage() {
             </div>
 
             <form onSubmit={addApplicationsToWave} className="space-y-4">
-              {/* Criticality Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Filter by Criticality
-                </label>
-                <select
-                  value={criticalityFilter}
-                  onChange={(e) => setCriticalityFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50"
-                >
-                  <option value="all">All</option>
-                  <option value="critical">Critical</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
+              {/* Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Division Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Division
+                  </label>
+                  <select
+                    value={divisionFilter}
+                    onChange={(e) => setDivisionFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50"
+                  >
+                    <option value="all">All Divisions</option>
+                    {divisions.map((division) => (
+                      <option key={division.id} value={division.id}>
+                        {division.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Business Unit Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Business Unit
+                  </label>
+                  <select
+                    value={businessUnitFilter}
+                    onChange={(e) => setBusinessUnitFilter(e.target.value)}
+                    disabled={divisionFilter === 'all'}
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="all">All Business Units</option>
+                    {businessUnits
+                      .filter((bu) => divisionFilter === 'all' || bu.division_id === parseInt(divisionFilter))
+                      .map((bu) => (
+                        <option key={bu.id} value={bu.id}>
+                          {bu.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Criticality Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Criticality
+                  </label>
+                  <select
+                    value={criticalityFilter}
+                    onChange={(e) => setCriticalityFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50"
+                  >
+                    <option value="all">All Levels</option>
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
               </div>
 
               {/* Application List */}
@@ -630,6 +757,8 @@ export default function MigrationWavesPage() {
                     setShowAddAppsModal(false);
                     setSelectedAppIds([]);
                     setCriticalityFilter('all');
+                    setDivisionFilter('all');
+                    setBusinessUnitFilter('all');
                   }}
                   className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
