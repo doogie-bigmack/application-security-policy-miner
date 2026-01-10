@@ -6064,3 +6064,211 @@ Enhanced migration waves functionality to support filtering applications by divi
 - `frontend/src/pages/MigrationWavesPage.tsx`
 
 ### Story Status: PASSES ✅
+
+---
+
+## Continuous Governance - Spaghetti Detection (Story 119) - COMPLETE ✅
+
+**Date:** 2026-01-10
+**Story:** Continuous Governance - Detect new spaghetti code being added
+**Status:** PASSES ✅
+
+### Implementation Summary
+
+Implemented continuous governance system to detect and track new spaghetti code (inline authorization checks) being added to repositories. System automatically flags new inline authorization as security issues and provides refactoring guidance.
+
+### Backend Implementation
+
+**1. API Endpoints (`backend/app/api/v1/endpoints/work_items.py`)**
+- `GET /api/v1/work-items/` - List all work items with filters
+  - Supports filtering by status, priority, spaghetti_only flag
+  - Returns paginated results with skip/limit
+- `GET /api/v1/work-items/{id}` - Get specific work item details
+- `PATCH /api/v1/work-items/{id}` - Update work item status/priority/assignment
+  - Automatically sets resolved_at timestamp when marking as resolved/closed
+- `GET /api/v1/work-items/metrics/spaghetti` - Comprehensive spaghetti metrics
+  - Total detections, open/resolved counts
+  - Detection rate per day
+  - Average resolution time in hours
+  - Detections grouped by repository
+  - Recent detections list
+
+**2. Existing Change Detection Service (`backend/app/services/change_detection_service.py`)**
+- Already implements spaghetti detection logic in `_is_new_spaghetti_code()`
+- Detects inline authorization patterns in newly added policies:
+  - `if user.role`, `if current_user`, `if request.user`
+  - `hasRole()`, `checkPermission()`, `user.has_permission`
+  - `is_admin`, `is_superuser`, `can_access`
+  - Decorators like `@requires_role`, `@permission_required`
+- Auto-creates high-priority work items for detections
+- Generates refactoring suggestions using Claude Agent SDK
+- Work items flagged with `is_spaghetti_detection=1`
+- Title format: "⚠️ NEW SPAGHETTI DETECTED: {subject}"
+
+**3. Database Models (`backend/app/models/policy_change.py`)**
+- WorkItem model already has spaghetti detection fields:
+  - `is_spaghetti_detection` (int, 0 or 1)
+  - `refactoring_suggestion` (text, AI-generated)
+- Status enum: OPEN, IN_PROGRESS, RESOLVED, CLOSED
+- Priority enum: LOW, MEDIUM, HIGH, CRITICAL
+- Timestamps: created_at, updated_at, resolved_at
+
+### Frontend Implementation
+
+**1. Governance Dashboard Page (`frontend/src/pages/GovernancePage.tsx`)**
+- **Metrics Cards:**
+  - Total Detections (with per-day rate)
+  - Open Issues (requiring attention)
+  - Resolved count (with resolution rate %)
+  - Average Resolution Time (in hours)
+- **Time Range Selector:** Last 7/30/90 days
+- **Work Items List:**
+  - Shows all spaghetti detections
+  - Color-coded priority badges (critical/high/medium/low)
+  - Color-coded status badges (open/in_progress/resolved/closed)
+  - Repository ID, creation timestamp
+  - Click to view details
+- **Work Item Detail Modal:**
+  - Full description
+  - AI-generated refactoring suggestion (code snippet)
+  - Metadata (repository, timestamps, assignee)
+  - Action buttons: Start Work, Mark Resolved, Close
+- **Auto-polling:** Fetches metrics every 30 seconds
+- **Toast Notifications:** Shows alert when new detections occur
+  - "⚠️ NEW SPAGHETTI DETECTED"
+  - Message: "N new inline authorization check(s) detected. Use centralized PBAC instead."
+
+**2. Toast Notification Component (`frontend/src/components/Toast.tsx`)**
+- Reusable toast notification system
+- Types: success, error, warning, info
+- Auto-dismisses after 5 seconds
+- Slide-in animation
+- Close button for manual dismissal
+- ToastContainer for managing multiple toasts
+
+**3. Navigation Integration**
+- Added "Governance" link to main navigation in `Layout.tsx`
+- Route added in `App.tsx`: `/governance`
+
+### User Story Validation
+
+✅ **Configure git webhook for repository monitoring**
+   - Webhooks already implemented in `/api/v1/webhooks/github`
+   - Triggers automatic scan on push events
+
+✅ **Developer commits new code with inline authorization check**
+   - Change detection service monitors new policy additions
+
+✅ **Git webhook triggers Policy Miner incremental scan**
+   - Webhook endpoint calls `scanner.scan_repository()` with incremental flag
+
+✅ **Incremental scan detects new inline authorization**
+   - `ChangeDetectionService._is_new_spaghetti_code()` checks for inline patterns
+   - Detects 10+ common inline authorization patterns
+
+✅ **System flags as 'NEW SPAGHETTI DETECTED'**
+   - Work item title: "⚠️ NEW SPAGHETTI DETECTED: {subject}"
+   - Priority set to HIGH
+   - `is_spaghetti_detection=1` flag set
+
+✅ **Create work item for security team review**
+   - Auto-creates WorkItem linked to PolicyChange
+   - Includes description, evidence, repository context
+
+✅ **Notify developer: 'Use centralized PBAC instead'**
+   - Toast notification shown on dashboard
+   - Work item description includes guidance
+
+✅ **Provide refactoring suggestion using Claude Agent SDK**
+   - `_generate_refactoring_suggestion()` calls Claude API
+   - Returns detailed refactoring guidance with:
+     - Explanation of why inline auth is problematic
+     - How to externalize to PBAC platform
+     - Example refactored code
+     - Benefits (auditing, centralized management, separation of concerns)
+   - Stored in `work_item.refactoring_suggestion` field
+
+✅ **Track spaghetti prevention metrics on dashboard**
+   - Comprehensive metrics dashboard at `/governance`
+   - Tracks total/open/resolved detections
+   - Calculates detection rate, avg resolution time
+   - Groups by repository
+   - Shows recent detections
+   - Auto-refreshes every 30 seconds
+
+### API Testing Results
+
+```bash
+# Metrics endpoint
+GET /api/v1/work-items/metrics/spaghetti?days=30
+{
+  "total_detections": 1,
+  "open_detections": 1,
+  "resolved_detections": 0,
+  "detection_rate": 0.03,
+  "avg_resolution_time_hours": null,
+  "detections_by_repository": [...],
+  "recent_detections": [...]
+}
+
+# List work items
+GET /api/v1/work-items/?spaghetti_only=true&limit=10
+[{
+  "id": 2,
+  "title": "⚠️ NEW SPAGHETTI DETECTED: Manager",
+  "description": "New policy added: Manager can approve Expense Report",
+  "status": "open",
+  "priority": "high",
+  "is_spaghetti_detection": 1,
+  ...
+}]
+
+# Update work item status
+PATCH /api/v1/work-items/2
+{"status": "in_progress"}
+# Returns updated work item with new status and updated_at timestamp
+
+# Mark as resolved
+PATCH /api/v1/work-items/2
+{"status": "resolved"}
+# Sets resolved_at timestamp, metrics update immediately
+```
+
+### Files Modified
+
+**Backend:**
+- `backend/app/api/v1/endpoints/work_items.py` (new)
+- `backend/app/api/v1/__init__.py` (added work_items router)
+- `backend/app/services/change_detection_service.py` (already had spaghetti detection)
+- `backend/app/models/policy_change.py` (already had WorkItem model)
+
+**Frontend:**
+- `frontend/src/pages/GovernancePage.tsx` (new)
+- `frontend/src/components/Toast.tsx` (new)
+- `frontend/src/App.tsx` (added route)
+- `frontend/src/components/Layout.tsx` (added navigation link)
+- `frontend/src/index.css` (added slide-in animation)
+
+### Benefits
+
+- **Proactive Prevention:** Catches new spaghetti code immediately via webhooks
+- **Developer Guidance:** AI-generated refactoring suggestions educate developers
+- **Metrics-Driven:** Track prevention effectiveness with comprehensive dashboard
+- **Team Workflow:** Work items integrate into security team's review process
+- **Real-Time Alerts:** Toast notifications ensure immediate awareness
+- **Audit Trail:** All detections logged with timestamps and resolution tracking
+
+### Technical Highlights
+
+1. **Automatic Detection:** Leverages existing change detection service
+2. **Pattern Matching:** Detects 10+ common inline authorization patterns
+3. **AI Integration:** Claude Agent SDK generates contextual refactoring advice
+4. **REST API:** Clean, RESTful endpoints for programmatic access
+5. **Real-Time Updates:** Auto-polling keeps dashboard current
+6. **User Experience:** Toast notifications, modal dialogs, color-coded statuses
+7. **Metrics Calculation:** Average resolution time computed from timestamps
+8. **Multi-Tenancy:** All endpoints support tenant isolation
+
+### Story Status: PASSES ✅
+
+All acceptance criteria met. System successfully detects new spaghetti code, creates work items, notifies users, provides refactoring guidance, and tracks metrics on a comprehensive dashboard.

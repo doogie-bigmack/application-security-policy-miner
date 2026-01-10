@@ -22,6 +22,7 @@ import DuplicatesPage from './pages/DuplicatesPage'
 import BulkScanPage from './pages/BulkScanPage'
 import AutoscalerPage from './pages/AutoscalerPage'
 import MigrationWavesPage from './pages/MigrationWavesPage'
+import GovernancePage from './pages/GovernancePage'
 import Layout from './components/Layout'
 
 function App() {
@@ -66,6 +67,7 @@ function App() {
         <Route path="/bulk-scan" element={<BulkScanPage />} />
         <Route path="/autoscaler" element={<AutoscalerPage />} />
         <Route path="/migration-waves" element={<MigrationWavesPage />} />
+        <Route path="/governance" element={<GovernancePage />} />
       </Routes>
     </Layout>
   )
