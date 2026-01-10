@@ -216,6 +216,81 @@ async def reject_policy(
     return {"status": "success", "message": "Policy rejected"}
 
 
+class BulkApprovalRequest(BaseModel):
+    """Request body for bulk policy approval."""
+
+    policy_ids: list[int]
+    comment: str | None = None
+
+
+class BulkApprovalResponse(BaseModel):
+    """Response for bulk policy approval."""
+
+    total_requested: int
+    approved: int
+    failed: int
+    failed_policy_ids: list[int]
+
+
+@router.post("/bulk/approve", response_model=BulkApprovalResponse)
+async def bulk_approve_policies(
+    request: BulkApprovalRequest,
+    db: Session = Depends(get_db),
+    user_email: str | None = Depends(get_current_user_email),
+    tenant_id: int | None = Depends(get_tenant_id),
+) -> BulkApprovalResponse:
+    """Approve multiple policies at once.
+
+    Args:
+        request: Bulk approval request with policy IDs and optional comment
+        db: Database session
+        user_email: Authenticated user email
+        tenant_id: Authenticated tenant ID
+
+    Returns:
+        Summary of bulk approval operation
+    """
+    from datetime import UTC, datetime
+
+    from app.models.policy import PolicyStatus
+
+    approved = 0
+    failed = 0
+    failed_policy_ids = []
+
+    for policy_id in request.policy_ids:
+        policy = db.query(Policy).filter(Policy.id == policy_id).first()
+
+        if not policy:
+            failed += 1
+            failed_policy_ids.append(policy_id)
+            continue
+
+        policy.status = PolicyStatus.APPROVED
+        policy.approval_comment = request.comment
+        policy.reviewed_by = user_email or "anonymous"
+        policy.reviewed_at = datetime.now(UTC)
+        approved += 1
+
+        # Log approval decision to audit trail
+        if tenant_id:
+            AuditService.log_policy_approval(
+                db=db,
+                tenant_id=tenant_id,
+                policy_id=policy_id,
+                user_email=user_email or "anonymous",
+            )
+
+    db.commit()
+
+    return BulkApprovalResponse(
+        total_requested=len(request.policy_ids),
+        approved=approved,
+        failed=failed,
+        failed_policy_ids=failed_policy_ids,
+    )
+
+
 @router.get("/{policy_id}/history")
 async def get_policy_history(policy_id: int, db: Session = Depends(get_db)) -> dict:
     """Get change history for a policy.
