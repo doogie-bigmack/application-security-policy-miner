@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, GitMerge, XCircle, Building2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, GitMerge, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface Evidence {
@@ -7,13 +7,6 @@ interface Evidence {
   line_start: number;
   line_end: number;
   code_snippet: string;
-}
-
-interface Application {
-  id: number;
-  name: string;
-  criticality: string;
-  business_unit_id: number;
 }
 
 interface Policy {
@@ -27,8 +20,6 @@ interface Policy {
   risk_level: string | null;
   source_type: string;
   evidence: Evidence[];
-  application_id: number | null;
-  application?: Application;
 }
 
 interface Conflict {
@@ -52,14 +43,12 @@ export default function ConflictsPage() {
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [loading, setLoading] = useState(true);
   const [detecting, setDetecting] = useState(false);
-  const [detectingCrossApp, setDetectingCrossApp] = useState(false);
   const [selectedConflict, setSelectedConflict] = useState<Conflict | null>(null);
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "resolved">("all");
-  const [showCrossAppOnly, setShowCrossAppOnly] = useState(false);
 
   useEffect(() => {
     fetchConflicts();
-  }, [filterStatus, showCrossAppOnly]);
+  }, [filterStatus]);
 
   const fetchConflicts = async () => {
     try {
@@ -67,9 +56,6 @@ export default function ConflictsPage() {
       const params = new URLSearchParams();
       if (filterStatus !== "all") {
         params.append("status", filterStatus);
-      }
-      if (showCrossAppOnly) {
-        params.append("cross_application_only", "true");
       }
 
       const response = await fetch(`/api/v1/conflicts/?${params.toString()}`);
@@ -95,24 +81,6 @@ export default function ConflictsPage() {
       alert("Failed to detect conflicts. Make sure ANTHROPIC_API_KEY is set.");
     } finally {
       setDetecting(false);
-    }
-  };
-
-  const detectCrossAppConflicts = async () => {
-    try {
-      setDetectingCrossApp(true);
-      const response = await fetch("/api/v1/conflicts/detect-cross-application", {
-        method: "POST",
-      });
-      const data = await response.json();
-      setConflicts(data.conflicts);
-      setShowCrossAppOnly(true);
-      alert(`Detected ${data.total} cross-application conflicts`);
-    } catch (error) {
-      console.error("Failed to detect cross-application conflicts:", error);
-      alert("Failed to detect cross-application conflicts. Make sure ANTHROPIC_API_KEY is set.");
-    } finally {
-      setDetectingCrossApp(false);
     }
   };
 
@@ -179,8 +147,8 @@ export default function ConflictsPage() {
         </div>
 
         {/* Actions and Filters */}
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-          <div className="flex gap-2 flex-wrap">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex gap-2">
             <button
               onClick={() => setFilterStatus("all")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -211,37 +179,15 @@ export default function ConflictsPage() {
             >
               Resolved
             </button>
-            <div className="border-l border-gray-300 dark:border-gray-700 mx-2"></div>
-            <button
-              onClick={() => setShowCrossAppOnly(!showCrossAppOnly)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                showCrossAppOnly
-                  ? "bg-purple-600 text-white"
-                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-              }`}
-            >
-              <Building2 className="w-4 h-4" />
-              Cross-App Only
-            </button>
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={detectConflicts}
-              disabled={detecting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              {detecting ? "Detecting..." : "Detect Conflicts"}
-            </button>
-            <button
-              onClick={detectCrossAppConflicts}
-              disabled={detectingCrossApp}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
-            >
-              <Building2 className="w-4 h-4" />
-              {detectingCrossApp ? "Detecting..." : "Detect Cross-App Conflicts"}
-            </button>
-          </div>
+          <button
+            onClick={detectConflicts}
+            disabled={detecting}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+          >
+            {detecting ? "Detecting..." : "Detect Conflicts"}
+          </button>
         </div>
 
         {/* Conflicts List */}
@@ -303,17 +249,9 @@ export default function ConflictsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {/* Policy A */}
                   <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Policy A (ID: {conflict.policy_a.id})
-                      </h4>
-                      {conflict.policy_a.application && (
-                        <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-400 text-xs rounded flex items-center gap-1">
-                          <Building2 className="w-3 h-3" />
-                          {conflict.policy_a.application.name}
-                        </span>
-                      )}
-                    </div>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Policy A (ID: {conflict.policy_a.id})
+                    </h4>
                     <div className="space-y-1 text-sm">
                       <div>
                         <span className="text-gray-600 dark:text-gray-400">Who:</span>{" "}
@@ -338,17 +276,9 @@ export default function ConflictsPage() {
 
                   {/* Policy B */}
                   <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Policy B (ID: {conflict.policy_b.id})
-                      </h4>
-                      {conflict.policy_b.application && (
-                        <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-400 text-xs rounded flex items-center gap-1">
-                          <Building2 className="w-3 h-3" />
-                          {conflict.policy_b.application.name}
-                        </span>
-                      )}
-                    </div>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Policy B (ID: {conflict.policy_b.id})
+                    </h4>
                     <div className="space-y-1 text-sm">
                       <div>
                         <span className="text-gray-600 dark:text-gray-400">Who:</span>{" "}

@@ -30,7 +30,6 @@ from app.services.database_scanner_service import DatabaseScannerService
 from app.services.java_scanner_service import JavaScannerService
 from app.services.javascript_scanner import JavaScriptScannerService
 from app.services.llm_provider import get_llm_provider
-from app.services.mainframe_scanner_service import MainframeScannerService
 from app.services.python_scanner_service import PythonScannerService
 from app.services.risk_scoring_service import RiskScoringService
 from app.services.secret_detection_service import SecretDetectionService
@@ -66,9 +65,6 @@ SUPPORTED_EXTENSIONS = {
     ".php",
     ".scala",
     ".kt",
-    ".cbl",     # COBOL
-    ".cobol",   # COBOL
-    ".cob",     # COBOL
 }
 
 # Frontend indicators
@@ -98,7 +94,6 @@ class ScannerService:
         self.python_scanner = PythonScannerService()
         self.javascript_scanner = JavaScriptScannerService()
         self.database_scanner = DatabaseScannerService()
-        self.mainframe_scanner = MainframeScannerService()
         self.process = psutil.Process(os.getpid())
         self.initial_memory_mb = self.process.memory_info().rss / 1024 / 1024
 
@@ -224,12 +219,6 @@ class ScannerService:
             # Handle database repositories differently
             if repo.repository_type == RepositoryType.DATABASE:
                 return await self._scan_database_repository(
-                    repo, scan_progress, start_time, start_memory_mb, tenant_id
-                )
-
-            # Handle mainframe repositories differently
-            if repo.repository_type == RepositoryType.MAINFRAME:
-                return await self._scan_mainframe_repository(
                     repo, scan_progress, start_time, start_memory_mb, tenant_id
                 )
 
@@ -1290,134 +1279,6 @@ Return ONLY the JSON array, no other text."""
         except Exception as e:
             logger.error(
                 "database_scan_failed",
-                repository_id=repo.id,
-                error=str(e),
-            )
-
-            # Update scan progress to failed
-            scan_progress.status = ScanStatus.FAILED
-            scan_progress.error_message = str(e)
-            scan_progress.completed_at = datetime.utcnow()
-            self.db.commit()
-
-            # Update repository status to failed
-            repo.status = RepositoryStatus.FAILED
-            self.db.commit()
-
-            # Record error metric
-            increment_error_count()
-
-            raise
-
-    async def _scan_mainframe_repository(
-        self,
-        repo: Repository,
-        scan_progress: ScanProgress,
-        start_time: datetime,
-        start_memory_mb: float,
-        tenant_id: str | None,
-    ) -> dict[str, Any]:
-        """Scan a mainframe repository for COBOL authorization logic.
-
-        Args:
-            repo: Repository object
-            scan_progress: Scan progress tracker
-            start_time: Scan start time
-            start_memory_mb: Initial memory usage
-            tenant_id: Tenant ID
-
-        Returns:
-            Scan results dictionary
-        """
-        logger.info(
-            "scanning_mainframe_repository",
-            repository_id=repo.id,
-            repository_name=repo.name,
-            tenant_id=tenant_id,
-        )
-
-        try:
-            # Update scan progress to processing
-            scan_progress.status = ScanStatus.PROCESSING
-            self.db.commit()
-
-            # Get application_id from repository if linked
-            from sqlalchemy.orm import Session as SyncSession
-            async_session = self.db
-
-            # Convert async session to use with mainframe scanner
-            # The mainframe scanner needs an async session
-            from sqlalchemy.ext.asyncio import AsyncSession
-
-            # For now, use None for application_id
-            # TODO: Link mainframe repos to applications
-            application_id = None
-
-            # Scan mainframe using mainframe scanner service
-            scan_result = await self.mainframe_scanner.scan_mainframe_repository(
-                session=async_session,
-                repository=repo,
-                tenant_id=tenant_id,
-                application_id=application_id,
-            )
-
-            files_scanned = scan_result["files_scanned"]
-            files_with_auth = scan_result["files_with_authorization"]
-            policies_extracted = scan_result["policies_extracted"]
-
-            # Update scan progress
-            scan_progress.total_files = files_scanned
-            scan_progress.processed_files = files_scanned
-            scan_progress.policies_extracted = policies_extracted
-            scan_progress.total_batches = 1
-            scan_progress.current_batch = 1
-            self.db.commit()
-
-            # Complete scan progress
-            scan_progress.status = ScanStatus.COMPLETED
-            scan_progress.completed_at = datetime.utcnow()
-            self.db.commit()
-
-            # Update repository status
-            repo.status = RepositoryStatus.CONNECTED
-            repo.last_scan_at = datetime.utcnow()
-            self.db.commit()
-
-            # Calculate duration and memory
-            duration_seconds = (datetime.utcnow() - start_time).total_seconds()
-            end_memory_mb = self._get_memory_usage_mb()
-            memory_delta_mb = end_memory_mb - start_memory_mb
-
-            # Record metrics
-            increment_scan_count()
-            record_scan_duration(duration_seconds)
-            increment_policies_extracted(policies_extracted)
-
-            logger.info(
-                "mainframe_scan_completed",
-                repository_id=repo.id,
-                files_scanned=files_scanned,
-                files_with_auth=files_with_auth,
-                policies_extracted=policies_extracted,
-                duration_seconds=round(duration_seconds, 2),
-                memory_delta_mb=round(memory_delta_mb, 2),
-            )
-
-            return {
-                "repository_id": repo.id,
-                "files_scanned": files_scanned,
-                "files_with_authorization": files_with_auth,
-                "policies_extracted": policies_extracted,
-                "duration_seconds": round(duration_seconds, 2),
-                "start_memory_mb": round(start_memory_mb, 2),
-                "end_memory_mb": round(end_memory_mb, 2),
-                "memory_delta_mb": round(memory_delta_mb, 2),
-                "connection_type": scan_result.get("connection_type", "file_upload"),
-            }
-
-        except Exception as e:
-            logger.error(
-                "mainframe_scan_failed",
                 repository_id=repo.id,
                 error=str(e),
             )
