@@ -1,7 +1,9 @@
 """API endpoints for OPA verification (lasagna architecture)."""
 import logging
+from io import StringIO
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -334,3 +336,110 @@ async def get_verification_statistics(
     stats = await service.get_verification_statistics(tenant_id=tenant_id)
 
     return OPAVerificationStatistics(**stats)
+
+
+@router.get("/export/report/")
+async def export_migration_report(
+    application_id: str | None = Query(None, description="Filter by application ID"),
+    status: str | None = Query(None, description="Filter by status"),
+    db: Session = Depends(get_db),
+    tenant_id: str = Depends(get_tenant_id),
+) -> StreamingResponse:
+    """
+    Export spaghetti-to-lasagna migration report as CSV.
+
+    Generates a comprehensive report showing migration progress,
+    spaghetti reduction metrics, and performance impact for all verifications.
+    """
+    logger.info(
+        "Exporting migration report",
+        extra={
+            "tenant_id": tenant_id,
+            "application_id": application_id,
+            "status": status,
+        },
+    )
+
+    service = OPAVerificationService(db)
+    verifications = await service.list_verifications(
+        tenant_id=tenant_id,
+        application_id=application_id,
+        status=status,
+        limit=10000,  # Large limit for export
+    )
+
+    # Generate CSV report
+    output = StringIO()
+
+    # CSV header
+    headers = [
+        "Verification ID",
+        "Application ID",
+        "Policy ID",
+        "Status",
+        "Baseline Inline Checks",
+        "Inline Checks Remaining",
+        "Spaghetti Reduction %",
+        "Refactoring Applied",
+        "OPA Calls Detected",
+        "OPA Connection Verified",
+        "OPA Decision Enforced",
+        "Migration Complete",
+        "Migration Completeness %",
+        "Inline Latency (ms)",
+        "OPA Latency (ms)",
+        "Latency Overhead (ms)",
+        "Latency Overhead %",
+        "OPA Endpoint",
+        "Baseline Scan Date",
+        "Refactoring Applied Date",
+        "Verification Date",
+        "Created At",
+        "Notes",
+    ]
+    output.write(",".join(headers) + "\n")
+
+    # CSV rows
+    for v in verifications:
+        row = [
+            v.id,
+            str(v.application_id),
+            str(v.policy_id),
+            v.verification_status,
+            str(v.baseline_inline_checks or ""),
+            str(v.inline_checks_remaining or ""),
+            f"{v.spaghetti_reduction_percentage:.2f}" if v.spaghetti_reduction_percentage is not None else "",
+            "Yes" if v.refactoring_applied else "No",
+            "Yes" if v.opa_calls_detected else "No",
+            "Yes" if v.opa_connection_verified else "No",
+            "Yes" if v.opa_decision_enforced else "No",
+            "Yes" if v.is_fully_migrated else "No",
+            f"{v.migration_completeness:.2f}",
+            f"{v.inline_latency_ms:.2f}" if v.inline_latency_ms is not None else "",
+            f"{v.opa_latency_ms:.2f}" if v.opa_latency_ms is not None else "",
+            f"{v.latency_overhead_ms:.2f}" if v.latency_overhead_ms is not None else "",
+            f"{v.latency_overhead_percentage:.2f}" if v.latency_overhead_percentage is not None else "",
+            v.opa_endpoint_url or "",
+            v.baseline_scan_date.isoformat() if v.baseline_scan_date else "",
+            v.refactoring_applied_at.isoformat() if v.refactoring_applied_at else "",
+            v.verification_date.isoformat() if v.verification_date else "",
+            v.created_at.isoformat() if v.created_at else "",
+            (v.verification_notes or "").replace(",", ";").replace("\n", " "),  # Escape commas and newlines
+        ]
+        output.write(",".join(row) + "\n")
+
+    # Reset buffer position
+    output.seek(0)
+
+    logger.info(
+        f"Generated migration report with {len(verifications)} verifications",
+        extra={"tenant_id": tenant_id},
+    )
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=spaghetti-to-lasagna-migration-report-{tenant_id}.csv"
+        },
+    )

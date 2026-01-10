@@ -9,6 +9,7 @@ import {
   TrendingUp,
   AlertCircle,
   Info,
+  Download,
 } from "lucide-react";
 
 const API_BASE = "/api/v1";
@@ -89,6 +90,27 @@ export default function OPAVerificationsPage() {
     }
   };
 
+  const exportReport = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filterStatus !== "all") {
+        params.append("status", filterStatus);
+      }
+      const response = await fetch(`${API_BASE}/opa-verifications/export/report/?${params}`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `spaghetti-to-lasagna-migration-report-${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Failed to export report:", error);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "verified":
@@ -159,13 +181,22 @@ export default function OPAVerificationsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
-          Lasagna Architecture Verification
-        </h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Track migration from inline authorization (spaghetti) to centralized PBAC (lasagna)
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
+            Lasagna Architecture Verification
+          </h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Track migration from inline authorization (spaghetti) to centralized PBAC (lasagna)
+          </p>
+        </div>
+        <button
+          onClick={exportReport}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
+        >
+          <Download className="w-4 h-4" />
+          Export Report
+        </button>
       </div>
 
       {/* Statistics Cards */}
