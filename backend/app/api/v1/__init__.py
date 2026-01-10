@@ -14,6 +14,7 @@ from app.api.v1 import (
 from app.api.v1.endpoints import (
     applications,
     audit_logs,
+    bulk_scan,
     code_advisories,
     cross_application_conflicts,
     duplicates,
@@ -53,3 +54,4 @@ api_router.include_router(policy_fixes.router, prefix="/policy-fixes", tags=["po
 api_router.include_router(inconsistent_enforcement.router, prefix="/inconsistent-enforcement", tags=["inconsistent-enforcement"])
 api_router.include_router(duplicates.router, prefix="/duplicates", tags=["duplicates"])
 api_router.include_router(cross_application_conflicts.router, prefix="/cross-application-conflicts", tags=["cross-application-conflicts"])
+api_router.include_router(bulk_scan.router, prefix="/bulk-scan", tags=["bulk-scan"])

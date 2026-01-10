@@ -31,6 +31,12 @@ export default function Layout({ children, darkMode, setDarkMode }: LayoutProps)
                 Repositories
               </Link>
               <Link
+                to="/bulk-scan"
+                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
+              >
+                Bulk Scan
+              </Link>
+              <Link
                 to="/policies"
                 className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
               >

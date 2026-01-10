@@ -139,7 +139,9 @@ def test_detect_cross_application_conflicts_single_application(service, mock_db)
 def test_analyze_cross_app_conflict_with_ai(mock_llm_provider, monkeypatch):
     """Test AI-powered conflict analysis."""
     # Mock the entire service method to avoid SQLAlchemy issues
-    from app.services.cross_application_conflict_detection import CrossApplicationConflictDetectionService
+    from app.services.cross_application_conflict_detection import (
+        CrossApplicationConflictDetectionService,
+    )
 
     # Setup policies
     policy_a = Mock()
