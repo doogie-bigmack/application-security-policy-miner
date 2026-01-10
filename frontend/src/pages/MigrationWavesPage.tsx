@@ -50,12 +50,6 @@ interface Division {
   organization_id: number;
 }
 
-interface BusinessUnit {
-  id: number;
-  name: string;
-  division_id: number;
-}
-
 interface WaveReport {
   wave_id: number;
   wave_name: string;
@@ -78,14 +72,15 @@ export default function MigrationWavesPage() {
   const [waves, setWaves] = useState<MigrationWave[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [divisions, setDivisions] = useState<Division[]>([]);
-  const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAddAppsModal, setShowAddAppsModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showVelocityModal, setShowVelocityModal] = useState(false);
   const [selectedWave, setSelectedWave] = useState<WaveWithApplications | null>(null);
   const [report, setReport] = useState<WaveReport | null>(null);
+  const [velocityData, setVelocityData] = useState<WaveReport[]>([]);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<WaveStatus | 'all'>('all');
@@ -102,22 +97,16 @@ export default function MigrationWavesPage() {
   const [selectedAppIds, setSelectedAppIds] = useState<number[]>([]);
   const [criticalityFilter, setCriticalityFilter] = useState<string>('all');
   const [divisionFilter, setDivisionFilter] = useState<string>('all');
-  const [businessUnitFilter, setBusinessUnitFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchWaves();
     fetchApplications();
     fetchDivisions();
-    fetchBusinessUnits();
   }, [statusFilter]);
 
-  // Refetch business units when division filter changes
+  // Fetch applications when division filter changes
   useEffect(() => {
-    fetchBusinessUnits();
-    // Reset business unit filter when division changes
-    if (divisionFilter !== 'all') {
-      setBusinessUnitFilter('all');
-    }
+    fetchApplications();
   }, [divisionFilter]);
 
   const fetchWaves = async () => {
@@ -147,7 +136,12 @@ export default function MigrationWavesPage() {
 
   const fetchApplications = async () => {
     try {
-      const response = await fetch('http://localhost:7777/api/v1/applications/', {
+      const params = new URLSearchParams();
+      if (divisionFilter !== 'all') {
+        params.append('division_id', divisionFilter);
+      }
+
+      const response = await fetch(`http://localhost:7777/api/v1/applications/?${params}`, {
         headers: {
           'X-Tenant-ID': 'test-tenant-001',
         },
@@ -164,43 +158,22 @@ export default function MigrationWavesPage() {
 
   const fetchDivisions = async () => {
     try {
-      const response = await fetch('http://localhost:7777/api/v1/divisions/', {
+      // Fetch from the first organization (assuming single org for now)
+      const response = await fetch('http://localhost:7777/api/v1/organizations/1/divisions', {
         headers: {
           'X-Tenant-ID': 'test-tenant-001',
         },
       });
 
-      if (!response.ok) throw new Error('Failed to fetch divisions');
+      if (!response.ok) {
+        console.error('Failed to fetch divisions');
+        return;
+      }
 
       const data = await response.json();
       setDivisions(data);
     } catch (err) {
       console.error('Failed to fetch divisions:', err);
-    }
-  };
-
-  const fetchBusinessUnits = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (divisionFilter !== 'all') {
-        params.append('division_id', divisionFilter);
-      }
-
-      const response = await fetch(
-        `http://localhost:7777/api/v1/divisions/business-units/?${params}`,
-        {
-          headers: {
-            'X-Tenant-ID': 'test-tenant-001',
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed to fetch business units');
-
-      const data = await response.json();
-      setBusinessUnits(data);
-    } catch (err) {
-      console.error('Failed to fetch business units:', err);
     }
   };
 
@@ -281,6 +254,47 @@ export default function MigrationWavesPage() {
     }
   };
 
+  const startWaveScan = async (waveId: number) => {
+    try {
+      const response = await fetch(`http://localhost:7777/api/v1/migration-waves/${waveId}/scan`, {
+        method: 'POST',
+        headers: {
+          'X-Tenant-ID': 'test-tenant-001',
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to start wave scan');
+
+      const data = await response.json();
+      setError('');
+
+      // Show success message
+      alert(`Scan started for ${data.application_count} applications (${data.repository_count} repositories)\nTask ID: ${data.task_id}`);
+
+      await fetchWaves();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start wave scan');
+    }
+  };
+
+  const fetchVelocityComparison = async () => {
+    try {
+      const response = await fetch('http://localhost:7777/api/v1/migration-waves/velocity-comparison?limit=10', {
+        headers: {
+          'X-Tenant-ID': 'test-tenant-001',
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch velocity comparison');
+
+      const data = await response.json();
+      setVelocityData(data);
+      setShowVelocityModal(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch velocity comparison');
+    }
+  };
+
   const addApplicationsToWave = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -349,20 +363,6 @@ export default function MigrationWavesPage() {
     if (criticalityFilter !== 'all' && app.criticality !== criticalityFilter) {
       return false;
     }
-
-    // Filter by business unit
-    if (businessUnitFilter !== 'all' && app.business_unit_id !== parseInt(businessUnitFilter)) {
-      return false;
-    }
-
-    // Filter by division (check if app's business unit belongs to selected division)
-    if (divisionFilter !== 'all') {
-      const appBusinessUnit = businessUnits.find((bu) => bu.id === app.business_unit_id);
-      if (!appBusinessUnit || appBusinessUnit.division_id !== parseInt(divisionFilter)) {
-        return false;
-      }
-    }
-
     // Don't show apps already in the wave
     if (selectedWave && selectedWave.application_ids.includes(app.id)) {
       return false;
@@ -390,13 +390,22 @@ export default function MigrationWavesPage() {
             Manage phased rollout of application migrations
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Wave
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => fetchVelocityComparison()}
+            className="inline-flex items-center px-4 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Compare Velocity
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Wave
+          </button>
+        </div>
       </div>
 
       {/* Error Alert */}
@@ -550,6 +559,15 @@ export default function MigrationWavesPage() {
                 <Users className="w-4 h-4 mr-1.5" />
                 Manage Apps
               </button>
+              {(wave.status === 'planned' || wave.status === 'in_progress') && wave.total_applications > 0 && (
+                <button
+                  onClick={() => startWaveScan(wave.id)}
+                  className="inline-flex items-center px-3 py-1.5 text-sm border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                >
+                  <TrendingUp className="w-4 h-4 mr-1.5" />
+                  Start Bulk Scan
+                </button>
+              )}
               <button
                 onClick={() => fetchReport(wave.id)}
                 className="inline-flex items-center px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
@@ -653,66 +671,41 @@ export default function MigrationWavesPage() {
             </div>
 
             <form onSubmit={addApplicationsToWave} className="space-y-4">
-              {/* Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Division Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Division
-                  </label>
-                  <select
-                    value={divisionFilter}
-                    onChange={(e) => setDivisionFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50"
-                  >
-                    <option value="all">All Divisions</option>
-                    {divisions.map((division) => (
-                      <option key={division.id} value={division.id}>
-                        {division.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* Division Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Filter by Division
+                </label>
+                <select
+                  value={divisionFilter}
+                  onChange={(e) => setDivisionFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50"
+                >
+                  <option value="all">All Divisions</option>
+                  {divisions.map((division) => (
+                    <option key={division.id} value={division.id.toString()}>
+                      {division.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                {/* Business Unit Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Business Unit
-                  </label>
-                  <select
-                    value={businessUnitFilter}
-                    onChange={(e) => setBusinessUnitFilter(e.target.value)}
-                    disabled={divisionFilter === 'all'}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="all">All Business Units</option>
-                    {businessUnits
-                      .filter((bu) => divisionFilter === 'all' || bu.division_id === parseInt(divisionFilter))
-                      .map((bu) => (
-                        <option key={bu.id} value={bu.id}>
-                          {bu.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                {/* Criticality Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Criticality
-                  </label>
-                  <select
-                    value={criticalityFilter}
-                    onChange={(e) => setCriticalityFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50"
-                  >
-                    <option value="all">All Levels</option>
-                    <option value="critical">Critical</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
+              {/* Criticality Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Filter by Criticality
+                </label>
+                <select
+                  value={criticalityFilter}
+                  onChange={(e) => setCriticalityFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50"
+                >
+                  <option value="all">All</option>
+                  <option value="critical">Critical</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
               </div>
 
               {/* Application List */}
@@ -758,7 +751,6 @@ export default function MigrationWavesPage() {
                     setSelectedAppIds([]);
                     setCriticalityFilter('all');
                     setDivisionFilter('all');
-                    setBusinessUnitFilter('all');
                   }}
                   className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
@@ -877,6 +869,103 @@ export default function MigrationWavesPage() {
             <div className="flex justify-end mt-6">
               <button
                 onClick={() => setShowReportModal(false)}
+                className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Velocity Comparison Modal */}
+      {showVelocityModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl w-full p-6 max-h-[80vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50 mb-6">
+              Migration Velocity Comparison
+            </h2>
+
+            <div className="space-y-4">
+              {velocityData.length === 0 && (
+                <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+                  No wave data available for comparison
+                </div>
+              )}
+
+              {velocityData.map((wave) => (
+                <div
+                  key={wave.wave_id}
+                  className="border border-gray-200 dark:border-gray-800 rounded-lg p-4"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                        {wave.wave_name}
+                      </h3>
+                      <div className={`inline-flex items-center gap-2 px-2 py-1 rounded mt-1 ${getStatusColor(wave.status)}`}>
+                        {getStatusIcon(wave.status)}
+                        <span className="text-xs font-medium capitalize">{wave.status.replace('_', ' ')}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {wave.duration_minutes && (
+                        <div className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+                          {wave.duration_minutes < 60
+                            ? `${wave.duration_minutes.toFixed(0)}m`
+                            : `${(wave.duration_minutes / 60).toFixed(1)}h`}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Duration</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-3">
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded p-3">
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-50">
+                        {wave.total_applications}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Applications</div>
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3">
+                      <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                        {wave.policies_extracted}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Policies</div>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded p-3">
+                      <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                        {wave.policies_provisioned}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Provisioned</div>
+                    </div>
+                    <div className="bg-amber-50 dark:bg-amber-900/20 rounded p-3">
+                      <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                        {wave.duration_minutes && wave.total_applications > 0
+                          ? (wave.duration_minutes / wave.total_applications).toFixed(1)
+                          : 'N/A'}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Min/App</div>
+                    </div>
+                  </div>
+
+                  {wave.started_at && (
+                    <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
+                      <span>Started: {new Date(wave.started_at).toLocaleDateString()}</span>
+                      {wave.completed_at && (
+                        <span className="ml-4">
+                          Completed: {new Date(wave.completed_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowVelocityModal(false)}
                 className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 Close
