@@ -1,7 +1,6 @@
 """Test that scanner service returns correct matches structure."""
-import re
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy.orm import Session
@@ -121,7 +120,7 @@ Here are the extracted policies:
     with patch.object(scanner.llm_provider, "create_message", return_value=mock_llm_response):
         # This should not raise an AttributeError about 'str' object has no attribute 'get'
         try:
-            policies = await scanner._extract_policies_from_file(
+            await scanner._extract_policies_from_file(
                 repo=mock_repo,
                 file_path="test_auth.py",
                 content=test_content,

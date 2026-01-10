@@ -4,8 +4,8 @@ import json
 
 import structlog
 
+from app.core.test_mode import is_test_mode
 from app.models.policy import Policy
-from app.services.llm_provider import get_llm_provider
 
 logger = structlog.get_logger(__name__)
 
@@ -15,7 +15,14 @@ class TranslationService:
 
     def __init__(self):
         """Initialize the translation service."""
-        self.llm_provider = get_llm_provider()
+        self.test_mode = is_test_mode()
+        if not self.test_mode:
+            from app.services.llm_provider import get_llm_provider
+
+            self.llm_provider = get_llm_provider()
+        else:
+            self.llm_provider = None
+            logger.info("translation_service_initialized_in_test_mode")
 
     async def translate_to_rego(self, policy: Policy) -> str:
         """
@@ -30,7 +37,11 @@ class TranslationService:
         Raises:
             ValueError: If translation fails
         """
-        logger.info("translating_policy_to_rego", policy_id=policy.id)
+        logger.info("translating_policy_to_rego", policy_id=policy.id, test_mode=self.test_mode)
+
+        # Return mock data in TEST_MODE
+        if self.test_mode:
+            return self._get_mock_rego_policy(policy)
 
         # Build the prompt for Claude
         prompt = self._build_rego_translation_prompt(policy)
@@ -75,7 +86,11 @@ class TranslationService:
         Raises:
             ValueError: If translation fails
         """
-        logger.info("translating_policy_to_cedar", policy_id=policy.id)
+        logger.info("translating_policy_to_cedar", policy_id=policy.id, test_mode=self.test_mode)
+
+        # Return mock data in TEST_MODE
+        if self.test_mode:
+            return self._get_mock_cedar_policy(policy)
 
         prompt = self._build_cedar_translation_prompt(policy)
 
@@ -280,3 +295,72 @@ Translate the policy above to Cedar format:
             raise ValueError("Cedar policy must end with semicolon")
 
         logger.debug("cedar_policy_validation_passed", policy_length=len(cedar_policy))
+
+    def _get_mock_rego_policy(self, policy: Policy) -> str:
+        """
+        Generate a mock OPA Rego policy for TEST_MODE.
+
+        Args:
+            policy: The policy to translate
+
+        Returns:
+            str: A mock Rego policy
+        """
+        # Generate a realistic Rego policy based on the input policy
+        subject_check = f'input.user.role == "{policy.subject}"'
+        resource_check = f'input.resource.type == "{policy.resource}"'
+        action_check = f'input.action == "{policy.action}"'
+
+        # Add conditions if present
+        conditions_check = ""
+        if policy.conditions:
+            # Simple conversion - in real scenario would parse the conditions
+            conditions_check = f"\n    # Conditions: {policy.conditions}"
+
+        rego_policy = f"""package authz
+
+# {policy.description or "Auto-generated policy"}
+# Subject: {policy.subject}
+# Resource: {policy.resource}
+# Action: {policy.action}
+allow {{
+    {subject_check}
+    {resource_check}
+    {action_check}{conditions_check}
+}}"""
+        return rego_policy
+
+    def _get_mock_cedar_policy(self, policy: Policy) -> str:
+        """
+        Generate a mock AWS Cedar policy for TEST_MODE.
+
+        Args:
+            policy: The policy to translate
+
+        Returns:
+            str: A mock Cedar policy
+        """
+        # Generate a realistic Cedar policy based on the input policy
+        principal = f'principal in Role::"{policy.subject}"'
+        action_str = f'action == Action::"{policy.action}"'
+        resource = f'resource in ResourceType::"{policy.resource}"'
+
+        # Add conditions if present
+        when_clause = ""
+        if policy.conditions:
+            when_clause = f"""
+when {{
+    // {policy.conditions}
+    context.conditions == true
+}}"""
+
+        cedar_policy = f"""// {policy.description or "Auto-generated policy"}
+// Subject: {policy.subject}
+// Resource: {policy.resource}
+// Action: {policy.action}
+permit (
+    {principal},
+    {action_str},
+    {resource}
+){when_clause};"""
+        return cedar_policy
