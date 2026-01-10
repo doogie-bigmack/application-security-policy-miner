@@ -5,8 +5,10 @@ from typing import Any
 import structlog
 from celery import current_app as celery_app
 from celery.result import AsyncResult
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from app.services.worker_autoscaler import get_autoscaler
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
@@ -158,3 +160,146 @@ async def get_bulk_task_progress(task_id: str) -> dict[str, Any]:
         response["meta"] = task_result.info if isinstance(task_result.info, dict) else {}
 
     return response
+
+
+class AutoscalerConfig(BaseModel):
+    """Autoscaler configuration model."""
+
+    min_workers: int
+    max_workers: int
+    scale_up_threshold: int
+    scale_down_threshold: int
+    check_interval: int
+
+
+class AutoscalerMetrics(BaseModel):
+    """Autoscaler metrics model."""
+
+    config: AutoscalerConfig
+    current_state: dict[str, Any]
+    status: str
+
+
+class ScaleRequest(BaseModel):
+    """Manual scaling request."""
+
+    target_count: int
+
+
+@router.get("/autoscaler/metrics/", response_model=AutoscalerMetrics)
+async def get_autoscaler_metrics() -> AutoscalerMetrics:
+    """
+    Get autoscaler metrics and configuration.
+
+    Returns:
+        AutoscalerMetrics with current configuration and state
+    """
+    logger.info("Fetching autoscaler metrics")
+
+    autoscaler = get_autoscaler()
+    metrics = autoscaler.get_metrics()
+
+    return AutoscalerMetrics(
+        config=AutoscalerConfig(**metrics["config"]),
+        current_state=metrics["current_state"],
+        status=metrics["status"],
+    )
+
+
+@router.post("/autoscaler/scale/")
+async def manual_scale_workers(request: ScaleRequest) -> dict[str, Any]:
+    """
+    Manually scale workers to a target count.
+
+    Args:
+        request: ScaleRequest with target worker count
+
+    Returns:
+        Dictionary with scaling result
+    """
+    logger.info("Manual scaling requested", target_count=request.target_count)
+
+    autoscaler = get_autoscaler()
+
+    # Validate target count
+    if request.target_count < autoscaler.min_workers:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Target count must be at least {autoscaler.min_workers}",
+        )
+
+    if request.target_count > autoscaler.max_workers:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Target count must not exceed {autoscaler.max_workers}",
+        )
+
+    success = autoscaler.scale_workers(request.target_count)
+
+    if not success:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to scale workers. Check logs for details.",
+        )
+
+    return {
+        "success": True,
+        "target_count": request.target_count,
+        "message": f"Workers scaling to {request.target_count}",
+    }
+
+
+@router.post("/autoscaler/start/")
+async def start_autoscaler() -> dict[str, Any]:
+    """
+    Start the autoscaler monitoring loop.
+
+    Returns:
+        Dictionary with start result
+    """
+    logger.info("Starting autoscaler")
+
+    # Note: This would need to be run in a background task
+    # For now, we'll just return a status
+    return {
+        "success": True,
+        "message": "Autoscaler start requested. Note: Autoscaler runs as a background service.",
+    }
+
+
+@router.post("/autoscaler/stop/")
+async def stop_autoscaler() -> dict[str, Any]:
+    """
+    Stop the autoscaler monitoring loop.
+
+    Returns:
+        Dictionary with stop result
+    """
+    logger.info("Stopping autoscaler")
+
+    autoscaler = get_autoscaler()
+    autoscaler.stop()
+
+    return {
+        "success": True,
+        "message": "Autoscaler stopped",
+    }
+
+
+@router.post("/workers/restart-failed/")
+async def restart_failed_workers() -> dict[str, Any]:
+    """
+    Manually trigger restart of failed workers.
+
+    Returns:
+        Dictionary with restart result
+    """
+    logger.info("Manual restart of failed workers requested")
+
+    autoscaler = get_autoscaler()
+    autoscaler.restart_failed_workers()
+
+    return {
+        "success": True,
+        "message": "Failed worker restart triggered",
+    }

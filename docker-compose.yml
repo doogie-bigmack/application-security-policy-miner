@@ -69,6 +69,13 @@ services:
       MINIO_SECRET_KEY: minioadmin
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       TEST_MODE: ${TEST_MODE:-false}
+      ENABLE_AUTOSCALER: ${ENABLE_AUTOSCALER:-false}
+      COMPOSE_PROJECT_NAME: poalo_policy_miner
+      AUTOSCALER_MIN_WORKERS: ${AUTOSCALER_MIN_WORKERS:-3}
+      AUTOSCALER_MAX_WORKERS: ${AUTOSCALER_MAX_WORKERS:-50}
+      AUTOSCALER_SCALE_UP_THRESHOLD: ${AUTOSCALER_SCALE_UP_THRESHOLD:-10}
+      AUTOSCALER_SCALE_DOWN_THRESHOLD: ${AUTOSCALER_SCALE_DOWN_THRESHOLD:-2}
+      AUTOSCALER_CHECK_INTERVAL: ${AUTOSCALER_CHECK_INTERVAL:-30}
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,6 +85,8 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: root
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:

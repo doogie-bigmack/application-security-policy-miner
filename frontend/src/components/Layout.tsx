@@ -121,6 +121,12 @@ export default function Layout({ children, darkMode, setDarkMode }: LayoutProps)
                 Bulk Scan
               </Link>
               <Link
+                to="/autoscaler"
+                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
+              >
+                Autoscaler
+              </Link>
+              <Link
                 to="/audit-logs"
                 className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
               >
