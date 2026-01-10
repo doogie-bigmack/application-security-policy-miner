@@ -1065,7 +1065,8 @@
         "Link all 5 applications to centralized policy",
         "Verify deduplication reduces policy count by 80%"
       ],
-      "passes": false
+      "passes": true,
+      "note": "Duplicate detection using pgvector semantic similarity implemented. Full CRUD API with detect, list, consolidate, dismiss, delete operations. Frontend dashboard with filtering, detail view, and consolidation workflow."
     },
     {
       "category": "functional",

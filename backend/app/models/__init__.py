@@ -4,6 +4,11 @@ from app.models.audit_log import AuditEventType, AuditLog
 from app.models.auto_approval import AutoApprovalDecision, AutoApprovalSettings
 from app.models.code_advisory import AdvisoryStatus, CodeAdvisory
 from app.models.conflict import ConflictStatus, ConflictType, PolicyConflict
+from app.models.duplicate_policy_group import (
+    DuplicateGroupStatus,
+    DuplicatePolicyGroup,
+    DuplicatePolicyGroupMember,
+)
 from app.models.inconsistent_enforcement import (
     InconsistentEnforcement,
     InconsistentEnforcementSeverity,
@@ -73,4 +78,7 @@ __all__ = [
     "InconsistentEnforcement",
     "InconsistentEnforcementStatus",
     "InconsistentEnforcementSeverity",
+    "DuplicatePolicyGroup",
+    "DuplicatePolicyGroupMember",
+    "DuplicateGroupStatus",
 ]

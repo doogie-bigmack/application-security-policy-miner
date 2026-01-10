@@ -82,6 +82,11 @@ class Policy(Base):
     advisories = relationship("CodeAdvisory", back_populates="policy", cascade="all, delete-orphan")
     fixes = relationship("PolicyFix", back_populates="policy", cascade="all, delete-orphan")
     application = relationship("Application", foreign_keys=[application_id])
+    duplicate_groups = relationship(
+        "DuplicatePolicyGroup",
+        secondary="duplicate_policy_group_members",
+        back_populates="policies",
+    )
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
