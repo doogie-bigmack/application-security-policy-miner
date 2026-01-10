@@ -1,0 +1,149 @@
+Perfect! Let me now write a comprehensive test report:
+
+---
+
+## E2E Test Report: test_provision_policy
+
+**Test ID:** test_provision_policy  
+**PRD Story:** PROV-002 - Policy Translation and Provisioning to PBAC Systems  
+**Execution Date:** January 9, 2026  
+**Status:** ⚠️ **PARTIAL PASS** (UI works, provisioning fails due to missing credentials)
+
+### Test Summary
+
+The provisioning UI flow works correctly:
+- ✅ Provisioning page loads and displays correctly
+- ✅ PBAC providers are listed (Test OPA Provider, Test OPA Instance)
+- ✅ Provider can be selected from dropdown
+- ✅ Policies are displayed for selection
+- ✅ Policies can be selected (via checkboxes)
+- ✅ Provision button is functional
+- ✅ API call to `/api/v1/provisioning/provision/bulk/` succeeds (201 Created)
+- ✅ Provisioning operations are recorded in the database
+- ✅ Recent operations are displayed in the UI
+- ❌ Provisioning fails during AI translation due to missing credentials
+
+### Issues Found
+
+#### 1. **CRITICAL: Tenant Mismatch**
+- **Issue:** Policies created by seed data belong to tenant `test-tenant-001`, but the provisioning API uses `default` tenant
+- **Impact:** Provisioning operations fail with "Policy not found" error
+- **Workaround Applied:** Updated policy 33 to belong to `default` tenant
+- **Recommendation:** Ensure test data and frontend use consistent tenant IDs
+
+#### 2. **HIGH: Missing AI Translation Credentials**
+- **Issue:** Provisioning fails with error: `"Failed to translate policy to Rego: Unable to locate credentials"`
+- **Impact:** Cannot complete full provisioning flow
+- **Status:** TEST_MODE=true is enabled but not being respected by translation service
+- **Error from API:**
+  ```json
+  {
+    "status": "failed",
+    "error_message": "Failed to translate policy to Rego: Unable to locate credentials"
+  }
+  ```
+- **Recommendation:** Fix TEST_MODE implementation to return mocked translations
+
+#### 3. **MEDIUM: Frontend Checkbox Bug**
+- **Issue:** Clicking any checkbox visually checks ALL checkboxes
+- **Impact:** Confusing UX, though backend state appears to track correctly (button says "Provision 1 Policies")
+- **Observed:** All checkboxes appear checked in UI, but only the clicked policy is actually selected
+- **Recommendation:** Fix checkbox click handler in ProvisioningPage.tsx
+
+#### 4. **LOW: Missing "key" Prop Warning**
+- **Issue:** React warning in console: "Each child in a list should have a unique 'key' prop"
+- **Location:** ProvisioningPage component
+- **Impact:** Console warning, no functional impact
+- **Recommendation:** Add unique keys to list items
+
+### Test Execution Details
+
+**Environment:**
+- Frontend: http://localhost:3333 (running, accessible via host.docker.internal:3333)
+- Backend: http://localhost:7777 (running, healthy)
+- PostgreSQL: Running, healthy
+- TEST_MODE: Enabled (but not fully working)
+
+**Data Used:**
+- Provider: Test OPA Provider (provider_id: 3)
+- Policy: Admin → create_user → User Management (policy_id: 33)
+- Tenant: default
+
+**API Endpoint Tested:**
+```
+POST /api/v1/provisioning/provision/bulk/
+```
+
+**Request:**
+```json
+{
+  "provider_id": 3,
+  "policy_ids": [33]
+}
+```
+
+**Response (201 Created):**
+```json
+[{
+  "provider_id": 3,
+  "policy_id": 33,
+  "operation_id": 4,
+  "tenant_id": "default",
+  "status": "failed",
+  "translated_policy": null,
+  "error_message": "Failed to translate policy to Rego: Unable to locate credentials",
+  "created_at": "2026-01-09T22:15:27.319557",
+  "completed_at": "2026-01-09T22:15:27.328285"
+}]
+```
+
+### Screenshots
+
+1. **test_provision_policy_no_provision_button.png** - Initial policies page showing no provision button in policy cards
+2. **test_provision_policy_final_state.png** - Provisioning page showing:
+   - PBAC Providers list
+   - Provider selection dropdown
+   - Policy selection checkboxes
+   - Recent Operations with two failed provisioning attempts
+
+### Expected vs Actual Behavior
+
+| Step | Expected | Actual | Status |
+|------|----------|--------|--------|
+| Navigate to provisioning page | Page loads | ✅ Page loads | PASS |
+| View providers | Shows Test OPA Provider | ✅ Shows provider | PASS |
+| Select provider | Provider selected | ✅ Provider selected | PASS |
+| View policy list | Shows policies | ✅ Shows policies | PASS |
+| Select policy | Policy selected | ⚠️ All checkboxes checked visually | PARTIAL |
+| Click provision button | Provisioning starts | ✅ API call succeeds | PASS |
+| AI translation | Policy translated to Rego | ❌ Fails: missing credentials | FAIL |
+| Provisioning completes | Status shows success | ❌ Status shows "failed" | FAIL |
+| View in operations list | Operation visible | ✅ Operation visible | PASS |
+
+### Recommendations
+
+1. **Fix TEST_MODE Implementation:**
+   - Update provisioning service to return mocked translations when TEST_MODE=true
+   - Add mock Rego policy template for testing
+
+2. **Fix Tenant Consistency:**
+   - Update seed data to use `default` tenant OR
+   - Update frontend to detect and use correct tenant ID
+
+3. **Fix Checkbox UI Bug:**
+   - Debug checkbox click handler in ProvisioningPage.tsx
+   - Ensure visual state matches actual selection state
+
+4. **Add AI Credentials Configuration:**
+   - Document required environment variables for AI translation
+   - Provide fallback behavior when credentials are missing
+
+### Conclusion
+
+The provisioning UI is **functionally complete** and the API integration works correctly. The provisioning flow fails at the AI translation step due to missing credentials. With TEST_MODE properly implemented or credentials configured, this test should pass completely.
+
+**Test Result: ⚠️ PARTIAL PASS**
+- UI: ✅ Working
+- API: ✅ Working  
+- Translation: ❌ Failing (credentials)
+- Overall Flow: ⚠️ Blocked by translation

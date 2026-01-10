@@ -4355,3 +4355,68 @@ Requirements met:
 - Consider adding metrics trending over time
 - Consider adding per-developer spaghetti statistics
 
+
+## 2026-01-10 - Scanner Service Data Structure Bug Fix Complete
+
+### Completed
+- **Fixed critical scanner service bug that blocked ALL policy extraction:**
+  - Bug: `_stream_authorization_files()` was returning matches as list[str] instead of list[dict]
+  - Impact: `_extract_policies_from_file()` expected list[dict] and tried to access match["line"], causing AttributeError
+  - Result: ZERO policies could be extracted - complete system failure for core feature
+
+- **Root cause analysis:**
+  - Line 637: `matches.append(pattern)` - appending string instead of dict
+  - Line 842: Function signature expects `matches: list[dict]`
+  - Line 980: Code tries to access `match["line"]` - fails with 'str' object has no attribute 'get'
+
+- **Solution implemented:**
+  - Changed lines 634-637 to use `re.finditer()` instead of `re.search()`
+  - Now creates proper dictionary structure: {"pattern": str, "line": int, "text": str}
+  - Line numbers calculated correctly using `content[:match.start()].count("\n") + 1`
+
+- **Testing:**
+  - Created comprehensive unit tests in test_scanner_matches_structure.py
+  - 3 test cases: structure validation, extract function compatibility, line number accuracy
+  - All tests passing ✅
+  - Backend linting passed (ruff check)
+
+- **Verification:**
+  - Triggered scan on repository 32 (test-auth-patterns)
+  - Scan completed successfully
+  - 2 policies extracted with correct Who/What/How/When structure
+  - No AttributeError - bug completely fixed
+
+### Technical Details
+- Matches structure now consistent throughout scanner pipeline
+- Each match contains: pattern (regex), line (int), text (matched string)
+- Compatible with Java/C# tree-sitter enhancements (java_detail, csharp_detail fields)
+- Secret detection and redaction still works correctly
+
+### User Story Status
+✅ Story 3: "AI Rule Mining - Scan code and extract Who/What/How/When with evidence" - NOW PASSES
+
+Requirements met:
+- ✅ Select registered Git repository
+- ✅ Click 'Start Scan' button  
+- ✅ Wait for scan to complete
+- ✅ Navigate to policies view
+- ✅ Verify extracted policies contain subject (Who)
+- ✅ Verify extracted policies contain resource (What)
+- ✅ Verify extracted policies contain action (How)
+- ✅ Verify extracted policies contain conditions (When)
+- ✅ Confirm each policy has associated evidence (code snippets)
+
+### Files Modified
+- backend/app/services/scanner_service.py - Fixed _stream_authorization_files() method
+- backend/tests/test_scanner_matches_structure.py - NEW FILE (3 comprehensive tests)
+- prd.json - Updated Story 3 to passes: true
+- progress.txt - This entry
+
+### Impact
+- **CRITICAL BUG FIX** - Unblocks core product functionality
+- Restores ability to extract policies from code repositories
+- Enables all downstream features that depend on policy extraction
+- System can now fulfill its primary purpose
+
+---
+

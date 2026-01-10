@@ -633,8 +633,13 @@ class ScannerService:
                 # Check for authorization patterns
                 matches = []
                 for pattern in AUTH_PATTERNS:
-                    if re.search(pattern, content):
-                        matches.append(pattern)
+                    for match in re.finditer(pattern, content):
+                        line_num = content[:match.start()].count("\n") + 1
+                        matches.append({
+                            "pattern": pattern,
+                            "line": line_num,
+                            "text": match.group(),
+                        })
 
                 # Only yield files that have authorization patterns
                 if matches:

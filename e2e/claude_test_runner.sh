@@ -153,8 +153,8 @@ echo ""
 START_TIME=$(date +%s)
 
 # Run Claude with the combined prompt
-# Note: Adjust Claude CLI flags as needed based on actual CLI interface
-if echo "$COMBINED_PROMPT" | $CLAUDE_CMD > "$SCREENSHOTS_DIR/${TEST_ID}_output.txt" 2>&1; then
+# Note: Using --dangerously-skip-permissions for automated E2E testing
+if echo "$COMBINED_PROMPT" | $CLAUDE_CMD --dangerously-skip-permissions > "$SCREENSHOTS_DIR/${TEST_ID}_output.txt" 2>&1; then
     TEST_RESULT="PASSED"
     RESULT_COLOR="$GREEN"
 else

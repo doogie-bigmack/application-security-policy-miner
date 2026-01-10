@@ -133,7 +133,8 @@
         "Verify only Tenant B policies are visible",
         "Confirm database uses Row-Level Security for isolation"
       ],
-      "passes": true
+      "passes": true,
+      "note": "Tenant isolation works correctly. Test data inconsistency: seed data uses 'test-tenant-001' but provisioning API defaults to 'default' tenant. Fix seed script or frontend to use consistent tenant ID."
     },
     {
       "category": "functional",
@@ -191,7 +192,8 @@
         "Confirm policies are pushed to OPA",
         "Test policies in OPA to verify functionality"
       ],
-      "passes": true
+      "passes": false,
+      "bug": "AI translation fails with 'Unable to locate credentials' error. Provisioning API works correctly but translation step fails. Need to configure AI credentials or implement TEST_MODE mocking."
     },
     {
       "category": "functional",
@@ -206,7 +208,8 @@
         "Confirm policies are created in AWS Verified Permissions",
         "Validate policies in AWS console"
       ],
-      "passes": true
+      "passes": false,
+      "bug": "AI translation fails with 'Unable to locate credentials' error. Provisioning API works correctly but translation step fails. Need to configure AI credentials or implement TEST_MODE mocking."
     },
     {
       "category": "functional",
@@ -221,7 +224,8 @@
         "Confirm policies are pushed via REST API",
         "Validate policies in target platform"
       ],
-      "passes": true
+      "passes": false,
+      "bug": "AI translation fails with 'Unable to locate credentials' error. Provisioning API works correctly but translation step fails. Need to configure AI credentials or implement TEST_MODE mocking."
     },
     {
       "category": "functional",
@@ -473,7 +477,8 @@
         "Verify allow/deny rules match original policy",
         "Test Rego policy in OPA playground"
       ],
-      "passes": true
+      "passes": false,
+      "bug": "AI translation fails with 'Unable to locate credentials' error. Rego generation uses same translation service that is currently failing. Need to configure AI credentials or implement TEST_MODE mocking."
     },
     {
       "category": "technical",
@@ -776,7 +781,8 @@
         "View provisioning status (success/failure)",
         "Review provisioning logs for errors"
       ],
-      "passes": true
+      "passes": true,
+      "note": "Minor UI bug: Clicking any checkbox visually checks all checkboxes (backend state is correct). Fix needed in ProvisioningPage.tsx checkbox click handler."
     },
     {
       "category": "ui",
@@ -852,7 +858,8 @@
         "Confirm allow/deny rules match original authorization",
         "Test both original Java and translated Rego produce same decisions"
       ],
-      "passes": true
+      "passes": false,
+      "bug": "AI translation fails with 'Unable to locate credentials' error. TEST_MODE mock responses not properly implemented in provisioning service. Need to configure AI credentials or implement TEST_MODE mocking."
     },
     {
       "category": "functional",
@@ -867,7 +874,8 @@
         "Validate Cedar policy syntax",
         "Test behavioral equivalence between C# and Cedar"
       ],
-      "passes": true
+      "passes": false,
+      "bug": "AI translation fails with 'Unable to locate credentials' error. TEST_MODE mock responses not properly implemented in provisioning service. Need to configure AI credentials or implement TEST_MODE mocking."
     },
     {
       "category": "functional",
@@ -882,7 +890,8 @@
         "Document translation mappings for audit trail",
         "Verify all formats can be provisioned to respective platforms"
       ],
-      "passes": true
+      "passes": false,
+      "bug": "AI translation fails with 'Unable to locate credentials' error. TEST_MODE mock responses not properly implemented in provisioning service. Need to configure AI credentials or implement TEST_MODE mocking."
     },
     {
       "category": "functional",
@@ -1172,7 +1181,8 @@
         "Review provisioning duration (target: < 1 hour)",
         "Check error rate (target: < 1%)"
       ],
-      "passes": false
+      "passes": false,
+      "bug": "AI translation fails with 'Unable to locate credentials' error. Bulk provisioning depends on working translation service. Need to configure AI credentials or implement TEST_MODE mocking."
     },
     {
       "category": "functional",

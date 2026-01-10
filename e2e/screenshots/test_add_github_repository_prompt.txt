@@ -1,0 +1,335 @@
+You are an E2E test automation agent. Execute the following test using browser automation MCP tools.
+
+# Test Definition from e2e-tests.json
+```json
+{
+  "test_id": "test_add_github_repository",
+  "prd_story_id": "FUNC-001",
+  "name": "Add GitHub Repository",
+  "priority": "critical",
+  "description": "Test adding a GitHub repository and verifying it appears in the repository list",
+  "prerequisites": {
+    "services": [
+      "frontend",
+      "backend",
+      "postgres"
+    ],
+    "test_data": {
+      "github_token": "GITHUB_TEST_TOKEN",
+      "repository_url": "https://github.com/test-org/test-repo"
+    }
+  },
+  "steps": [
+    {
+      "action": "navigate",
+      "target": "http://localhost:3333/repositories",
+      "description": "Navigate to repositories page"
+    },
+    {
+      "action": "wait_for_element",
+      "selector": "button[data-testid='add-repository-btn']",
+      "timeout_ms": 5000,
+      "description": "Wait for add repository button to be visible"
+    },
+    {
+      "action": "click",
+      "selector": "button[data-testid='add-repository-btn']",
+      "description": "Click the Add Repository button"
+    },
+    {
+      "action": "wait_for_element",
+      "selector": "button[data-testid='github-integration']",
+      "timeout_ms": 3000,
+      "description": "Wait for GitHub integration option"
+    },
+    {
+      "action": "click",
+      "selector": "button[data-testid='github-integration']",
+      "description": "Select GitHub as repository source"
+    },
+    {
+      "action": "wait_for_element",
+      "selector": "input[name='github_token']",
+      "timeout_ms": 3000,
+      "description": "Wait for GitHub token input field"
+    },
+    {
+      "action": "fill",
+      "selector": "input[name='github_token']",
+      "value": "${GITHUB_TEST_TOKEN}",
+      "description": "Fill in GitHub token from environment variable"
+    },
+    {
+      "action": "fill",
+      "selector": "input[name='repository_url']",
+      "value": "https://github.com/test-org/test-repo",
+      "description": "Enter test repository URL"
+    },
+    {
+      "action": "click",
+      "selector": "button[data-testid='connect-repository-btn']",
+      "description": "Click Connect button"
+    },
+    {
+      "action": "wait_for_element",
+      "selector": "[data-testid='success-message']",
+      "timeout_ms": 10000,
+      "description": "Wait for success message"
+    },
+    {
+      "action": "assert_element_visible",
+      "selector": "[data-testid='repository-list']",
+      "description": "Verify repository list is visible"
+    },
+    {
+      "action": "assert_element_visible",
+      "selector": "[data-repository-name='test-repo']",
+      "description": "Verify test repository appears in the list"
+    }
+  ],
+  "expected_outcomes": [
+    "Repository is successfully added",
+    "Success message is displayed",
+    "Repository appears in the repository list with correct name",
+    "Repository status shows as 'Connected'"
+  ],
+  "cleanup": [
+    {
+      "action": "api_call",
+      "method": "DELETE",
+      "endpoint": "/api/v1/repositories/${CREATED_REPOSITORY_ID}",
+      "description": "Delete test repository via API"
+    }
+  ]
+}
+```
+
+# Test Execution Instructions
+# E2E Test: Add GitHub Repository
+
+## Test ID
+`test_add_github_repository`
+
+## PRD Story
+FUNC-001: GitHub Integration for Repository Management
+
+## Description
+Test the ability to add a GitHub repository to the Policy Miner application through the UI. This test verifies that users can connect a GitHub repository using a personal access token and see it appear in the repository list.
+
+## Setup Requirements
+- **Frontend Service**: http://localhost:3333 must be running
+- **Backend Service**: http://localhost:7777 must be running
+- **Database**: PostgreSQL must be running and accessible
+- **Test Data**:
+  - Environment variable `GITHUB_TEST_TOKEN` must be set (or use TEST_MODE=true for mocked responses)
+  - Test repository URL: `https://github.com/doogie-bigmack/test-auth-patterns`
+
+## MCP Tools to Use
+Use the Claude Chrome MCP tools to interact with the browser:
+- `mcp__MCP_DOCKER__browser_navigate` - Navigate to pages
+- `mcp__MCP_DOCKER__browser_snapshot` - Get page accessibility snapshot (BETTER than screenshot for actions)
+- `mcp__MCP_DOCKER__browser_click` - Click buttons and elements
+- `mcp__MCP_DOCKER__browser_type` - Type text into input fields
+- `mcp__MCP_DOCKER__browser_wait_for` - Wait for text to appear or time to pass
+- `mcp__MCP_DOCKER__browser_take_screenshot` - Take screenshot for debugging (DO NOT use for actions)
+
+## Test Steps
+
+### Step 1: Navigate to Repositories Page
+**Action**: Navigate to the repositories management page
+```
+mcp__MCP_DOCKER__browser_navigate
+url: http://localhost:3333/repositories
+```
+
+**Expected Result**: Page loads successfully, shows "Repositories" heading
+
+### Step 2: Verify Page Loaded
+**Action**: Get page snapshot to verify elements are present
+```
+mcp__MCP_DOCKER__browser_snapshot
+```
+
+**Expected Result**: Snapshot shows "Add Repository" button and repository list container
+
+### Step 3: Click Add Repository Button
+**Action**: Click the "Add Repository" button to open the modal
+```
+mcp__MCP_DOCKER__browser_click
+element: "Add Repository button"
+ref: [from snapshot - button with data-testid='repositories-btn-add']
+```
+
+**Expected Result**: Modal opens with integration options (GitHub, GitLab, Bitbucket, Azure DevOps)
+
+### Step 4: Select GitHub Integration
+**Action**: Click the GitHub integration button
+```
+mcp__MCP_DOCKER__browser_snapshot (to get updated page state)
+mcp__MCP_DOCKER__browser_click
+element: "GitHub integration button"
+ref: [from snapshot - button with data-testid='add-repo-btn-github']
+```
+
+**Expected Result**: Form appears requesting repository details and GitHub token
+
+### Step 5: Fill Repository Name
+**Action**: Enter a name for the repository
+```
+mcp__MCP_DOCKER__browser_type
+element: "Repository name input"
+ref: [from snapshot - input with data-testid='add-repo-input-name']
+text: "Test Auth Patterns"
+```
+
+**Expected Result**: Repository name field contains "Test Auth Patterns"
+
+### Step 6: Fill Repository URL
+**Action**: Enter the GitHub repository URL
+```
+mcp__MCP_DOCKER__browser_type
+element: "Repository URL input"
+ref: [from snapshot - input with data-testid='add-repo-input-url']
+text: "https://github.com/doogie-bigmack/test-auth-patterns"
+```
+
+**Expected Result**: URL field contains the test repository URL
+
+### Step 7: Fill GitHub Token
+**Action**: Enter the GitHub personal access token
+```
+mcp__MCP_DOCKER__browser_type
+element: "GitHub token input"
+ref: [from snapshot - input with data-testid='add-repo-input-token']
+text: [value from GITHUB_TEST_TOKEN environment variable or "test_token_12345" if TEST_MODE=true]
+```
+
+**Expected Result**: Token field is populated (displayed as masked text)
+
+### Step 8: Click Connect Button
+**Action**: Submit the form by clicking the Connect button
+```
+mcp__MCP_DOCKER__browser_click
+element: "Connect button"
+ref: [from snapshot - button with data-testid='add-repo-btn-connect']
+```
+
+**Expected Result**:
+- Loading indicator appears briefly
+- Backend validates the token and repository access
+- Success message appears
+
+### Step 9: Wait for Success Confirmation
+**Action**: Wait for success message to appear
+```
+mcp__MCP_DOCKER__browser_wait_for
+text: "Repository added successfully"
+time: 10 (seconds)
+```
+
+**Expected Result**: Success message is visible on the page
+
+### Step 10: Verify Repository in List
+**Action**: Take snapshot to verify repository appears in the list
+```
+mcp__MCP_DOCKER__browser_snapshot
+```
+
+**Expected Result**:
+- Repository list container (data-testid='repositories-list') contains the new repository
+- Repository row (data-testid='repository-row') exists
+- Repository name "Test Auth Patterns" or "test-auth-patterns" is visible
+- Repository status shows as "Connected" or "Active"
+
+### Step 11: Take Success Screenshot
+**Action**: Capture screenshot for test evidence
+```
+mcp__MCP_DOCKER__browser_take_screenshot
+filename: "test_add_github_repository_success.png"
+```
+
+**Expected Result**: Screenshot saved showing the successfully added repository
+
+## Expected Outcomes
+✅ Repository is successfully added via the UI
+✅ Success message is displayed to the user
+✅ Repository appears in the repository list with correct name
+✅ Repository status shows as "Connected" or "Active"
+✅ No error messages are displayed
+
+## Failure Handling
+
+### If Navigation Fails
+- Take screenshot: `test_add_github_repository_nav_failure.png`
+- Check: Is frontend service running on http://localhost:3333?
+- Check: Are there console errors? (use browser_console_messages)
+- Report: "Navigation failed - frontend service may not be running"
+
+### If Add Repository Button Not Found
+- Take snapshot and screenshot
+- Check: Is the page fully loaded?
+- Check: Does the button have the correct data-testid='repositories-btn-add'?
+- Report: "Add Repository button not found - UI may have changed"
+
+### If GitHub Integration Button Not Found
+- Take snapshot and screenshot
+- Check: Did the modal open correctly?
+- Check: Is the button labeled correctly and has data-testid='add-repo-btn-github'?
+- Report: "GitHub integration option not found - modal may not have opened"
+
+### If Form Fields Not Found
+- Take snapshot and screenshot
+- Check: Did GitHub integration trigger the correct form?
+- Check: Are input fields present with data-testid attributes?
+- Report: "Form fields not found - GitHub integration form may have UI changes"
+
+### If Connection Fails
+- Take screenshot: `test_add_github_repository_connection_failure.png`
+- Check console errors: `mcp__MCP_DOCKER__browser_console_messages(onlyErrors: true)`
+- Check for error message in snapshot
+- Possible causes:
+  - Invalid GitHub token
+  - Backend service not running (http://localhost:7777)
+  - Database connection issues
+  - Network errors to GitHub API (if not TEST_MODE)
+- Report specific error message shown in UI
+
+### If Repository Not in List
+- Take screenshot: `test_add_github_repository_list_failure.png`
+- Check: Was success message shown?
+- Check: Is the repository list container visible?
+- Refresh page and check again
+- Report: "Repository added but not visible in list - may be a refresh/state issue"
+
+## Cleanup
+After test completion (success or failure), the test should leave the repository in place for subsequent tests (e.g., test_scan_repository). Cleanup should be handled by the master test runner if needed.
+
+## Test Mode Notes
+When `TEST_MODE=true`:
+- Backend returns mocked GitHub API responses from `backend/tests/fixtures/github_responses.py`
+- No actual GitHub API calls are made
+- Use token value: `test_token_12345` (will be accepted by mocked backend)
+- Repository verification succeeds automatically
+
+# Additional Context
+- Project root: /Users/damon.mcdougald/poalo_policy_miner
+- Screenshots directory: /Users/damon.mcdougald/poalo_policy_miner/e2e/screenshots
+- Test mode: ${TEST_MODE:-false}
+- Environment: Development/Testing
+
+# Execution Guidelines
+1. Read the test prompt carefully and understand all steps
+2. Use MCP browser tools (mcp__MCP_DOCKER__browser_*) for all browser interactions
+3. Take screenshots on failure and save to: /Users/damon.mcdougald/poalo_policy_miner/e2e/screenshots/
+4. If a step fails, follow the failure handling instructions in the prompt
+5. Report clear success/failure status at the end
+6. Include any error messages or diagnostics in your response
+
+# Important Notes
+- ALWAYS use browser_snapshot before clicking to get element refs
+- DO NOT use browser_take_screenshot for actions (use browser_snapshot instead)
+- Save failure screenshots with descriptive names
+- If TEST_MODE=true, backend returns mocked responses
+- All services should be running: frontend (3333), backend (7777), postgres, redis
+
+Begin test execution now.

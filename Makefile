@@ -82,7 +82,7 @@ e2e-real: ## Run real E2E tests with Claude and browser automation
 
 seed-test-data: ## Seed test database with sample data
 	@echo "Seeding test database..."
-	@export TEST_MODE=true && python3 backend/scripts/seed_test_data.py
+	@docker-compose exec -T backend python /app/scripts/seed_test_data.py
 	@echo "✅ Test data seeded"
 
 test-setup: docker-up seed-test-data ## Setup complete test environment (Docker + seed data)
