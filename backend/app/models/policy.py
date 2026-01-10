@@ -80,6 +80,7 @@ class Policy(Base):
     # Relationships
     evidence = relationship("Evidence", back_populates="policy", cascade="all, delete-orphan")
     advisories = relationship("CodeAdvisory", back_populates="policy", cascade="all, delete-orphan")
+    fixes = relationship("PolicyFix", back_populates="policy", cascade="all, delete-orphan")
     application = relationship("Application", foreign_keys=[application_id])
 
     # Timestamps
