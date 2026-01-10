@@ -9,6 +9,7 @@ from app.models.inconsistent_enforcement import (
     InconsistentEnforcementSeverity,
     InconsistentEnforcementStatus,
 )
+from app.models.migration_wave import MigrationWave, MigrationWaveStatus
 from app.models.organization import BusinessUnit, Division, Organization
 from app.models.policy import Evidence, Policy, PolicyStatus, RiskLevel, SourceType
 from app.models.policy_change import (
@@ -73,4 +74,6 @@ __all__ = [
     "InconsistentEnforcement",
     "InconsistentEnforcementStatus",
     "InconsistentEnforcementSeverity",
+    "MigrationWave",
+    "MigrationWaveStatus",
 ]
