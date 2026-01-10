@@ -99,17 +99,20 @@ def bulk_scan_repositories_task(
     repository_ids: list[int],
     tenant_id: str | None = None,
     incremental: bool = False,
+    batch_size: int = 50,
 ) -> dict:
     """
-    Async task to scan multiple repositories in parallel.
+    Async task to scan multiple repositories in parallel with batching.
 
     This task spawns individual scan tasks for each repository
-    and tracks their progress.
+    and tracks their progress. For enterprise-scale (1000+ repos),
+    repositories are processed in batches to prevent queue overload.
 
     Args:
         repository_ids: List of repository IDs to scan
         tenant_id: Optional tenant ID for multi-tenancy
         incremental: If True, only scan changed files
+        batch_size: Number of repositories to process per batch (default: 50)
 
     Returns:
         Dictionary with overall scan results and task IDs
@@ -119,40 +122,77 @@ def bulk_scan_repositories_task(
         task_id=self.request.id,
         repository_count=len(repository_ids),
         tenant_id=tenant_id,
+        batch_size=batch_size,
     )
+
+    # Calculate batches
+    total_batches = (len(repository_ids) + batch_size - 1) // batch_size
 
     # Update task state
     self.update_state(
         state="STARTED",
         meta={
             "total_repositories": len(repository_ids),
-            "status": "Spawning scan tasks...",
+            "total_batches": total_batches,
+            "batch_size": batch_size,
+            "status": "Spawning scan tasks in batches...",
         }
     )
 
-    # Spawn individual scan tasks
+    # Spawn individual scan tasks in batches
     task_ids = []
-    for repo_id in repository_ids:
-        task = scan_repository_task.apply_async(
-            kwargs={
-                "repository_id": repo_id,
-                "tenant_id": tenant_id,
-                "incremental": incremental,
+    for batch_num in range(total_batches):
+        batch_start = batch_num * batch_size
+        batch_end = min(batch_start + batch_size, len(repository_ids))
+        batch_repo_ids = repository_ids[batch_start:batch_end]
+
+        logger.info(
+            "Processing batch",
+            task_id=self.request.id,
+            batch_num=batch_num + 1,
+            total_batches=total_batches,
+            batch_repos=len(batch_repo_ids),
+        )
+
+        # Update progress
+        self.update_state(
+            state="PROGRESS",
+            meta={
+                "total_repositories": len(repository_ids),
+                "total_batches": total_batches,
+                "current_batch": batch_num + 1,
+                "batch_size": batch_size,
+                "spawned_so_far": len(task_ids),
+                "status": f"Processing batch {batch_num + 1} of {total_batches}...",
             }
         )
-        task_ids.append({
-            "repository_id": repo_id,
-            "task_id": task.id,
-        })
+
+        # Spawn tasks for this batch
+        for repo_id in batch_repo_ids:
+            task = scan_repository_task.apply_async(
+                kwargs={
+                    "repository_id": repo_id,
+                    "tenant_id": tenant_id,
+                    "incremental": incremental,
+                }
+            )
+            task_ids.append({
+                "repository_id": repo_id,
+                "task_id": task.id,
+                "batch": batch_num + 1,
+            })
 
     logger.info(
         "Bulk scan tasks spawned",
         task_id=self.request.id,
         spawned_tasks=len(task_ids),
+        total_batches=total_batches,
     )
 
     return {
         "total_repositories": len(repository_ids),
+        "total_batches": total_batches,
+        "batch_size": batch_size,
         "spawned_tasks": len(task_ids),
         "task_ids": task_ids,
         "status": "Tasks spawned successfully",

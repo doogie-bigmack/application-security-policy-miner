@@ -27,6 +27,8 @@ interface TaskInfo {
 
 interface BulkScanResult {
   total_repositories: number;
+  total_batches: number;
+  batch_size: number;
   spawned_tasks: number;
   task_ids: TaskInfo[];
   status: string;
@@ -40,6 +42,37 @@ interface TaskStatus {
   meta: any;
 }
 
+interface WorkerStats {
+  worker_name: string;
+  status: string;
+  active_tasks: number;
+  processed_tasks: number;
+  pool_size: number;
+}
+
+interface QueueStats {
+  total_workers: number;
+  active_workers: number;
+  total_tasks_active: number;
+  total_tasks_reserved: number;
+  queue_depth: number;
+  workers: WorkerStats[];
+}
+
+interface BulkProgress {
+  task_id: string;
+  state: string;
+  result: any;
+  meta: {
+    total_repositories: number;
+    total_batches: number;
+    current_batch?: number;
+    batch_size: number;
+    spawned_so_far?: number;
+    status: string;
+  } | null;
+}
+
 export default function BulkScanPage() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<Set<number>>(new Set());
@@ -48,16 +81,27 @@ export default function BulkScanPage() {
   const [bulkScanResult, setBulkScanResult] = useState<BulkScanResult | null>(null);
   const [taskStatuses, setTaskStatuses] = useState<Map<string, TaskStatus>>(new Map());
   const [incremental, setIncremental] = useState(false);
+  const [batchSize, setBatchSize] = useState(50);
+  const [queueStats, setQueueStats] = useState<QueueStats | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<BulkProgress | null>(null);
 
   useEffect(() => {
     fetchRepositories();
+    fetchQueueStats();
+
+    // Poll queue stats every 5 seconds
+    const interval = setInterval(fetchQueueStats, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    // Poll task statuses if we have a bulk scan running
+    // Poll task statuses and bulk progress if we have a bulk scan running
     if (bulkScanResult && bulkScanResult.task_ids.length > 0) {
       const interval = setInterval(() => {
         updateTaskStatuses();
+        if (bulkScanResult.bulk_task_id) {
+          fetchBulkProgress(bulkScanResult.bulk_task_id);
+        }
       }, 3000); // Poll every 3 seconds
 
       return () => clearInterval(interval);
@@ -69,11 +113,33 @@ export default function BulkScanPage() {
       const response = await fetch('/api/v1/repositories/');
       if (!response.ok) throw new Error('Failed to fetch repositories');
       const data = await response.json();
-      setRepositories(data);
+      setRepositories(data.repositories || data);
     } catch (err: any) {
       console.error('Failed to fetch repositories:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchQueueStats = async () => {
+    try {
+      const response = await fetch('/api/v1/monitoring/queue-stats/');
+      if (!response.ok) return;
+      const data = await response.json();
+      setQueueStats(data);
+    } catch (err) {
+      // Silently fail to avoid spamming errors
+    }
+  };
+
+  const fetchBulkProgress = async (taskId: string) => {
+    try {
+      const response = await fetch(`/api/v1/monitoring/bulk-task/${taskId}/progress/`);
+      if (!response.ok) return;
+      const data = await response.json();
+      setBulkProgress(data);
+    } catch (err) {
+      // Silently fail
     }
   };
 
@@ -141,6 +207,7 @@ export default function BulkScanPage() {
         body: JSON.stringify({
           repository_ids: Array.from(selectedRepos),
           incremental,
+          batch_size: batchSize,
         }),
       });
 
@@ -218,13 +285,115 @@ export default function BulkScanPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-50">
-            Parallel Scanning
+            Enterprise-Scale Parallel Scanning
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Scan multiple repositories in parallel using distributed workers
+            Scan hundreds or thousands of repositories in parallel with batch processing
           </p>
         </div>
       </div>
+
+      {/* Queue Stats Dashboard */}
+      {queueStats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Workers</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+                  {queueStats.active_workers}/{queueStats.total_workers}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {queueStats.active_workers} active
+                </p>
+              </div>
+              <Activity className="w-8 h-8 text-blue-600" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Active Tasks</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+                  {queueStats.total_tasks_active}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  Running now
+                </p>
+              </div>
+              <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Queue Depth</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+                  {queueStats.queue_depth}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  Tasks waiting
+                </p>
+              </div>
+              <Clock className="w-8 h-8 text-amber-600" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">System Status</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                  {scanning ? 'Scanning' : 'Ready'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {scanning ? 'In progress' : 'Idle'}
+                </p>
+              </div>
+              {scanning ? (
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              ) : (
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Progress */}
+      {bulkProgress && bulkProgress.meta && (
+        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <Loader2 className="w-5 h-5 animate-spin text-blue-600 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900 dark:text-blue-50 mb-1">
+                Batch Processing in Progress
+              </h3>
+              <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                {bulkProgress.meta.status}
+              </p>
+              {bulkProgress.meta.current_batch && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-blue-800 dark:text-blue-200">
+                    <span>Batch {bulkProgress.meta.current_batch} of {bulkProgress.meta.total_batches}</span>
+                    <span>{bulkProgress.meta.spawned_so_far}/{bulkProgress.meta.total_repositories} tasks spawned</span>
+                  </div>
+                  <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${((bulkProgress.meta.current_batch || 0) / bulkProgress.meta.total_batches) * 100}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Control Panel */}
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
@@ -254,6 +423,23 @@ export default function BulkScanPage() {
                 Incremental Scan
               </span>
             </label>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-700 dark:text-gray-300">
+                Batch Size:
+              </label>
+              <input
+                type="number"
+                value={batchSize}
+                onChange={(e) => setBatchSize(parseInt(e.target.value) || 50)}
+                min="1"
+                max="100"
+                className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+              />
+              <span className="text-xs text-gray-500 dark:text-gray-500">
+                (repos/batch)
+              </span>
+            </div>
           </div>
 
           <button
@@ -288,6 +474,11 @@ export default function BulkScanPage() {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50 flex items-center gap-2">
               <Activity className="w-5 h-5 text-blue-600" />
               Scan Progress
+              {bulkScanResult.total_batches > 1 && (
+                <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                  ({bulkScanResult.total_batches} batches × {bulkScanResult.batch_size} repos/batch)
+                </span>
+              )}
             </h2>
             <div className="text-sm text-gray-600 dark:text-gray-400">
               {completedCount} / {bulkScanResult.total_repositories} completed

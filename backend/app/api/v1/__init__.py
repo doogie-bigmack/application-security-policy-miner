@@ -18,6 +18,7 @@ from app.api.v1.endpoints import (
     code_advisories,
     duplicates,
     inconsistent_enforcement,
+    monitoring,
     organizations,
     policies,
     policy_fixes,
@@ -53,3 +54,4 @@ api_router.include_router(policy_fixes.router, prefix="/policy-fixes", tags=["po
 api_router.include_router(inconsistent_enforcement.router, prefix="/inconsistent-enforcement", tags=["inconsistent-enforcement"])
 api_router.include_router(duplicates.router, prefix="/duplicates", tags=["duplicates"])
 api_router.include_router(bulk_scan.router, prefix="/bulk-scan", tags=["bulk-scan"])
+api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
