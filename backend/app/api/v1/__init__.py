@@ -21,6 +21,7 @@ from app.api.v1.endpoints import (
     risk,
     secrets,
     similarity,
+    translation_verification,
 )
 
 api_router = APIRouter()
@@ -43,3 +44,4 @@ api_router.include_router(risk.router, prefix="/risk", tags=["risk"])
 api_router.include_router(organizations.router, prefix="/organizations", tags=["organizations"])
 api_router.include_router(applications.router, prefix="/applications", tags=["applications"])
 api_router.include_router(similarity.router, prefix="/similarity", tags=["similarity"])
+api_router.include_router(translation_verification.router, prefix="/translation-verification", tags=["translation-verification"])
