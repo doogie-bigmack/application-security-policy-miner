@@ -79,6 +79,7 @@ def list_applications(
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     criticality: CriticalityLevel | None = None,
     business_unit_id: int | None = None,
+    division_id: int | None = None,
     search: str | None = None,
 ) -> list[Application]:
     """List applications with filtering.
@@ -90,6 +91,7 @@ def list_applications(
         limit: Maximum number of records to return
         criticality: Filter by criticality level
         business_unit_id: Filter by business unit
+        division_id: Filter by division (all business units in division)
         search: Search in name, description, tech_stack, owner
 
     Returns:
@@ -105,6 +107,10 @@ def list_applications(
 
     if business_unit_id:
         query = query.filter(Application.business_unit_id == business_unit_id)
+
+    # Filter by division (join with BusinessUnit)
+    if division_id:
+        query = query.join(BusinessUnit).filter(BusinessUnit.division_id == division_id)
 
     if search:
         search_pattern = f"%{search}%"
@@ -127,6 +133,7 @@ def count_applications(
     tenant_id: Annotated[str | None, Depends(get_tenant_id)],
     criticality: CriticalityLevel | None = None,
     business_unit_id: int | None = None,
+    division_id: int | None = None,
     search: str | None = None,
 ) -> dict:
     """Get count of applications with optional filters.
@@ -136,6 +143,7 @@ def count_applications(
         tenant_id: Tenant ID from auth context
         criticality: Filter by criticality level
         business_unit_id: Filter by business unit
+        division_id: Filter by division (all business units in division)
         search: Search in name, description, tech_stack, owner
 
     Returns:
@@ -143,7 +151,20 @@ def count_applications(
     """
     # Use default tenant if not authenticated
     effective_tenant_id = tenant_id or "default"
-    query = db.query(func.count(Application.id)).filter(Application.tenant_id == effective_tenant_id)
+
+    # Build base query - if division_id is set, we need to join from the start
+    if division_id:
+        query = (
+            db.query(func.count(Application.id))
+            .select_from(Application)
+            .join(BusinessUnit)
+            .filter(
+                Application.tenant_id == effective_tenant_id,
+                BusinessUnit.division_id == division_id
+            )
+        )
+    else:
+        query = db.query(func.count(Application.id)).filter(Application.tenant_id == effective_tenant_id)
 
     # Apply same filters as list endpoint
     if criticality:
