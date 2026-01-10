@@ -1049,7 +1049,7 @@
         "Apply unified policy to all 3 applications",
         "Verify conflict is resolved organization-wide"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

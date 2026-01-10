@@ -49,4 +49,4 @@ class ScanProgress(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    repository = relationship("Repository", back_populates="scan_progresses")
+    repository = relationship("Repository")
