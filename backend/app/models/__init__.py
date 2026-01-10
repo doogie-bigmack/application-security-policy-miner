@@ -4,6 +4,11 @@ from app.models.audit_log import AuditEventType, AuditLog
 from app.models.auto_approval import AutoApprovalDecision, AutoApprovalSettings
 from app.models.code_advisory import AdvisoryStatus, CodeAdvisory
 from app.models.conflict import ConflictStatus, ConflictType, PolicyConflict
+from app.models.inconsistent_enforcement import (
+    InconsistentEnforcement,
+    InconsistentEnforcementSeverity,
+    InconsistentEnforcementStatus,
+)
 from app.models.organization import BusinessUnit, Division, Organization
 from app.models.policy import Evidence, Policy, PolicyStatus, RiskLevel, SourceType
 from app.models.policy_change import (
@@ -65,4 +70,7 @@ __all__ = [
     "PolicyFix",
     "FixStatus",
     "FixSeverity",
+    "InconsistentEnforcement",
+    "InconsistentEnforcementStatus",
+    "InconsistentEnforcementSeverity",
 ]

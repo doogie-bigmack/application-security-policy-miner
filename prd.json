@@ -984,7 +984,7 @@
         "Apply standardized policy across all 5 apps",
         "Verify consistent enforcement organization-wide"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "performance",

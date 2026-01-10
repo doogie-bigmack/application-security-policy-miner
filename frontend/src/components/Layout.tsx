@@ -103,6 +103,12 @@ export default function Layout({ children, darkMode, setDarkMode }: LayoutProps)
                 Normalization
               </Link>
               <Link
+                to="/inconsistent-enforcement"
+                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
+              >
+                Inconsistencies
+              </Link>
+              <Link
                 to="/audit-logs"
                 className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
               >

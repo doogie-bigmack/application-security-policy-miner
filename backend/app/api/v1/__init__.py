@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     applications,
     audit_logs,
     code_advisories,
+    inconsistent_enforcement,
     organizations,
     policies,
     policy_fixes,
@@ -47,3 +48,4 @@ api_router.include_router(applications.router, prefix="/applications", tags=["ap
 api_router.include_router(similarity.router, prefix="/similarity", tags=["similarity"])
 api_router.include_router(translation_verification.router, prefix="/translation-verification", tags=["translation-verification"])
 api_router.include_router(policy_fixes.router, prefix="/policy-fixes", tags=["policy-fixes"])
+api_router.include_router(inconsistent_enforcement.router, prefix="/inconsistent-enforcement", tags=["inconsistent-enforcement"])
