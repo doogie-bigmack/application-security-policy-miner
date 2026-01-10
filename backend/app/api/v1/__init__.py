@@ -16,6 +16,7 @@ from app.api.v1.endpoints import (
     audit_logs,
     bulk_scan,
     code_advisories,
+    divisions,
     duplicates,
     inconsistent_enforcement,
     migration_waves,
@@ -57,3 +58,4 @@ api_router.include_router(duplicates.router, prefix="/duplicates", tags=["duplic
 api_router.include_router(bulk_scan.router, prefix="/bulk-scan", tags=["bulk-scan"])
 api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
 api_router.include_router(migration_waves.router, prefix="/migration-waves", tags=["migration-waves"])
+api_router.include_router(divisions.router, prefix="/divisions", tags=["divisions"])

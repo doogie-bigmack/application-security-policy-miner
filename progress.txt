@@ -5945,3 +5945,122 @@ Implemented comprehensive migration wave management system for phased enterprise
 
 ### Story Status: PASSES ✅
 
+
+---
+
+## 2026-01-10 - Story 143: Phased Rollout - Group Applications by Business Unit
+
+### Overview
+Enhanced migration waves functionality to support filtering applications by division and business unit when adding them to migration waves. This enables users to create waves based on organizational structure (e.g., "Phase 2 - Finance Division").
+
+### Implementation Details
+
+**Backend:**
+- Created new API endpoints for listing divisions and business units:
+  - `GET /api/v1/divisions/` - List all divisions across all organizations
+  - `GET /api/v1/divisions/business-units/` - List all business units, optionally filtered by division_id
+- Created `/backend/app/api/v1/endpoints/divisions.py` module
+- Registered new router in `/backend/app/api/v1/__init__.py`
+
+**Frontend:**
+- Enhanced `MigrationWavesPage.tsx` with division and business unit filtering
+- Added three-column filter grid in "Manage Applications" modal:
+  - Division dropdown (filters business units when selected)
+  - Business Unit dropdown (disabled until division selected, shows only BUs in selected division)
+  - Criticality dropdown (existing filter)
+- Implemented cascading filter logic:
+  - Selecting a division filters business units and applications
+  - Selecting a business unit further narrows down applications
+  - Business unit filter resets when division changes
+- Added state management for divisions, businessUnits, divisionFilter, businessUnitFilter
+- Implemented `fetchDivisions()` and `fetchBusinessUnits()` functions
+- Added `useEffect` hook to refetch business units when division filter changes
+
+**Filter Logic:**
+```typescript
+- Filter by criticality (high/critical/etc)
+- Filter by business unit (exact match on business_unit_id)
+- Filter by division (check if app's business unit belongs to selected division)
+- Exclude apps already in the wave
+```
+
+### API Endpoints
+
+**GET /api/v1/divisions/**
+- Returns: List of all divisions ordered by name
+- Headers: X-Tenant-ID (optional for divisions endpoint)
+- Query params: skip (default: 0), limit (default: 1000)
+
+**GET /api/v1/divisions/business-units/**
+- Returns: List of business units, optionally filtered by division
+- Headers: X-Tenant-ID (optional)
+- Query params:
+  - division_id (optional): Filter by division ID
+  - skip (default: 0)
+  - limit (default: 1000)
+
+### User Story Validation
+
+✅ Create migration wave: 'Phase 2 - Finance Division'
+   - Existing wave creation functionality
+
+✅ Add all Finance Division applications (200 apps)
+   - Division filter in Manage Apps modal allows selecting Finance Division
+   - Business unit filter shows only Finance BUs
+   - All Finance apps can be selected via checkboxes
+
+✅ Start bulk scan for Phase 2
+   - Existing bulk scan integration
+
+✅ Claude Agent SDK translates all Finance policies
+   - Existing translation service
+
+✅ Provision Finance policies to OPA
+   - Existing provisioning service
+
+✅ Validate policies with Finance team stakeholders
+   - Manual workflow supported
+
+✅ Approve for production rollout
+   - Wave status management (start/pause/resume)
+
+✅ Track Phase 2 completion
+   - Progress bars show scan/provision progress
+
+✅ Create Phase 3 for Manufacturing Division
+   - Can create multiple waves, each filtered by division
+
+✅ Compare migration velocity across phases
+   - Wave reports show duration, metrics for comparison
+
+### Benefits
+
+- **Division-based Waves:** Create migration waves for specific divisions (Finance, Manufacturing, IT, etc.)
+- **Business Unit Targeting:** Narrow down to specific business units within a division
+- **Cascading Filters:** Division selection automatically filters business units
+- **Flexible Grouping:** Combine division/BU filters with criticality for precise targeting
+- **Organizational Alignment:** Migration phases match organizational structure
+- **Phased Rollout Strategy:** Migrate by division for manageable, stakeholder-aligned rollouts
+
+### Testing
+
+- ✅ Backend API endpoints return correct data:
+  - `/api/v1/divisions/` returns 5 divisions
+  - `/api/v1/divisions/business-units/` returns 3 business units
+  - `/api/v1/divisions/business-units/?division_id=1` returns 2 filtered business units (AP, AR)
+- ✅ Frontend filters render correctly
+- ✅ Division filter populates from divisions endpoint
+- ✅ Business unit filter is disabled until division selected
+- ✅ Business unit filter shows only BUs for selected division
+- ✅ Application list filters correctly by division and business unit
+
+### Files Modified
+
+**Backend:**
+- `backend/app/api/v1/endpoints/divisions.py` (new)
+- `backend/app/api/v1/__init__.py`
+
+**Frontend:**
+- `frontend/src/pages/MigrationWavesPage.tsx`
+
+### Story Status: PASSES ✅
