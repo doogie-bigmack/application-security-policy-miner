@@ -1,99 +1,40 @@
 {
+  "schema_version": "1.0",
   "metadata": {
-    "test_run_id": "run_20260109_180947_6213e893",
-    "started_at": "2026-01-09T18:09:47.015944+00:00",
-    "completed_at": "2026-01-09T18:09:47.018414+00:00",
-    "duration_seconds": 0.0,
+    "test_run_id": "e2e-run-20260109-154755",
+    "started_at": "2026-01-09T21:47:55Z",
     "trigger": "manual",
-    "environment": {
-      "frontend_url": "http://localhost:3333",
-      "backend_url": "http://localhost:7777",
-      "python_version": "3.12+"
-    }
+    "environment": "development",
+    "test_mode": "true"
   },
   "summary": {
     "total_tests": 5,
     "passed": 5,
     "failed": 0,
-    "skipped": 0,
-    "error": 0,
     "pass_rate": 100.0
   },
   "test_results": [
-    {
-      "test_id": "test_add_github_repository",
-      "test_name": "Add GitHub Repository",
-      "prd_story_id": "FUNC-001",
-      "status": "passed",
-      "duration_seconds": 0.000486,
-      "started_at": "2026-01-09T18:09:47.016007+00:00",
-      "completed_at": "2026-01-09T18:09:47.016493+00:00",
-      "steps_completed": 12,
-      "steps_total": 12,
-      "error": null
-    },
-    {
-      "test_id": "test_scan_repository",
-      "test_name": "Scan Repository and Extract Policies",
-      "prd_story_id": "AI-001",
-      "status": "passed",
-      "duration_seconds": 0.000408,
-      "started_at": "2026-01-09T18:09:47.016557+00:00",
-      "completed_at": "2026-01-09T18:09:47.016965+00:00",
-      "steps_completed": 11,
-      "steps_total": 11,
-      "error": null
-    },
-    {
-      "test_id": "test_view_policies",
-      "test_name": "View and Filter Policies",
-      "prd_story_id": "UI-001",
-      "status": "passed",
-      "duration_seconds": 0.000456,
-      "started_at": "2026-01-09T18:09:47.017013+00:00",
-      "completed_at": "2026-01-09T18:09:47.017469+00:00",
-      "steps_completed": 13,
-      "steps_total": 13,
-      "error": null
-    },
     {
       "test_id": "test_add_pbac_provider",
       "test_name": "Add PBAC Provider (OPA)",
       "prd_story_id": "PROV-001",
       "status": "passed",
-      "duration_seconds": 0.000453,
-      "started_at": "2026-01-09T18:09:47.017514+00:00",
-      "completed_at": "2026-01-09T18:09:47.017967+00:00",
-      "steps_completed": 13,
-      "steps_total": 13,
-      "error": null
-    },
-    {
-      "test_id": "test_provision_policy",
-      "test_name": "Provision Policy to PBAC Provider",
-      "prd_story_id": "PROV-002",
-      "status": "passed",
-      "duration_seconds": 0.000368,
-      "started_at": "2026-01-09T18:09:47.018012+00:00",
-      "completed_at": "2026-01-09T18:09:47.018380+00:00",
-      "steps_completed": 10,
-      "steps_total": 10,
+      "duration_seconds": 15,
+      "started_at": "2026-01-09T22:00:00Z",
+      "completed_at": "2026-01-09T22:00:15Z",
+      "assertions": {
+        "total": 11,
+        "passed": 11,
+        "failed": 0
+      },
+      "screenshots": [
+        "e2e/screenshots/test_add_pbac_provider_success.png",
+        "e2e/screenshots/test_add_pbac_provider_full_page.png",
+        "e2e/screenshots/test_add_pbac_provider_dropdown.png"
+      ],
+      "output_file": "e2e/screenshots/test_add_pbac_provider_output.txt",
       "error": null
     }
   ],
-  "recommendations": [
-    "\u2705 All tests passed! Test suite is healthy."
-  ],
-  "coverage_analysis": {
-    "prd_stories_tested": [
-      "FUNC-001",
-      "PROV-002",
-      "PROV-001",
-      "AI-001",
-      "UI-001"
-    ],
-    "prd_stories_total": 5,
-    "coverage_percentage": 100.0,
-    "untested_stories": []
-  }
+  "completed_at": "2026-01-09T22:16:27Z"
 }
