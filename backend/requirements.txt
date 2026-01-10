@@ -29,3 +29,5 @@ cryptography==44.0.0
 psutil==6.1.1
 prometheus-client==0.21.0
 pgvector==0.3.6
+celery==5.4.0
+flower==2.0.1

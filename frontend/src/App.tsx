@@ -19,6 +19,7 @@ import NormalizationPage from './pages/NormalizationPage'
 import PolicyFixesPage from './pages/PolicyFixesPage'
 import InconsistentEnforcementPage from './pages/InconsistentEnforcementPage'
 import DuplicatesPage from './pages/DuplicatesPage'
+import BulkScanPage from './pages/BulkScanPage'
 import Layout from './components/Layout'
 
 function App() {
@@ -60,6 +61,7 @@ function App() {
         <Route path="/policy-fixes" element={<PolicyFixesPage />} />
         <Route path="/inconsistent-enforcement" element={<InconsistentEnforcementPage />} />
         <Route path="/duplicates" element={<DuplicatesPage />} />
+        <Route path="/bulk-scan" element={<BulkScanPage />} />
       </Routes>
     </Layout>
   )

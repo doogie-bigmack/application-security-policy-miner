@@ -67,7 +67,7 @@ class DuplicateDetectionService:
                 continue
 
             # Find similar policies using vector similarity
-            similar_query = f"""
+            similar_query = """
                 SELECT
                     id,
                     1 - (embedding <=> :target_embedding::vector) as similarity
