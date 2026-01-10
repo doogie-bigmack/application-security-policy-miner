@@ -35,6 +35,15 @@ SQL_AUTH_PATTERNS = [
     r"pg_has_role",
     r"has_table_privilege",
     r"has_column_privilege",
+    # Oracle-specific patterns (matched against uppercase text)
+    r"\bUSER\s*=",  # Oracle USER function comparison
+    r"\bUSER\s+IN\s*\(",  # Oracle USER IN clause
+    r":=\s*USER",  # Oracle USER assignment
+    r"WHERE\s+.*\bUSER\b",  # USER in WHERE clause
+    r"SESSION_ROLES",  # Oracle session_roles table
+    r"DBA_ROLE_PRIVS",  # Oracle DBA role privileges view
+    r"DBMS_RLS",  # Oracle Row-Level Security package
+    r"SYS_CONTEXT",  # Oracle system context function
 ]
 
 
