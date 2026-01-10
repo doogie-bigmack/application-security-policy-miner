@@ -49,17 +49,24 @@ class PolicyFixingService:
             logger.info("no_security_gaps_found", policy_id=policy_id)
             return None
 
+        # Generate attack scenario for privilege escalation risks
+        attack_scenario = None
+        gap_type = analysis_result.get("gap_type", "incomplete_logic")
+        if gap_type == "privilege_escalation":
+            attack_scenario = await self._generate_attack_scenario(policy, analysis_result)
+
         # Create policy fix record
         policy_fix = PolicyFix(
             policy_id=policy_id,
             tenant_id=self.tenant_id,
-            security_gap_type=analysis_result.get("gap_type", "incomplete_logic"),
+            security_gap_type=gap_type,
             severity=self._parse_severity(analysis_result.get("severity", "medium")),
             gap_description=analysis_result.get("gap_description", "Security gaps detected"),
             missing_checks=json.dumps(analysis_result.get("missing_checks", [])),
             original_policy=json.dumps(self._policy_to_dict(policy)),
             fixed_policy=json.dumps(analysis_result.get("fixed_policy", {})),
             fix_explanation=analysis_result.get("fix_explanation", ""),
+            attack_scenario=attack_scenario,
             status=FixStatus.PENDING,
         )
 
@@ -326,6 +333,85 @@ Generate comprehensive test cases and return ONLY the JSON array, no other text.
 
         # Fallback
         return json.dumps([{"error": "Failed to parse test cases from AI response"}])
+
+    async def _generate_attack_scenario(self, policy: Policy, analysis_result: dict) -> str:
+        """Generate detailed attack scenario for privilege escalation vulnerability.
+
+        Args:
+            policy: Policy with privilege escalation risk
+            analysis_result: AI analysis result containing gap details
+
+        Returns:
+            Detailed attack scenario description
+        """
+        prompt = f"""You are a security researcher creating a detailed attack scenario that demonstrates a privilege escalation vulnerability.
+
+**Vulnerable Policy:**
+- Subject (Who): {policy.subject}
+- Resource (What): {policy.resource}
+- Action (How): {policy.action}
+- Conditions (When): {policy.conditions or "None"}
+
+**Security Gap:**
+{analysis_result.get("gap_description", "Missing authorization checks")}
+
+**Missing Checks:**
+{json.dumps(analysis_result.get("missing_checks", []), indent=2)}
+
+**Your Task:**
+Create a detailed, step-by-step attack scenario that demonstrates how an attacker could exploit this privilege escalation vulnerability. Include:
+
+1. **Attacker Profile**: Who the attacker is (role, current privileges)
+2. **Attack Goal**: What unauthorized access the attacker is trying to gain
+3. **Attack Steps**: Detailed step-by-step instructions
+4. **Vulnerability Exploited**: Which missing check enables this attack
+5. **Impact**: What damage or unauthorized actions become possible
+6. **Prevention**: How the fix prevents this attack
+
+Make it concrete and specific to this policy. Use realistic examples.
+
+**Example Format:**
+### Attack Scenario: Privilege Escalation via Missing Role Validation
+
+**Attacker Profile:**
+- Name: Alice (Standard User)
+- Current Role: Employee
+- Current Privileges: Can view own expense reports
+- Target Privileges: Manager-level expense approval authority
+
+**Attack Goal:**
+Gain unauthorized ability to approve high-value expense reports without proper manager role.
+
+**Attack Steps:**
+1. Alice discovers the expense approval endpoint accepts requests from any authenticated user
+2. She crafts a request to approve a $50,000 expense report
+3. The system checks only if user is authenticated (no role check)
+4. The request succeeds despite Alice not being a manager
+5. Alice can now approve unlimited expense reports, including fraudulent ones
+
+**Vulnerability Exploited:**
+The policy checks if user.isAuthenticated() but never validates if user.hasRole('MANAGER'). This allows any authenticated user to perform manager-only actions.
+
+**Impact:**
+- Complete bypass of expense approval workflow
+- Potential for massive financial fraud
+- Insider threat: employees can self-approve fraudulent expenses
+- Audit trail exists but shows unauthorized approvals as "legitimate"
+
+**Prevention:**
+The fix adds explicit role validation: user.hasRole('MANAGER') AND user.department == expense.department. This ensures only authorized managers in the correct department can approve expenses.
+
+Now create a detailed attack scenario for the given policy. Be specific and realistic.
+"""
+
+        # Call LLM
+        response = await self.llm_provider.create_message(
+            prompt=prompt,
+            max_tokens=2000,
+            temperature=0.5,
+        )
+
+        return response.strip()
 
     def get_fix(self, fix_id: int) -> PolicyFix | None:
         """Get a policy fix by ID."""

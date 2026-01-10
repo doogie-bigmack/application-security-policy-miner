@@ -50,6 +50,9 @@ class PolicyFix(Base):
     # Test cases to prove fix prevents security gaps
     test_cases = Column(Text, nullable=True)  # JSON array of test cases
 
+    # Attack scenario for privilege escalation risks
+    attack_scenario = Column(Text, nullable=True)  # Detailed attack scenario description
+
     # Review tracking
     status = Column(Enum(FixStatus), nullable=False, default=FixStatus.PENDING)
     reviewed_by = Column(String(255), nullable=True)
