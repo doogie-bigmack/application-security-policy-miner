@@ -84,6 +84,52 @@ class PolicyFixingService:
 
         return policy_fix
 
+    def _detect_always_true_conditions(self, policy: Policy) -> str:
+        """Detect always-true conditions programmatically.
+
+        Args:
+            policy: Policy to analyze
+
+        Returns:
+            String with detection results to include in AI prompt
+        """
+        always_true_patterns = []
+
+        # Check conditions field
+        conditions = policy.conditions or ""
+        conditions_lower = conditions.lower()
+
+        # Pattern 1: Boolean literals with OR
+        if "true ||" in conditions_lower or "|| true" in conditions_lower:
+            always_true_patterns.append("Boolean literal with OR operator detected (e.g., 'true || x')")
+
+        # Pattern 2: Common tautologies
+        if "1 == 1" in conditions or "1==1" in conditions:
+            always_true_patterns.append("Redundant comparison detected (1 == 1)")
+
+        if "true ==" in conditions_lower or "== true" in conditions_lower:
+            always_true_patterns.append("Redundant boolean comparison detected")
+
+        # Pattern 3: Check evidence code for always-true patterns
+        if policy.evidence:
+            for evidence in policy.evidence:
+                code = evidence.code_snippet or ""
+                code_lower = code.lower()
+
+                if "if (true" in code_lower or "if(true" in code_lower:
+                    always_true_patterns.append(f"Always-true condition in {evidence.file_path}:{evidence.line_start}")
+
+                if "|| true)" in code_lower or "true ||" in code_lower:
+                    always_true_patterns.append(f"Boolean literal with OR in {evidence.file_path}:{evidence.line_start}")
+
+        if always_true_patterns:
+            patterns_text = "\n- ".join(always_true_patterns)
+            return f"""**⚠️ ALERT: Potential Always-True Conditions Detected:**
+- {patterns_text}
+
+These patterns suggest the authorization logic may be defective and always allows access regardless of actual conditions."""
+        return ""
+
     async def _analyze_policy_with_ai(self, policy: Policy) -> dict:
         """Analyze policy for security gaps using AI.
 
@@ -93,6 +139,9 @@ class PolicyFixingService:
         Returns:
             Dictionary with analysis results
         """
+        # First, check for always-true conditions programmatically
+        always_true_detection = self._detect_always_true_conditions(policy)
+
         # Build analysis prompt
         prompt = f"""You are a security expert analyzing authorization policies for security gaps and incomplete logic.
 
@@ -106,13 +155,22 @@ class PolicyFixingService:
 **Evidence Code Snippets:**
 {self._format_evidence(policy)}
 
+{always_true_detection}
+
 **Your Task:**
 Analyze this authorization policy for security gaps, incomplete logic, and missing checks. Common issues include:
 
 1. **Incomplete Logic**: Missing important security checks (e.g., user suspension status, approval limits, department matching)
 2. **Privilege Escalation Risks**: Missing role checks that could allow unauthorized access
-3. **Always-True Conditions**: Logic errors that make conditions always evaluate to true
+3. **Always-True Conditions**: Logic errors that make conditions always evaluate to true (e.g., `if (true || condition)`, `if (1 == 1)`, `if (condition || !condition)`)
 4. **Inconsistent Enforcement**: Missing checks that should be consistent with similar policies
+
+**IMPORTANT: Pay special attention to always-true conditions. Look for:**
+- Boolean literals in OR expressions: `true || x` is always true
+- Tautologies: `x || !x` is always true
+- Redundant comparisons: `1 == 1` is always true
+- Conditions that cannot fail regardless of input
+- Logic that makes authorization checks meaningless
 
 **Analysis Requirements:**
 1. Identify if there are any security gaps (YES or NO)

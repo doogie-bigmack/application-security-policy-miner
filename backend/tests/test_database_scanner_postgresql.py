@@ -1,6 +1,6 @@
 """Tests for PostgreSQL stored procedure analysis."""
 import json
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
