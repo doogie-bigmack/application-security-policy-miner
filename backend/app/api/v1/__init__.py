@@ -29,6 +29,7 @@ from app.api.v1.endpoints import (
     secrets,
     similarity,
     translation_verification,
+    work_items,
 )
 
 api_router = APIRouter()
@@ -59,3 +60,4 @@ api_router.include_router(bulk_scan.router, prefix="/bulk-scan", tags=["bulk-sca
 api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
 api_router.include_router(migration_waves.router, prefix="/migration-waves", tags=["migration-waves"])
 api_router.include_router(divisions.router, prefix="/divisions", tags=["divisions"])
+api_router.include_router(work_items.router, prefix="/work-items", tags=["work-items"])
