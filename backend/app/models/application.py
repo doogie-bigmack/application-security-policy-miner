@@ -53,6 +53,7 @@ class Application(Base):
     # Relationships
     business_unit = relationship("BusinessUnit")
     policies = relationship("Policy", back_populates="application", foreign_keys="[Policy.application_id]")
+    opa_verifications = relationship("OPAVerification", back_populates="application")
 
     def __repr__(self) -> str:
         """String representation."""

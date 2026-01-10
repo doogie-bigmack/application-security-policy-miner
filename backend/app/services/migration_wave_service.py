@@ -2,7 +2,7 @@
 import logging
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.application import Application

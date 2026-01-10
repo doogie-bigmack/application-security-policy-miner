@@ -10,7 +10,7 @@ import {
   GitBranch,
   Shield,
 } from 'lucide-react';
-import { logger } from '../lib/logger';
+import logger from '../lib/logger';
 import { ToastContainer } from '../components/Toast';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7777/api/v1';

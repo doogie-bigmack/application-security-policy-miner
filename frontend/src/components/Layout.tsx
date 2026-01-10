@@ -139,6 +139,12 @@ export default function Layout({ children, darkMode, setDarkMode }: LayoutProps)
                 Governance
               </Link>
               <Link
+                to="/opa-verifications"
+                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
+              >
+                Lasagna
+              </Link>
+              <Link
                 to="/audit-logs"
                 className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
               >

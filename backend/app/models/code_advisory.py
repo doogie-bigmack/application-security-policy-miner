@@ -48,6 +48,7 @@ class CodeAdvisory(Base):
     # Relationships
     policy = relationship("Policy", back_populates="advisories")
     tenant = relationship("Tenant", back_populates="advisories")
+    opa_verifications = relationship("OPAVerification", back_populates="code_advisory")
 
     def __repr__(self) -> str:
         """String representation."""
