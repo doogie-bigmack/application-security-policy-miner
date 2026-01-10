@@ -92,6 +92,7 @@ def list_conflicts(
         List of conflicts
     """
     from sqlalchemy.orm import joinedload
+
     from app.models.policy import Policy
 
     # Eagerly load policies and their applications

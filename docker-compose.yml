@@ -137,6 +137,48 @@ services:
       timeout: 5s
       retries: 3
 
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://policy_miner:dev_password@postgres:5432/policy_miner
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      TEST_MODE: ${TEST_MODE:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+    command: python -m app.worker
+    deploy:
+      replicas: 3
+
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5555:5555"
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+      - worker
+    volumes:
+      - ./backend:/app
+    command: celery -A app.celery_app flower --port=5555
+
 volumes:
   postgres_data:
   redis_data:
