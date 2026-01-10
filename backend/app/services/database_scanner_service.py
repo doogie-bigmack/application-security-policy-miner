@@ -44,6 +44,11 @@ SQL_AUTH_PATTERNS = [
     r"DBA_ROLE_PRIVS",  # Oracle DBA role privileges view
     r"DBMS_RLS",  # Oracle Row-Level Security package
     r"SYS_CONTEXT",  # Oracle system context function
+    # MySQL/MariaDB-specific patterns
+    r"\bUSER\s*\(\)",  # MySQL USER() function
+    r"CURRENT_USER\s*\(\)",  # MySQL CURRENT_USER() function
+    r"SQL\s+SECURITY\s+DEFINER",  # MySQL security context
+    r"SQL\s+SECURITY\s+INVOKER",  # MySQL security context
 ]
 
 
