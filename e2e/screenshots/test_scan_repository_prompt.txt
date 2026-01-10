@@ -1,0 +1,326 @@
+You are an E2E test automation agent. Execute the following test using browser automation MCP tools.
+
+# Test Definition from e2e-tests.json
+```json
+{
+  "test_id": "test_scan_repository",
+  "prd_story_id": "AI-001",
+  "name": "Scan Repository and Extract Policies",
+  "priority": "critical",
+  "description": "Test scanning a repository and verifying policies are extracted",
+  "prerequisites": {
+    "services": [
+      "frontend",
+      "backend",
+      "postgres",
+      "redis"
+    ],
+    "test_data": {
+      "repository_id": "EXISTING_REPOSITORY_ID"
+    }
+  },
+  "steps": [
+    {
+      "action": "navigate",
+      "target": "http://localhost:3333/repositories/${REPOSITORY_ID}",
+      "description": "Navigate to repository detail page"
+    },
+    {
+      "action": "wait_for_element",
+      "selector": "button[data-testid='start-scan-btn']",
+      "timeout_ms": 5000,
+      "description": "Wait for Start Scan button"
+    },
+    {
+      "action": "click",
+      "selector": "button[data-testid='start-scan-btn']",
+      "description": "Click Start Scan button"
+    },
+    {
+      "action": "wait_for_element",
+      "selector": "[data-testid='scan-status'][data-status='running']",
+      "timeout_ms": 5000,
+      "description": "Wait for scan to start"
+    },
+    {
+      "action": "wait_for_element",
+      "selector": "[data-testid='scan-status'][data-status='completed']",
+      "timeout_ms": 120000,
+      "description": "Wait for scan to complete (up to 2 minutes)"
+    },
+    {
+      "action": "navigate",
+      "target": "http://localhost:3333/policies",
+      "description": "Navigate to policies page"
+    },
+    {
+      "action": "wait_for_element",
+      "selector": "[data-testid='policies-table']",
+      "timeout_ms": 5000,
+      "description": "Wait for policies table to load"
+    },
+    {
+      "action": "assert_element_visible",
+      "selector": "[data-testid='policy-row']",
+      "description": "Verify at least one policy was extracted"
+    },
+    {
+      "action": "assert_element_visible",
+      "selector": "[data-testid='policy-subject']",
+      "description": "Verify policy has subject (Who)"
+    },
+    {
+      "action": "assert_element_visible",
+      "selector": "[data-testid='policy-resource']",
+      "description": "Verify policy has resource (What)"
+    },
+    {
+      "action": "assert_element_visible",
+      "selector": "[data-testid='policy-action']",
+      "description": "Verify policy has action (How)"
+    }
+  ],
+  "expected_outcomes": [
+    "Scan starts successfully",
+    "Scan completes within timeout",
+    "At least one policy is extracted",
+    "Extracted policy contains Who/What/How fields",
+    "Evidence links are present for each policy"
+  ],
+  "cleanup": []
+}
+```
+
+# Test Execution Instructions
+# E2E Test: Scan Repository
+
+## Test ID
+`test_scan_repository`
+
+## PRD Story
+AI-001: AI-Powered Policy Mining from Code
+
+## Description
+Test the ability to initiate a repository scan and extract authorization policies from code. This test verifies that the Policy Miner can analyze repository code and extract role-based access control (RBAC) and permission patterns.
+
+## Setup Requirements
+- **Frontend Service**: http://localhost:3333 must be running
+- **Backend Service**: http://localhost:7777 must be running
+- **Database**: PostgreSQL must be running with seeded data
+- **Prerequisites**:
+  - A repository must already be added (from test_add_github_repository)
+  - Repository ID or name: "test-auth-patterns" or "Test Auth Patterns"
+  - TEST_MODE=true recommended for predictable scan results
+
+## MCP Tools to Use
+- `mcp__MCP_DOCKER__browser_navigate` - Navigate to pages
+- `mcp__MCP_DOCKER__browser_snapshot` - Get page accessibility snapshot
+- `mcp__MCP_DOCKER__browser_click` - Click buttons and elements
+- `mcp__MCP_DOCKER__browser_wait_for` - Wait for text or time
+- `mcp__MCP_DOCKER__browser_take_screenshot` - Take screenshot for evidence
+
+## Test Steps
+
+### Step 1: Navigate to Repositories Page
+**Action**: Navigate to the repositories management page
+```
+mcp__MCP_DOCKER__browser_navigate
+url: http://localhost:3333/repositories
+```
+
+**Expected Result**: Page loads showing list of repositories
+
+### Step 2: Verify Repository Exists
+**Action**: Get page snapshot to verify the test repository is present
+```
+mcp__MCP_DOCKER__browser_snapshot
+```
+
+**Expected Result**: Repository "test-auth-patterns" or "Test Auth Patterns" is visible in the list
+
+### Step 3: Locate Repository Row
+**Action**: Find the repository row for the test repository
+- Look for element with data-testid='repository-row'
+- Verify repository-name contains "test-auth-patterns"
+
+**Expected Result**: Repository row is identified
+
+### Step 4: Click View Details or Scan Button
+**Action**: Click to view repository details or initiate scan
+```
+mcp__MCP_DOCKER__browser_click
+element: "View details or Scan button for test-auth-patterns repository"
+ref: [from snapshot - button with data-testid='repository-btn-view-details' or 'repository-btn-scan']
+```
+
+**Expected Result**: Either detail page opens or scan options menu appears
+
+### Step 5: Initiate Full Scan
+**Action**: Click the "Start Full Scan" or "Scan" button
+```
+mcp__MCP_DOCKER__browser_snapshot (get updated state if dropdown menu opened)
+mcp__MCP_DOCKER__browser_click
+element: "Start Full Scan button"
+ref: [from snapshot - button with data-testid='repository-btn-scan-full']
+```
+
+**Expected Result**:
+- Scan starts
+- Progress indicator appears (data-testid='repository-scan-progress')
+- Status changes to "Scanning"
+
+### Step 6: Wait for Scan to Complete
+**Action**: Wait for scan completion (this may take 30-120 seconds depending on TEST_MODE)
+```
+mcp__MCP_DOCKER__browser_wait_for
+text: "Scan completed" OR "Scan successful"
+time: 120 (seconds for real scan, ~10 seconds for TEST_MODE)
+```
+
+**Alternative**: Poll the page every 5 seconds by taking snapshots until status changes to "Completed"
+
+**Expected Result**:
+- Scan completes successfully
+- Status shows "Completed" or "Active"
+- Policy count indicator shows > 0 policies extracted
+
+### Step 7: Navigate to Policies Page
+**Action**: Navigate to view extracted policies
+```
+mcp__MCP_DOCKER__browser_navigate
+url: http://localhost:3333/policies
+```
+
+**Expected Result**: Policies page loads showing list of extracted policies
+
+### Step 8: Verify Policies Extracted
+**Action**: Get page snapshot to verify policies are present
+```
+mcp__MCP_DOCKER__browser_snapshot
+```
+
+**Expected Result**:
+- Policies table/list (data-testid='policies-table') is visible
+- Multiple policy rows (data-testid='policy-row') are present
+- Expected policy patterns visible:
+  - Admin roles (from flask_decorators.py, Controllers.cs, etc.)
+  - Manager roles
+  - User roles
+  - Permission checks (users:delete, reports:edit, audit:read)
+  - Resource-based patterns
+
+### Step 9: Verify Policy Count
+**Action**: Count the number of policies extracted
+- From snapshot, count elements with data-testid='policy-row'
+- Should be >= 5 policies (TEST_MODE returns 15 policies)
+
+**Expected Result**: At least 5 policies extracted from the test repository
+
+### Step 10: Inspect Sample Policy
+**Action**: Click on first policy to view details
+```
+mcp__MCP_DOCKER__browser_click
+element: "First policy row"
+ref: [from snapshot - first element with data-testid='policy-row']
+```
+
+**Expected Result**: Policy detail view opens showing:
+- Subject (Who): e.g., "Admin", "Manager"
+- Resource (What): e.g., "User Management", "Reports"
+- Action (How): e.g., "create_user", "approve"
+- Conditions (When): e.g., role checks, permission checks
+- Evidence: Code snippets showing where policy was extracted
+
+### Step 11: Take Success Screenshot
+**Action**: Capture screenshot of extracted policies
+```
+mcp__MCP_DOCKER__browser_take_screenshot
+filename: "test_scan_repository_success.png"
+fullPage: true
+```
+
+**Expected Result**: Screenshot saved showing successfully extracted policies
+
+## Expected Outcomes
+✅ Repository scan initiates successfully
+✅ Scan completes without errors (within 2 minutes for TEST_MODE)
+✅ At least 5 authorization policies are extracted
+✅ Policies include subjects (roles), resources, actions, and evidence
+✅ Policies are viewable on the Policies page
+
+## Failure Handling
+
+### If Repository Not Found
+- Take screenshot: `test_scan_repository_no_repo.png`
+- Check: Did test_add_github_repository complete successfully?
+- Check: Is the repository list empty?
+- Report: "Test repository not found - prerequisite test may have failed"
+
+### If Scan Button Not Found
+- Take snapshot and screenshot
+- Check: Is the repository status "Connected" or "Active"?
+- Check: Does the UI have scan controls?
+- Report: "Scan button not found - UI may have changed or repository in wrong state"
+
+### If Scan Fails to Start
+- Take screenshot: `test_scan_repository_start_failure.png`
+- Check console errors: `mcp__MCP_DOCKER__browser_console_messages(onlyErrors: true)`
+- Check: Is backend service running?
+- Check: Is database accessible?
+- Report: "Scan failed to start - check backend logs and error message in UI"
+
+### If Scan Times Out
+- Take screenshot: `test_scan_repository_timeout.png`
+- Check: Is TEST_MODE=true? (real scans take longer)
+- Check: Is scanner service functioning in backend?
+- Check: Are there hung processes?
+- Report: "Scan did not complete within timeout period"
+
+### If No Policies Extracted
+- Take screenshot: `test_scan_repository_no_policies.png`
+- Check: Did scan actually complete?
+- Check: Is the test repository (test-auth-patterns) accessible?
+- Check: Does scanner service have permission to read repository?
+- Check backend logs for scanner errors
+- Report: "Scan completed but no policies extracted - scanner may have failed"
+
+### If Policies Page Empty
+- Take screenshot: `test_scan_repository_policies_empty.png`
+- Check: Are policies in database? (query via backend API)
+- Check: Is frontend loading policies correctly?
+- Check console errors for frontend issues
+- Report: "Policies extracted but not visible in UI - frontend issue"
+
+## Cleanup
+No cleanup required - extracted policies should remain for subsequent tests (e.g., test_provision_policy).
+
+## Test Mode Notes
+When `TEST_MODE=true`:
+- Backend returns mocked scan results from `backend/tests/fixtures/scanner_responses.py`
+- Returns 15 pre-defined policies with realistic authorization patterns
+- Scan completes in ~5 seconds (simulated processing time)
+- No actual code scanning or AI analysis is performed
+- Policies match patterns from the test-auth-patterns repository structure
+
+# Additional Context
+- Project root: /Users/damon.mcdougald/poalo_policy_miner
+- Screenshots directory: /Users/damon.mcdougald/poalo_policy_miner/e2e/screenshots
+- Test mode: ${TEST_MODE:-false}
+- Environment: Development/Testing
+
+# Execution Guidelines
+1. Read the test prompt carefully and understand all steps
+2. Use MCP browser tools (mcp__MCP_DOCKER__browser_*) for all browser interactions
+3. Take screenshots on failure and save to: /Users/damon.mcdougald/poalo_policy_miner/e2e/screenshots/
+4. If a step fails, follow the failure handling instructions in the prompt
+5. Report clear success/failure status at the end
+6. Include any error messages or diagnostics in your response
+
+# Important Notes
+- ALWAYS use browser_snapshot before clicking to get element refs
+- DO NOT use browser_take_screenshot for actions (use browser_snapshot instead)
+- Save failure screenshots with descriptive names
+- If TEST_MODE=true, backend returns mocked responses
+- All services should be running: frontend (3333), backend (7777), postgres, redis
+
+Begin test execution now.

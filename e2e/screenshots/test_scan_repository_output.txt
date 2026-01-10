@@ -1,0 +1,43 @@
+Perfect! I found the bug. On lines 980, 991, 996, 1001, and 1006, the code is calling `.get()` on `match` objects, expecting them to be dictionaries with keys like `"line"`, `"java_detail"`, etc. However, from line 644 in `_stream_authorization_files`, `matches` is just a list of pattern strings: `matches.append(pattern)`.
+
+This is a code bug - the scanner is passing `list[str]` but the extraction function expects `list[dict]`.
+
+## Test Result Summary
+
+### ❌ TEST FAILED: test_scan_repository
+
+**Failure Reason**: Backend code bug preventing policy extraction
+
+**What Happened**:
+1. ✅ Successfully navigated to repositories page
+2. ✅ Found test-auth-patterns repository  
+3. ✅ Successfully clicked "Start Scan" button
+4. ✅ Scan initiated and completed in ~5 seconds
+5. ❌ **0 policies extracted** (expected >= 5)
+6. ❌ **2 errors occurred** during scan
+
+**Root Cause**:
+Bug in `backend/app/services/scanner_service.py`:
+- Line 644: `_stream_authorization_files` yields `matches` as `list[str]` (pattern strings)
+- Line 842: `_extract_policies_from_file` expects `matches: list[dict]`  
+- Line 980: Code calls `match["line"]` on a string, causing `'str' object has no attribute 'get'` error
+
+**Error Messages**:
+```
+Error processing file java/RestController.java: 'str' object has no attribute 'get'
+Error processing file python/flask_decorators.py: 'str' object has no attribute 'get'
+```
+
+**Evidence**:
+- Screenshot: `/tmp/playwright-output/test_scan_repository_failure_details.png`
+- Screenshot: `/tmp/playwright-output/test_scan_repository_policies_page.png`
+- Backend logs show the errors for 2 files
+- Scan #8 completed with: Files: 4, Policies: 0, Errors: 2
+
+**Expected vs Actual**:
+- Expected: >= 5 policies extracted
+- Actual: 0 policies extracted
+- Expected: 0 errors  
+- Actual: 2 errors
+
+**Impact**: This is a critical bug that breaks the core functionality of the Policy Miner. No policies can be extracted until this data structure mismatch is fixed.

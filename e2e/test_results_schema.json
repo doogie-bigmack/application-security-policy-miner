@@ -1,0 +1,259 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "E2E Test Results Schema",
+  "description": "Schema for test-results.json generated after E2E test execution",
+  "type": "object",
+  "required": ["metadata", "summary", "test_results", "recommendations", "coverage_analysis"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "description": "Test run metadata and timing information",
+      "required": ["test_run_id", "started_at", "completed_at", "duration_seconds", "trigger", "environment"],
+      "properties": {
+        "test_run_id": {
+          "type": "string",
+          "description": "Unique identifier for this test run (e.g., timestamp-based ID)",
+          "example": "test-run-20260109-161545"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when test run started",
+          "example": "2026-01-09T16:15:45.123456Z"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when test run completed",
+          "example": "2026-01-09T16:18:23.987654Z"
+        },
+        "duration_seconds": {
+          "type": "number",
+          "description": "Total duration of test run in seconds",
+          "example": 158.86
+        },
+        "trigger": {
+          "type": "string",
+          "enum": ["manual", "ci", "damonnator", "scheduled"],
+          "description": "What triggered this test run",
+          "example": "manual"
+        },
+        "environment": {
+          "type": "object",
+          "description": "Environment configuration for test execution",
+          "properties": {
+            "frontend_url": {
+              "type": "string",
+              "example": "http://localhost:3333"
+            },
+            "backend_url": {
+              "type": "string",
+              "example": "http://localhost:7777"
+            },
+            "python_version": {
+              "type": "string",
+              "example": "3.12+"
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Summary statistics for the test run",
+      "required": ["total_tests", "passed", "failed", "skipped", "error", "pass_rate"],
+      "properties": {
+        "total_tests": {
+          "type": "integer",
+          "description": "Total number of tests executed",
+          "example": 5
+        },
+        "passed": {
+          "type": "integer",
+          "description": "Number of tests that passed",
+          "example": 4
+        },
+        "failed": {
+          "type": "integer",
+          "description": "Number of tests that failed",
+          "example": 1
+        },
+        "skipped": {
+          "type": "integer",
+          "description": "Number of tests that were skipped",
+          "example": 0
+        },
+        "error": {
+          "type": "integer",
+          "description": "Number of tests that encountered errors",
+          "example": 0
+        },
+        "pass_rate": {
+          "type": "number",
+          "description": "Percentage of tests that passed (0-100)",
+          "example": 80.0
+        }
+      }
+    },
+    "test_results": {
+      "type": "array",
+      "description": "Detailed results for each test",
+      "items": {
+        "type": "object",
+        "required": ["test_id", "test_name", "prd_story_id", "status", "duration_seconds", "started_at", "completed_at", "steps_completed", "steps_total"],
+        "properties": {
+          "test_id": {
+            "type": "string",
+            "description": "Unique test identifier from e2e-tests.json",
+            "example": "test_add_github_repository"
+          },
+          "test_name": {
+            "type": "string",
+            "description": "Human-readable test name",
+            "example": "Add GitHub Repository"
+          },
+          "prd_story_id": {
+            "type": "string",
+            "description": "PRD story ID this test validates",
+            "example": "FUNC-001"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["passed", "failed", "skipped", "error"],
+            "description": "Test execution status",
+            "example": "passed"
+          },
+          "duration_seconds": {
+            "type": "number",
+            "description": "Test execution duration in seconds",
+            "example": 12.45
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this test started",
+            "example": "2026-01-09T16:15:45.123456Z"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this test completed",
+            "example": "2026-01-09T16:15:57.573456Z"
+          },
+          "steps_completed": {
+            "type": "integer",
+            "description": "Number of test steps successfully completed",
+            "example": 11
+          },
+          "steps_total": {
+            "type": "integer",
+            "description": "Total number of test steps",
+            "example": 11
+          },
+          "error": {
+            "type": "object",
+            "description": "Error diagnostic information (only present if test failed)",
+            "required": ["type", "message", "step_index", "step_description"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "element_not_found",
+                  "timeout",
+                  "assertion_failed",
+                  "navigation_error",
+                  "browser_error",
+                  "prerequisite_failed",
+                  "unknown"
+                ],
+                "description": "Categorized error type",
+                "example": "element_not_found"
+              },
+              "message": {
+                "type": "string",
+                "description": "Detailed error message",
+                "example": "Element not found: button[data-testid='add-repository-btn']"
+              },
+              "step_index": {
+                "type": "integer",
+                "description": "Index of the step where error occurred (0-based)",
+                "example": 2
+              },
+              "step_description": {
+                "type": "string",
+                "description": "Description of the failing step",
+                "example": "Click the Add Repository button"
+              },
+              "screenshot": {
+                "type": "string",
+                "description": "Path to screenshot captured at failure (relative to project root)",
+                "example": "e2e/screenshots/test_add_github_repository_failure_20260109_161557.png"
+              },
+              "console_errors": {
+                "type": "array",
+                "description": "Browser console errors at time of failure",
+                "items": {
+                  "type": "string"
+                },
+                "example": [
+                  "[ERROR] Failed to load resource: the server responded with a status of 500",
+                  "[ERROR] Uncaught TypeError: Cannot read property 'data' of undefined"
+                ]
+              },
+              "stack_trace": {
+                "type": "string",
+                "description": "Python stack trace if available",
+                "example": "Traceback (most recent call last):\\n  File \"e2e/e2e_runner.py\", line 123, in run_test\\n    executor.click(selector)\\n..."
+              }
+            }
+          }
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "description": "AI-generated recommendations for debugging failures",
+      "items": {
+        "type": "string"
+      },
+      "example": [
+        "⚠️ 1 test(s) failed. Review error diagnostics below for root cause analysis.",
+        "🔍 1 test(s) failed due to element not found. Check if UI selectors changed or if elements are dynamically loaded. Review frontend/src components for data-testid attributes.",
+        "📸 1 screenshot(s) captured. Review screenshots in e2e/screenshots/ for visual debugging."
+      ]
+    },
+    "coverage_analysis": {
+      "type": "object",
+      "description": "Analysis of PRD story coverage by tests",
+      "required": ["prd_stories_tested", "prd_stories_total", "coverage_percentage", "untested_stories"],
+      "properties": {
+        "prd_stories_tested": {
+          "type": "array",
+          "description": "List of PRD story IDs covered by tests",
+          "items": {
+            "type": "string"
+          },
+          "example": ["FUNC-001", "AI-001", "UI-001", "PROV-001", "PROV-002"]
+        },
+        "prd_stories_total": {
+          "type": "integer",
+          "description": "Total number of PRD stories",
+          "example": 15
+        },
+        "coverage_percentage": {
+          "type": "number",
+          "description": "Percentage of PRD stories covered by tests (0-100)",
+          "example": 33.33
+        },
+        "untested_stories": {
+          "type": "array",
+          "description": "List of PRD story IDs not yet covered by tests",
+          "items": {
+            "type": "string"
+          },
+          "example": ["FUNC-002", "FUNC-003", "AI-002", "UI-002", "PROV-003"]
+        }
+      }
+    }
+  }
+}

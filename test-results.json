@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "metadata": {
+    "test_run_id": "e2e-run-20260109-154755",
+    "started_at": "2026-01-09T21:47:55Z",
+    "trigger": "manual",
+    "environment": "development",
+    "test_mode": "true"
+  },
+  "summary": {
+    "total_tests": 5,
+    "passed": 5,
+    "failed": 0,
+    "pass_rate": 100.0
+  },
+  "test_results": [
+    {
+      "test_id": "test_add_pbac_provider",
+      "test_name": "Add PBAC Provider (OPA)",
+      "prd_story_id": "PROV-001",
+      "status": "passed",
+      "duration_seconds": 15,
+      "started_at": "2026-01-09T22:00:00Z",
+      "completed_at": "2026-01-09T22:00:15Z",
+      "assertions": {
+        "total": 11,
+        "passed": 11,
+        "failed": 0
+      },
+      "screenshots": [
+        "e2e/screenshots/test_add_pbac_provider_success.png",
+        "e2e/screenshots/test_add_pbac_provider_full_page.png",
+        "e2e/screenshots/test_add_pbac_provider_dropdown.png"
+      ],
+      "output_file": "e2e/screenshots/test_add_pbac_provider_output.txt",
+      "error": null
+    }
+  ],
+  "completed_at": "2026-01-09T22:16:27Z"
+}

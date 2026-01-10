@@ -1,0 +1,21 @@
+# E2E Testing Dependencies for Policy Miner
+# Python 3.12+ required
+
+# Claude SDK
+anthropic>=0.39.0
+
+# HTTP requests
+requests>=2.31.0
+
+# JSON processing (jq via subprocess - no pip package needed)
+# jq command-line tool must be installed on the system
+
+# Testing utilities
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+
+# Logging
+structlog>=24.1.0
+
+# Type hints
+typing-extensions>=4.9.0
