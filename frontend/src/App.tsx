@@ -21,6 +21,7 @@ import InconsistentEnforcementPage from './pages/InconsistentEnforcementPage'
 import DuplicatesPage from './pages/DuplicatesPage'
 import BulkScanPage from './pages/BulkScanPage'
 import AutoscalerPage from './pages/AutoscalerPage'
+import MigrationWavesPage from './pages/MigrationWavesPage'
 import Layout from './components/Layout'
 
 function App() {
@@ -64,6 +65,7 @@ function App() {
         <Route path="/duplicates" element={<DuplicatesPage />} />
         <Route path="/bulk-scan" element={<BulkScanPage />} />
         <Route path="/autoscaler" element={<AutoscalerPage />} />
+        <Route path="/migration-waves" element={<MigrationWavesPage />} />
       </Routes>
     </Layout>
   )
