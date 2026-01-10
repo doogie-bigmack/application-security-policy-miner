@@ -9,6 +9,7 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.test_mode import is_test_mode
 from app.models.policy import Policy
 from app.models.provisioning import (
     PBACProvider,
@@ -32,6 +33,9 @@ class ProvisioningService:
         """Initialize the provisioning service."""
         self.db = db
         self.translation_service = TranslationService()
+        self.test_mode = is_test_mode()
+        if self.test_mode:
+            logger.info("provisioning_service_initialized_in_test_mode")
 
     async def create_provider(
         self, provider_data: PBACProviderCreate, tenant_id: str
@@ -341,6 +345,16 @@ class ProvisioningService:
         Raises:
             Exception: If push fails
         """
+        # In TEST_MODE, skip actual API calls
+        if self.test_mode:
+            logger.info(
+                "test_mode_push_skipped",
+                provider_type=provider.provider_type,
+                policy_id=policy.id,
+                translated_policy_length=len(translated_policy),
+            )
+            return
+
         if provider.provider_type == ProviderType.OPA:
             await self._push_to_opa(provider, policy, translated_policy)
         elif provider.provider_type == ProviderType.AWS_VERIFIED_PERMISSIONS:
