@@ -73,7 +73,7 @@
         "Verify COBOL authorization calls are detected",
         "Confirm policies are mapped to modern PBAC format"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",

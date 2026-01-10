@@ -32,6 +32,14 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
   const [dbUsername, setDbUsername] = useState('')
   const [dbPassword, setDbPassword] = useState('')
 
+  // Mainframe-specific fields
+  const [connectionType, setConnectionType] = useState<'file_upload' | 'ftp' | 'sftp' | 'tn3270'>('file_upload')
+  const [mfHost, setMfHost] = useState('')
+  const [mfPort, setMfPort] = useState('')
+  const [mfUsername, setMfUsername] = useState('')
+  const [mfPassword, setMfPassword] = useState('')
+  const [securitySystem, setSecuritySystem] = useState<'racf' | 'topsecret' | 'acf2'>('racf')
+
   // GitHub browser state
   const [showGitHubBrowser, setShowGitHubBrowser] = useState(false)
 
@@ -71,6 +79,18 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
           database: dbName,
           username: dbUsername,
           password: dbPassword,
+        }
+      } else if (sourceType === 'mainframe') {
+        connectionConfig = {
+          connection_type: connectionType,
+          security_system: securitySystem,
+        }
+        // Only add host/port/credentials if not file_upload
+        if (connectionType !== 'file_upload') {
+          connectionConfig.host = mfHost
+          connectionConfig.port = mfPort ? parseInt(mfPort, 10) : 0
+          connectionConfig.username = mfUsername
+          connectionConfig.password = mfPassword
         }
       }
 
@@ -112,6 +132,12 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
       setDbName('')
       setDbUsername('')
       setDbPassword('')
+      setConnectionType('file_upload')
+      setMfHost('')
+      setMfPort('')
+      setMfUsername('')
+      setMfPassword('')
+      setSecuritySystem('racf')
 
       onSuccess()
       onClose()
@@ -729,11 +755,143 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
             </>
           )}
 
-          {/* Mainframe-specific placeholder */}
+          {/* Mainframe-specific fields */}
           {sourceType === 'mainframe' && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-amber-800 dark:text-amber-200">
-              Mainframe connection configuration will be available in a future update.
-            </div>
+            <>
+              {/* Security System */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Security System</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { value: 'racf', label: 'RACF' },
+                    { value: 'topsecret', label: 'Top Secret' },
+                    { value: 'acf2', label: 'ACF2' },
+                  ].map((system) => (
+                    <button
+                      key={system.value}
+                      type="button"
+                      onClick={() => setSecuritySystem(system.value as typeof securitySystem)}
+                      className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                        securitySystem === system.value
+                          ? 'bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500'
+                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400'
+                      }`}
+                    >
+                      {system.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Connection Type */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Connection Type</label>
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { value: 'file_upload', label: 'File Upload' },
+                    { value: 'ftp', label: 'FTP' },
+                    { value: 'sftp', label: 'SFTP' },
+                    { value: 'tn3270', label: 'TN3270' },
+                  ].map((type) => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => setConnectionType(type.value as typeof connectionType)}
+                      className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                        connectionType === type.value
+                          ? 'bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500'
+                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400'
+                      }`}
+                    >
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* File Upload Note */}
+              {connectionType === 'file_upload' && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Note:</strong> After creating the repository, you'll be able to upload COBOL source files (.cbl, .cobol, .cob)
+                    for analysis. This is useful for analyzing COBOL code without requiring direct mainframe access.
+                  </p>
+                </div>
+              )}
+
+              {/* Connection Details (only for non-file-upload) */}
+              {connectionType !== 'file_upload' && (
+                <>
+                  {/* Info about future implementation */}
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>Coming Soon:</strong> Direct mainframe connections via {connectionType.toUpperCase()} will be available in a future update.
+                      For now, use File Upload to analyze COBOL code.
+                    </p>
+                  </div>
+
+                  {/* Host and Port */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="col-span-2">
+                      <label htmlFor="mfHost" className="block text-sm font-medium mb-2">
+                        Host
+                      </label>
+                      <input
+                        type="text"
+                        id="mfHost"
+                        value={mfHost}
+                        onChange={(e) => setMfHost(e.target.value)}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="mainframe.example.com"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="mfPort" className="block text-sm font-medium mb-2">
+                        Port
+                      </label>
+                      <input
+                        type="number"
+                        id="mfPort"
+                        value={mfPort}
+                        onChange={(e) => setMfPort(e.target.value)}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder={connectionType === 'tn3270' ? '3270' : connectionType === 'sftp' ? '22' : '21'}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Username */}
+                  <div>
+                    <label htmlFor="mfUsername" className="block text-sm font-medium mb-2">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      id="mfUsername"
+                      value={mfUsername}
+                      onChange={(e) => setMfUsername(e.target.value)}
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="mainframe_user"
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label htmlFor="mfPassword" className="block text-sm font-medium mb-2">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      id="mfPassword"
+                      value={mfPassword}
+                      onChange={(e) => setMfPassword(e.target.value)}
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </>
+              )}
+            </>
           )}
 
           {/* Actions */}
