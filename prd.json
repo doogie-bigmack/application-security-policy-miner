@@ -1099,7 +1099,8 @@
         "Display reduction metrics on dashboard",
         "Export spaghetti-to-lasagna migration report"
       ],
-      "passes": false
+      "passes": true,
+      "note": "Spaghetti reduction metrics fully implemented. Backend: OPAVerification model tracks baseline_inline_checks, inline_checks_remaining, and calculates spaghetti_reduction_percentage. Service layer provides create_baseline(), verify_opa_calls_detected() with automatic reduction calculation. API endpoints include GET /statistics/ showing average spaghetti reduction across all verifications. New export endpoint: GET /export/report/ generates comprehensive CSV report with all migration metrics (baseline checks, remaining checks, reduction %, latency comparison, verification status). Frontend: OPAVerificationsPage displays spaghetti reduction metrics prominently with before/after check counts, percentage reduction, and Export Report button. Dashboard shows average spaghetti reduction across all applications. All 9 story steps completed."
     },
     {
       "category": "functional",
