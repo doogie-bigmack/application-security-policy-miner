@@ -23,5 +23,5 @@ class SecretDetectionLog(Base):
     detected_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
-    repository = relationship("Repository")
+    repository = relationship("Repository", back_populates="secret_logs")
     tenant = relationship("Tenant")

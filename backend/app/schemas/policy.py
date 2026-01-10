@@ -1,94 +1,108 @@
 """Policy schemas."""
-
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.policy import PolicyStatus, RiskLevel, SourceType
+from app.models.policy import PolicyStatus, RiskLevel, SourceType, ValidationStatus
 
 
-class PolicyEvidenceBase(BaseModel):
-    """Base schema for policy evidence."""
+class EvidenceBase(BaseModel):
+    """Base evidence schema."""
 
-    file_path: str = Field(..., max_length=1000)
-    start_line: int = Field(..., ge=1)
-    end_line: int = Field(..., ge=1)
-    code_snippet: str
+    file_path: str = Field(..., description="Path to the source file")
+    line_start: int = Field(..., description="Starting line number")
+    line_end: int = Field(..., description="Ending line number")
+    code_snippet: str = Field(..., description="Code snippet supporting the policy")
 
 
-class PolicyEvidenceResponse(PolicyEvidenceBase):
-    """Schema for policy evidence responses."""
+class EvidenceCreate(EvidenceBase):
+    """Schema for creating evidence."""
 
-    model_config = ConfigDict(from_attributes=True)
+    pass
+
+
+class Evidence(EvidenceBase):
+    """Evidence schema with ID and timestamps."""
 
     id: int
     policy_id: int
+    validation_status: ValidationStatus = ValidationStatus.PENDING
+    validation_error: str | None = None
+    validated_at: datetime | None = None
     created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PolicyBase(BaseModel):
-    """Base schema for policies."""
+    """Base policy schema."""
 
-    subject: str = Field(..., max_length=500, description="Who: user, role, group")
-    resource: str = Field(..., max_length=500, description="What: resource being accessed")
-    action: str = Field(..., max_length=500, description="How: action being performed")
-    conditions: str | None = Field(None, description="When: conditions, constraints")
-    description: str | None = None
+    subject: str = Field(..., description="Who - the principal (e.g., Manager, Admin)")
+    resource: str = Field(..., description="What - the resource being accessed")
+    action: str = Field(..., description="How - the action being performed")
+    conditions: str | None = Field(None, description="When - conditions for the policy")
+    description: str | None = Field(None, description="Policy description")
+    source_type: SourceType = Field(SourceType.UNKNOWN, description="Source type (frontend/backend/database)")
 
 
 class PolicyCreate(PolicyBase):
     """Schema for creating a policy."""
 
     repository_id: int
+    application_id: int | None = None
+    risk_score: float | None = None
+    risk_level: RiskLevel | None = None
+    complexity_score: float | None = None
+    impact_score: float | None = None
+    confidence_score: float | None = None
+    historical_score: float | None = None
+    evidence: list[EvidenceCreate] = Field(default_factory=list)
+
+
+class Policy(PolicyBase):
+    """Policy schema with full details."""
+
+    id: int
+    repository_id: int
+    application_id: int | None = None
+    status: PolicyStatus
+    risk_score: float | None = None
+    risk_level: RiskLevel | None = None
+    complexity_score: float | None = None
+    impact_score: float | None = None
+    confidence_score: float | None = None
+    historical_score: float | None = None
+    approval_comment: str | None = None
+    reviewed_by: str | None = None
+    reviewed_at: datetime | None = None
+    evidence: list[Evidence] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
     tenant_id: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PolicyUpdate(BaseModel):
     """Schema for updating a policy."""
 
-    subject: str | None = Field(None, max_length=500)
-    resource: str | None = Field(None, max_length=500)
-    action: str | None = Field(None, max_length=500)
+    subject: str | None = None
+    resource: str | None = None
+    action: str | None = None
     conditions: str | None = None
     description: str | None = None
-    status: PolicyStatus | None = None
+    source_type: SourceType | None = None
+    application_id: int | None = None
+    risk_score: float | None = None
     risk_level: RiskLevel | None = None
-    risk_score: int | None = Field(None, ge=0, le=100)
+    complexity_score: float | None = None
+    impact_score: float | None = None
+    confidence_score: float | None = None
+    historical_score: float | None = None
 
 
-class PolicyResponse(PolicyBase):
-    """Schema for policy responses."""
+class PolicyList(BaseModel):
+    """Schema for listing policies."""
 
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    repository_id: int
-    status: PolicyStatus
-    risk_level: RiskLevel
-    risk_score: int
-    source_type: SourceType
-    created_at: datetime
-    updated_at: datetime
-    tenant_id: str | None = None
-    evidence: list[PolicyEvidenceResponse] = []
-
-
-class PolicyListResponse(BaseModel):
-    """Schema for policy list responses."""
-
-    policies: list[PolicyResponse]
+    policies: list[Policy]
     total: int
-
-
-class ScanRequest(BaseModel):
-    """Schema for scan request."""
-
-    repository_id: int
-
-
-class ScanResponse(BaseModel):
-    """Schema for scan response."""
-
-    message: str
-    repository_id: int
-    policies_extracted: int
