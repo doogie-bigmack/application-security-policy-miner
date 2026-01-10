@@ -1149,7 +1149,8 @@
         "Create Phase 3 for Manufacturing Division",
         "Compare migration velocity across phases"
       ],
-      "passes": false
+      "passes": true,
+      "note": "Division-based migration waves implemented. Backend: Added division_id filter to applications endpoints, /migration-waves/{wave_id}/scan endpoint for bulk scanning, /migration-waves/velocity-comparison endpoint for cross-wave analysis. Frontend: Division filter dropdown in wave management, 'Start Bulk Scan' button, 'Compare Velocity' modal with migration metrics (duration, apps, policies, velocity). Supports creating waves for Finance Division (159 apps), Manufacturing Division, and comparing migration velocity across phases."
     },
     {
       "category": "functional",
