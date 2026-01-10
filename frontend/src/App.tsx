@@ -20,6 +20,7 @@ import PolicyFixesPage from './pages/PolicyFixesPage'
 import InconsistentEnforcementPage from './pages/InconsistentEnforcementPage'
 import DuplicatesPage from './pages/DuplicatesPage'
 import CrossApplicationConflictsPage from './pages/CrossApplicationConflictsPage'
+import BulkScanPage from './pages/BulkScanPage'
 import Layout from './components/Layout'
 
 function App() {
@@ -62,6 +63,7 @@ function App() {
         <Route path="/inconsistent-enforcement" element={<InconsistentEnforcementPage />} />
         <Route path="/duplicates" element={<DuplicatesPage />} />
         <Route path="/cross-application-conflicts" element={<CrossApplicationConflictsPage />} />
+        <Route path="/bulk-scan" element={<BulkScanPage />} />
       </Routes>
     </Layout>
   )

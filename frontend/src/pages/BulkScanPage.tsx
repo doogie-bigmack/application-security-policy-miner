@@ -1,577 +1,444 @@
-import { useState, useEffect } from 'react';
-import {
-  Play,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Loader2,
-  Package,
-  Zap,
-  Activity,
-} from 'lucide-react';
+import { useEffect, useState } from 'react'
+import { Zap, CheckCircle, XCircle, Clock, Package, Loader, AlertTriangle } from 'lucide-react'
+import logger from '../lib/logger'
 
 interface Repository {
-  id: number;
-  name: string;
-  repository_type: string;
-  status: string;
-  source_url: string | null;
+  id: number
+  name: string
+  repository_type: 'git' | 'database' | 'mainframe'
 }
 
-interface TaskInfo {
-  repository_id: number;
-  task_id: string;
-  status?: string;
-  state?: string;
+interface BulkScanJob {
+  repository_id: number
+  repository_name: string
+  job_id: string
+  status: string
 }
 
-interface BulkScanResult {
-  total_repositories: number;
-  total_batches: number;
-  batch_size: number;
-  spawned_tasks: number;
-  task_ids: TaskInfo[];
-  status: string;
-  bulk_task_id: string;
-}
-
-interface TaskStatus {
-  task_id: string;
-  state: string;
-  result: any;
-  meta: any;
-}
-
-interface WorkerStats {
-  worker_name: string;
-  status: string;
-  active_tasks: number;
-  processed_tasks: number;
-  pool_size: number;
-}
-
-interface QueueStats {
-  total_workers: number;
-  active_workers: number;
-  total_tasks_active: number;
-  total_tasks_reserved: number;
-  queue_depth: number;
-  workers: WorkerStats[];
-}
-
-interface BulkProgress {
-  task_id: string;
-  state: string;
-  result: any;
-  meta: {
-    total_repositories: number;
-    total_batches: number;
-    current_batch?: number;
-    batch_size: number;
-    spawned_so_far?: number;
-    status: string;
-  } | null;
+interface BulkScanProgress {
+  bulk_scan_id: number
+  status: string
+  total_applications: number
+  completed_applications: number
+  failed_applications: number
+  total_policies_extracted: number
+  total_files_scanned: number
+  average_scan_duration_seconds: number | null
+  started_at: string | null
+  completed_at: string | null
+  created_at: string
 }
 
 export default function BulkScanPage() {
-  const [repositories, setRepositories] = useState<Repository[]>([]);
-  const [selectedRepos, setSelectedRepos] = useState<Set<number>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [scanning, setScanning] = useState(false);
-  const [bulkScanResult, setBulkScanResult] = useState<BulkScanResult | null>(null);
-  const [taskStatuses, setTaskStatuses] = useState<Map<string, TaskStatus>>(new Map());
-  const [incremental, setIncremental] = useState(false);
-  const [batchSize, setBatchSize] = useState(50);
-  const [queueStats, setQueueStats] = useState<QueueStats | null>(null);
-  const [bulkProgress, setBulkProgress] = useState<BulkProgress | null>(null);
-
-  useEffect(() => {
-    fetchRepositories();
-    fetchQueueStats();
-
-    // Poll queue stats every 5 seconds
-    const interval = setInterval(fetchQueueStats, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    // Poll task statuses and bulk progress if we have a bulk scan running
-    if (bulkScanResult && bulkScanResult.task_ids.length > 0) {
-      const interval = setInterval(() => {
-        updateTaskStatuses();
-        if (bulkScanResult.bulk_task_id) {
-          fetchBulkProgress(bulkScanResult.bulk_task_id);
-        }
-      }, 3000); // Poll every 3 seconds
-
-      return () => clearInterval(interval);
-    }
-  }, [bulkScanResult]);
+  const [repositories, setRepositories] = useState<Repository[]>([])
+  const [selectedRepoIds, setSelectedRepoIds] = useState<Set<number>>(new Set())
+  const [isLoading, setIsLoading] = useState(true)
+  const [isScanningInProgress, setIsScanningInProgress] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [bulkScans, setBulkScans] = useState<BulkScanProgress[]>([])
+  const [currentBulkScan, setCurrentBulkScan] = useState<BulkScanProgress | null>(null)
+  const [maxWorkers, setMaxWorkers] = useState<number>(10)
 
   const fetchRepositories = async () => {
     try {
-      const response = await fetch('/api/v1/repositories/');
-      if (!response.ok) throw new Error('Failed to fetch repositories');
-      const data = await response.json();
-      setRepositories(data.repositories || data);
-    } catch (err: any) {
-      console.error('Failed to fetch repositories:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setIsLoading(true)
+      const response = await fetch('/api/v1/repositories/')
 
-  const fetchQueueStats = async () => {
-    try {
-      const response = await fetch('/api/v1/monitoring/queue-stats/');
-      if (!response.ok) return;
-      const data = await response.json();
-      setQueueStats(data);
-    } catch (err) {
-      // Silently fail to avoid spamming errors
-    }
-  };
-
-  const fetchBulkProgress = async (taskId: string) => {
-    try {
-      const response = await fetch(`/api/v1/monitoring/bulk-task/${taskId}/progress/`);
-      if (!response.ok) return;
-      const data = await response.json();
-      setBulkProgress(data);
-    } catch (err) {
-      // Silently fail
-    }
-  };
-
-  const updateTaskStatuses = async () => {
-    if (!bulkScanResult) return;
-
-    const newStatuses = new Map<string, TaskStatus>();
-
-    for (const taskInfo of bulkScanResult.task_ids) {
-      try {
-        const response = await fetch(`/api/v1/bulk-scan/task/${taskInfo.task_id}/status/`);
-        if (response.ok) {
-          const status: TaskStatus = await response.json();
-          newStatuses.set(taskInfo.task_id, status);
-        }
-      } catch (err) {
-        console.error(`Failed to fetch status for task ${taskInfo.task_id}:`, err);
+      if (!response.ok) {
+        throw new Error('Failed to fetch repositories')
       }
+
+      const data = await response.json()
+      setRepositories(data.repositories)
+      logger.info('Repositories fetched', { count: data.total })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      logger.error('Failed to fetch repositories', { error: errorMessage })
+      setError(errorMessage)
+    } finally {
+      setIsLoading(false)
     }
+  }
 
-    setTaskStatuses(newStatuses);
+  const fetchBulkScans = async () => {
+    try {
+      const response = await fetch('/api/v1/bulk-scan/')
+      if (!response.ok) {
+        throw new Error('Failed to fetch bulk scans')
+      }
 
-    // Check if all tasks are done
-    const allDone = Array.from(newStatuses.values()).every(
-      (status) => status.state === 'SUCCESS' || status.state === 'FAILURE'
-    );
-
-    if (allDone) {
-      setScanning(false);
+      const data = await response.json()
+      setBulkScans(data)
+      logger.info('Bulk scans fetched', { count: data.length })
+    } catch (err) {
+      logger.error('Failed to fetch bulk scans', { error: err })
     }
-  };
+  }
 
-  const toggleRepo = (repoId: number) => {
-    const newSelected = new Set(selectedRepos);
+  const fetchBulkScanProgress = async (bulkScanId: number) => {
+    try {
+      const response = await fetch(`/api/v1/bulk-scan/${bulkScanId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch bulk scan progress')
+      }
+
+      const data = await response.json()
+      setCurrentBulkScan(data)
+
+      // If scan is complete, stop polling
+      if (data.status === 'completed' || data.status === 'failed' || data.status === 'cancelled') {
+        setIsScanningInProgress(false)
+        fetchBulkScans() // Refresh list
+      }
+    } catch (err) {
+      logger.error('Failed to fetch bulk scan progress', { error: err })
+    }
+  }
+
+  useEffect(() => {
+    logger.info('BulkScanPage mounted')
+    fetchRepositories()
+    fetchBulkScans()
+  }, [])
+
+  // Poll for progress if scanning in progress
+  useEffect(() => {
+    if (isScanningInProgress && currentBulkScan) {
+      const interval = setInterval(() => {
+        fetchBulkScanProgress(currentBulkScan.bulk_scan_id)
+      }, 2000) // Poll every 2 seconds
+
+      return () => clearInterval(interval)
+    }
+  }, [isScanningInProgress, currentBulkScan])
+
+  const toggleRepoSelection = (repoId: number) => {
+    const newSelected = new Set(selectedRepoIds)
     if (newSelected.has(repoId)) {
-      newSelected.delete(repoId);
+      newSelected.delete(repoId)
     } else {
-      newSelected.add(repoId);
+      newSelected.add(repoId)
     }
-    setSelectedRepos(newSelected);
-  };
+    setSelectedRepoIds(newSelected)
+  }
 
-  const toggleAll = () => {
-    if (selectedRepos.size === repositories.length) {
-      setSelectedRepos(new Set());
+  const selectAll = () => {
+    if (selectedRepoIds.size === repositories.length) {
+      setSelectedRepoIds(new Set())
     } else {
-      setSelectedRepos(new Set(repositories.map((r) => r.id)));
+      setSelectedRepoIds(new Set(repositories.map(r => r.id)))
     }
-  };
+  }
 
   const startBulkScan = async () => {
-    if (selectedRepos.size === 0) {
-      alert('Please select at least one repository');
-      return;
+    if (selectedRepoIds.size === 0) {
+      setError('Please select at least one repository to scan')
+      return
     }
 
-    setScanning(true);
-
     try {
-      const response = await fetch('/api/v1/bulk-scan/bulk-scan/', {
+      setError(null)
+      setIsScanningInProgress(true)
+
+      const response = await fetch('/api/v1/bulk-scan/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          repository_ids: Array.from(selectedRepos),
-          incremental,
-          batch_size: batchSize,
+          repository_ids: Array.from(selectedRepoIds),
+          incremental: false,
+          max_parallel_workers: maxWorkers,
         }),
-      });
+      })
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to start bulk scan');
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to start bulk scan')
       }
 
-      const result: BulkScanResult = await response.json();
-      setBulkScanResult(result);
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
-      setScanning(false);
+      const data = await response.json()
+      logger.info('Bulk scan initiated', { bulkScanId: data.bulk_scan_id })
+
+      // Start polling for progress
+      setCurrentBulkScan({
+        bulk_scan_id: data.bulk_scan_id,
+        status: 'processing',
+        total_applications: data.total_applications,
+        completed_applications: 0,
+        failed_applications: 0,
+        total_policies_extracted: 0,
+        total_files_scanned: 0,
+        average_scan_duration_seconds: null,
+        started_at: new Date().toISOString(),
+        completed_at: null,
+        created_at: new Date().toISOString(),
+      })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+      logger.error('Failed to start bulk scan', { error: errorMessage })
+      setError(errorMessage)
+      setIsScanningInProgress(false)
     }
-  };
+  }
 
-  const getRepositoryName = (repoId: number) => {
-    return repositories.find((r) => r.id === repoId)?.name || `Repo ${repoId}`;
-  };
-
-  const getTaskState = (taskId: string): string => {
-    const status = taskStatuses.get(taskId);
-    return status?.state || 'PENDING';
-  };
-
-  const getTaskStateColor = (state: string): string => {
-    switch (state) {
-      case 'SUCCESS':
-        return 'text-green-600 dark:text-green-400';
-      case 'FAILURE':
-        return 'text-red-600 dark:text-red-400';
-      case 'STARTED':
-      case 'PROGRESS':
-        return 'text-blue-600 dark:text-blue-400';
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="w-5 h-5 text-green-600" />
+      case 'failed':
+        return <XCircle className="w-5 h-5 text-red-600" />
+      case 'processing':
+      case 'queued':
+        return <Loader className="w-5 h-5 text-blue-600 animate-spin" />
       default:
-        return 'text-gray-600 dark:text-gray-400';
+        return <Clock className="w-5 h-5 text-gray-400" />
     }
-  };
+  }
 
-  const getTaskStateIcon = (state: string) => {
-    switch (state) {
-      case 'SUCCESS':
-        return <CheckCircle className="w-5 h-5" />;
-      case 'FAILURE':
-        return <AlertCircle className="w-5 h-5" />;
-      case 'STARTED':
-      case 'PROGRESS':
-        return <Loader2 className="w-5 h-5 animate-spin" />;
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+      case 'failed':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+      case 'processing':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+      case 'queued':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
       default:
-        return <Clock className="w-5 h-5" />;
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
     }
-  };
-
-  const completedCount = bulkScanResult
-    ? bulkScanResult.task_ids.filter(
-        (t) => getTaskState(t.task_id) === 'SUCCESS' || getTaskState(t.task_id) === 'FAILURE'
-      ).length
-    : 0;
-
-  const successCount = bulkScanResult
-    ? bulkScanResult.task_ids.filter((t) => getTaskState(t.task_id) === 'SUCCESS').length
-    : 0;
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-50">
-            Enterprise-Scale Parallel Scanning
-          </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Scan hundreds or thousands of repositories in parallel with batch processing
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-50">Bulk Scan</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          Scan multiple repositories in parallel for faster policy extraction
+        </p>
       </div>
 
-      {/* Queue Stats Dashboard */}
-      {queueStats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Workers</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">
-                  {queueStats.active_workers}/{queueStats.total_workers}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  {queueStats.active_workers} active
-                </p>
-              </div>
-              <Activity className="w-8 h-8 text-blue-600" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Active Tasks</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">
-                  {queueStats.total_tasks_active}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  Running now
-                </p>
-              </div>
-              <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Queue Depth</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-50">
-                  {queueStats.queue_depth}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  Tasks waiting
-                </p>
-              </div>
-              <Clock className="w-8 h-8 text-amber-600" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">System Status</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-                  {scanning ? 'Scanning' : 'Ready'}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  {scanning ? 'In progress' : 'Idle'}
-                </p>
-              </div>
-              {scanning ? (
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-              ) : (
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bulk Progress */}
-      {bulkProgress && bulkProgress.meta && (
-        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <div className="flex items-start space-x-3">
-            <Loader2 className="w-5 h-5 animate-spin text-blue-600 mt-0.5" />
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex items-start">
+            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-2" />
             <div className="flex-1">
-              <h3 className="font-semibold text-blue-900 dark:text-blue-50 mb-1">
-                Batch Processing in Progress
-              </h3>
-              <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
-                {bulkProgress.meta.status}
-              </p>
-              {bulkProgress.meta.current_batch && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-blue-800 dark:text-blue-200">
-                    <span>Batch {bulkProgress.meta.current_batch} of {bulkProgress.meta.total_batches}</span>
-                    <span>{bulkProgress.meta.spawned_so_far}/{bulkProgress.meta.total_repositories} tasks spawned</span>
-                  </div>
-                  <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${((bulkProgress.meta.current_batch || 0) / bulkProgress.meta.total_batches) * 100}%`
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
+              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Control Panel */}
-      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={selectedRepos.size === repositories.length && repositories.length > 0}
-                onChange={toggleAll}
-                className="rounded border-gray-300 dark:border-gray-700"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                Select All ({repositories.length} repositories)
-              </span>
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={incremental}
-                onChange={(e) => setIncremental(e.target.checked)}
-                className="rounded border-gray-300 dark:border-gray-700"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                <Zap className="w-4 h-4 text-yellow-500" />
-                Incremental Scan
-              </span>
-            </label>
-
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-700 dark:text-gray-300">
-                Batch Size:
-              </label>
-              <input
-                type="number"
-                value={batchSize}
-                onChange={(e) => setBatchSize(parseInt(e.target.value) || 50)}
-                min="1"
-                max="100"
-                className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
-              />
-              <span className="text-xs text-gray-500 dark:text-gray-500">
-                (repos/batch)
-              </span>
-            </div>
-          </div>
-
-          <button
-            onClick={startBulkScan}
-            disabled={scanning || selectedRepos.size === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {scanning ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Scanning...
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4" />
-                Start Parallel Scan ({selectedRepos.size})
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Selected count */}
-        <div className="text-sm text-gray-600 dark:text-gray-400">
-          {selectedRepos.size} of {repositories.length} repositories selected
-        </div>
-      </div>
-
-      {/* Progress Dashboard */}
-      {bulkScanResult && (
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
+      {/* Current Bulk Scan Progress */}
+      {currentBulkScan && isScanningInProgress && (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-blue-600" />
-              Scan Progress
-              {bulkScanResult.total_batches > 1 && (
-                <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
-                  ({bulkScanResult.total_batches} batches × {bulkScanResult.batch_size} repos/batch)
-                </span>
-              )}
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+              Scan in Progress
             </h2>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              {completedCount} / {bulkScanResult.total_repositories} completed
-            </div>
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(currentBulkScan.status)}`}>
+              {currentBulkScan.status.toUpperCase()}
+            </span>
           </div>
 
-          {/* Progress bar */}
-          <div className="mb-6">
-            <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
+          {/* Progress Bar */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+              <span>
+                {currentBulkScan.completed_applications + currentBulkScan.failed_applications} / {currentBulkScan.total_applications} applications
+              </span>
+              <span>
+                {Math.round(((currentBulkScan.completed_applications + currentBulkScan.failed_applications) / currentBulkScan.total_applications) * 100)}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
                 style={{
-                  width: `${(completedCount / bulkScanResult.total_repositories) * 100}%`,
+                  width: `${((currentBulkScan.completed_applications + currentBulkScan.failed_applications) / currentBulkScan.total_applications) * 100}%`,
                 }}
               />
             </div>
-            <div className="mt-2 flex justify-between text-xs text-gray-600 dark:text-gray-400">
-              <span>{successCount} successful</span>
-              <span>{completedCount - successCount} failed</span>
-            </div>
           </div>
 
-          {/* Task list */}
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {bulkScanResult.task_ids.map((taskInfo) => {
-              const state = getTaskState(taskInfo.task_id);
-              const status = taskStatuses.get(taskInfo.task_id);
-
-              return (
-                <div
-                  key={taskInfo.task_id}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={getTaskStateColor(state)}>{getTaskStateIcon(state)}</div>
-                    <div>
-                      <div className="font-medium text-gray-900 dark:text-gray-50">
-                        {getRepositoryName(taskInfo.repository_id)}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-500">
-                        Task ID: {taskInfo.task_id.substring(0, 8)}...
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-sm">
-                    <span className={`font-medium ${getTaskStateColor(state)}`}>{state}</span>
-                    {status?.meta && (
-                      <div className="text-xs text-gray-500 dark:text-gray-500">
-                        {status.meta.status}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">Completed</div>
+              <div className="text-2xl font-semibold text-green-600 dark:text-green-400">
+                {currentBulkScan.completed_applications}
+              </div>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">Failed</div>
+              <div className="text-2xl font-semibold text-red-600 dark:text-red-400">
+                {currentBulkScan.failed_applications}
+              </div>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">Policies</div>
+              <div className="text-2xl font-semibold text-blue-600 dark:text-blue-400">
+                {currentBulkScan.total_policies_extracted}
+              </div>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">Files Scanned</div>
+              <div className="text-2xl font-semibold text-purple-600 dark:text-purple-400">
+                {currentBulkScan.total_files_scanned}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Repository List */}
-      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-            Available Repositories
-          </h2>
+      {/* Configuration Card */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">
+          Select Repositories
+        </h2>
+
+        {/* Max Workers Config */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Maximum Parallel Workers
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="100"
+            value={maxWorkers}
+            onChange={(e) => setMaxWorkers(parseInt(e.target.value) || 10)}
+            className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50"
+            disabled={isScanningInProgress}
+          />
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Number of repositories to scan simultaneously (1-100)
+          </p>
         </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-800">
-          {repositories.map((repo) => (
-            <div
-              key={repo.id}
-              className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-              onClick={() => toggleRepo(repo.id)}
-            >
-              <div className="flex items-center gap-3">
+
+        {/* Select All Button */}
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={selectAll}
+            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            disabled={isScanningInProgress}
+          >
+            {selectedRepoIds.size === repositories.length ? 'Deselect All' : 'Select All'}
+          </button>
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            {selectedRepoIds.size} selected
+          </span>
+        </div>
+
+        {/* Repository List */}
+        {isLoading ? (
+          <div className="text-center py-8">
+            <Loader className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading repositories...</p>
+          </div>
+        ) : repositories.length === 0 ? (
+          <div className="text-center py-8">
+            <Package className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-600 dark:text-gray-400">No repositories found</p>
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {repositories.map((repo) => (
+              <label
+                key={repo.id}
+                className={`flex items-center p-3 rounded-lg border transition-colors cursor-pointer ${
+                  selectedRepoIds.has(repo.id)
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800'
+                } ${isScanningInProgress ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
                 <input
                   type="checkbox"
-                  checked={selectedRepos.has(repo.id)}
-                  onChange={() => toggleRepo(repo.id)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="rounded border-gray-300 dark:border-gray-700"
+                  checked={selectedRepoIds.has(repo.id)}
+                  onChange={() => toggleRepoSelection(repo.id)}
+                  disabled={isScanningInProgress}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <Package className="w-5 h-5 text-gray-400" />
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 dark:text-gray-50">{repo.name}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {repo.repository_type} • {repo.status}
+                <div className="ml-3 flex-1">
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-50">
+                    {repo.name}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {repo.repository_type}
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              </label>
+            ))}
+          </div>
+        )}
+
+        {/* Start Scan Button */}
+        <div className="mt-6 flex items-center justify-between">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {selectedRepoIds.size > 0 && (
+              <span>
+                Will scan {selectedRepoIds.size} {selectedRepoIds.size === 1 ? 'repository' : 'repositories'} with up to {maxWorkers} parallel workers
+              </span>
+            )}
+          </div>
+          <button
+            onClick={startBulkScan}
+            disabled={selectedRepoIds.size === 0 || isScanningInProgress}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            Start Bulk Scan
+          </button>
         </div>
       </div>
+
+      {/* Recent Bulk Scans */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-4">
+          Recent Bulk Scans
+        </h2>
+
+        {bulkScans.length === 0 ? (
+          <div className="text-center py-8">
+            <Package className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-600 dark:text-gray-400">No bulk scans yet</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {bulkScans.map((scan) => (
+              <div
+                key={scan.bulk_scan_id}
+                className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-800 rounded-lg"
+              >
+                <div className="flex items-start space-x-4">
+                  {getStatusIcon(scan.status)}
+                  <div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-50">
+                      Bulk Scan #{scan.bulk_scan_id}
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {scan.total_applications} applications • {scan.completed_applications} completed • {scan.failed_applications} failed
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      Started: {new Date(scan.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-50">
+                    {scan.total_policies_extracted}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">policies</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
-  );
+  )
 }

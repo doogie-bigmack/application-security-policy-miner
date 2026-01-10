@@ -1,213 +1,180 @@
-"""Bulk scan API endpoints for parallel repository scanning."""
+"""Bulk scan API endpoints."""
+import logging
 
-from typing import Any
-
-import structlog
-from celery.result import AsyncResult
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_tenant_id
-from app.models.repository import Repository
-from app.tasks.scan_tasks import bulk_scan_repositories_task, scan_repository_task
+from app.core.dependencies import get_tenant_id as get_current_tenant_id
+from app.schemas.bulk_scan import (
+    BulkScanJobInfo,
+    BulkScanProgress,
+    BulkScanRequest,
+    BulkScanResponse,
+)
+from app.services.bulk_scan_service import BulkScanService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
-logger = structlog.get_logger(__name__)
 
 
-class BulkScanRequest(BaseModel):
-    """Request model for bulk scanning."""
-
-    repository_ids: list[int] = Field(
-        ..., description="List of repository IDs to scan", min_length=1
-    )
-    incremental: bool = Field(
-        default=False, description="If True, only scan changed files"
-    )
-    batch_size: int = Field(
-        default=50,
-        description="Number of repositories to process per batch (for enterprise-scale scanning)",
-        ge=1,
-        le=100,
-    )
-
-
-class BulkScanResponse(BaseModel):
-    """Response model for bulk scan."""
-
-    total_repositories: int
-    total_batches: int
-    batch_size: int
-    spawned_tasks: int
-    task_ids: list[dict[str, Any]]
-    status: str
-    bulk_task_id: str
-
-
-class TaskStatusResponse(BaseModel):
-    """Response model for task status."""
-
-    task_id: str
-    state: str
-    result: dict[str, Any] | None = None
-    meta: dict[str, Any] | None = None
-
-
-@router.post("/bulk-scan/", response_model=BulkScanResponse, status_code=status.HTTP_202_ACCEPTED)
-async def bulk_scan(
+@router.post("/", response_model=BulkScanResponse)
+async def initiate_bulk_scan(
     request: BulkScanRequest,
     db: Session = Depends(get_db),
-    tenant_id: str | None = Depends(get_tenant_id),
-) -> BulkScanResponse:
-    """
-    Trigger bulk scanning of multiple repositories in parallel.
-
-    This endpoint spawns separate Celery tasks for each repository,
-    enabling true parallel processing.
+    tenant_id: str | None = Depends(get_current_tenant_id),
+):
+    """Initiate a bulk scan operation for multiple repositories.
 
     Args:
         request: Bulk scan request with repository IDs
         db: Database session
-        tenant_id: Optional tenant ID for multi-tenancy
+        tenant_id: Tenant ID from auth
 
     Returns:
-        BulkScanResponse with task IDs for tracking progress
+        Bulk scan response with job information
     """
     logger.info(
-        "Bulk scan requested",
-        repository_count=len(request.repository_ids),
+        f"Initiating bulk scan for {len(request.repository_ids)} repositories",
         tenant_id=tenant_id,
     )
 
-    # Validate repositories exist and user has access
-    query = db.query(Repository).filter(Repository.id.in_(request.repository_ids))
-    if tenant_id:
-        query = query.filter(Repository.tenant_id == tenant_id)
-
-    repos = query.all()
-
-    if len(repos) != len(request.repository_ids):
-        found_ids = {r.id for r in repos}
-        requested_ids = set(request.repository_ids)
-        missing_ids = requested_ids - found_ids
-
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Repositories not found or access denied: {missing_ids}",
+    try:
+        service = BulkScanService(db)
+        bulk_scan, jobs_info = service.initiate_bulk_scan(
+            repository_ids=request.repository_ids,
+            tenant_id=tenant_id,
+            incremental=request.incremental,
+            max_parallel_workers=request.max_parallel_workers,
         )
 
-    # Spawn bulk scan task
-    task = bulk_scan_repositories_task.apply_async(
-        kwargs={
-            "repository_ids": request.repository_ids,
-            "tenant_id": tenant_id,
-            "incremental": request.incremental,
-            "batch_size": request.batch_size,
-        }
-    )
+        # Convert jobs_info to schema
+        jobs = [
+            BulkScanJobInfo(
+                repository_id=job["repository_id"],
+                repository_name=job["repository_name"],
+                job_id=job["job_id"],
+                status=job["status"],
+            )
+            for job in jobs_info
+        ]
 
-    logger.info(
-        "Bulk scan task spawned",
-        bulk_task_id=task.id,
-        repository_count=len(request.repository_ids),
-    )
+        return BulkScanResponse(
+            bulk_scan_id=bulk_scan.id,
+            total_applications=bulk_scan.total_applications,
+            initiated_scans=len(jobs),
+            failed_initiations=bulk_scan.total_applications - len(jobs),
+            max_parallel_workers=bulk_scan.max_parallel_workers,
+            jobs=jobs,
+        )
 
-    # Get task result to return task IDs
-    # Wait a short time for the bulk task to spawn individual tasks
-    import time
-    time.sleep(1)
-
-    result = task.get(timeout=5)
-
-    return BulkScanResponse(
-        total_repositories=result["total_repositories"],
-        total_batches=result["total_batches"],
-        batch_size=result["batch_size"],
-        spawned_tasks=result["spawned_tasks"],
-        task_ids=result["task_ids"],
-        status=result["status"],
-        bulk_task_id=task.id,
-    )
+    except Exception as e:
+        logger.error(f"Failed to initiate bulk scan: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/task/{task_id}/status/", response_model=TaskStatusResponse)
-async def get_task_status(task_id: str) -> TaskStatusResponse:
-    """
-    Get status of a Celery task.
-
-    Args:
-        task_id: Celery task ID
-
-    Returns:
-        TaskStatusResponse with current task state and result
-    """
-    task_result = AsyncResult(task_id)
-
-    return TaskStatusResponse(
-        task_id=task_id,
-        state=task_result.state,
-        result=task_result.result if task_result.successful() else None,
-        meta=task_result.info if isinstance(task_result.info, dict) else None,
-    )
-
-
-@router.post("/scan/{repository_id}/", status_code=status.HTTP_202_ACCEPTED)
-async def async_scan_repository(
-    repository_id: int,
-    incremental: bool = False,
+@router.get("/{bulk_scan_id}", response_model=BulkScanProgress)
+async def get_bulk_scan_progress(
+    bulk_scan_id: int,
     db: Session = Depends(get_db),
-    tenant_id: str | None = Depends(get_tenant_id),
-) -> dict[str, Any]:
-    """
-    Trigger async scan of a single repository using Celery.
+    tenant_id: str | None = Depends(get_current_tenant_id),
+):
+    """Get progress of a bulk scan operation.
 
     Args:
-        repository_id: ID of the repository to scan
-        incremental: If True, only scan changed files
+        bulk_scan_id: Bulk scan ID
         db: Database session
-        tenant_id: Optional tenant ID for multi-tenancy
+        tenant_id: Tenant ID from auth
 
     Returns:
-        Dictionary with task ID for tracking
+        Bulk scan progress
     """
-    logger.info(
-        "Async scan requested",
-        repository_id=repository_id,
-        tenant_id=tenant_id,
-        incremental=incremental,
-    )
+    try:
+        service = BulkScanService(db)
+        progress = service.get_bulk_scan_progress(bulk_scan_id)
 
-    # Validate repository exists
-    query = db.query(Repository).filter(Repository.id == repository_id)
-    if tenant_id:
-        query = query.filter(Repository.tenant_id == tenant_id)
+        # Verify tenant access if tenant_id provided
+        if tenant_id and progress.get("tenant_id") != tenant_id:
+            raise HTTPException(status_code=404, detail="Bulk scan not found")
 
-    repo = query.first()
-    if not repo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Repository {repository_id} not found",
-        )
+        return BulkScanProgress(**progress)
 
-    # Spawn scan task
-    task = scan_repository_task.apply_async(
-        kwargs={
-            "repository_id": repository_id,
-            "tenant_id": tenant_id,
-            "incremental": incremental,
-        }
-    )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to get bulk scan progress: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
-    logger.info(
-        "Scan task spawned",
-        task_id=task.id,
-        repository_id=repository_id,
-    )
 
-    return {
-        "task_id": task.id,
-        "repository_id": repository_id,
-        "status": "Task queued",
-    }
+@router.get("/", response_model=list[BulkScanProgress])
+async def list_bulk_scans(
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    tenant_id: str | None = Depends(get_current_tenant_id),
+):
+    """List bulk scans for the current tenant.
+
+    Args:
+        skip: Number of records to skip
+        limit: Maximum number of records to return
+        db: Database session
+        tenant_id: Tenant ID from auth
+
+    Returns:
+        List of bulk scan progress records
+    """
+    try:
+        service = BulkScanService(db)
+        bulk_scans = service.list_bulk_scans(tenant_id, skip, limit)
+
+        return [
+            BulkScanProgress(
+                bulk_scan_id=bs.id,
+                status=bs.status,
+                total_applications=bs.total_applications,
+                completed_applications=bs.completed_applications,
+                failed_applications=bs.failed_applications,
+                total_policies_extracted=bs.total_policies_extracted,
+                total_files_scanned=bs.total_files_scanned,
+                average_scan_duration_seconds=bs.average_scan_duration_seconds,
+                started_at=bs.started_at,
+                completed_at=bs.completed_at,
+                created_at=bs.created_at,
+            )
+            for bs in bulk_scans
+        ]
+
+    except Exception as e:
+        logger.error(f"Failed to list bulk scans: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{bulk_scan_id}")
+async def cancel_bulk_scan(
+    bulk_scan_id: int,
+    db: Session = Depends(get_db),
+    tenant_id: str | None = Depends(get_current_tenant_id),
+):
+    """Cancel a running bulk scan operation.
+
+    Args:
+        bulk_scan_id: Bulk scan ID
+        db: Database session
+        tenant_id: Tenant ID from auth
+
+    Returns:
+        Success message
+    """
+    try:
+        service = BulkScanService(db)
+        service.cancel_bulk_scan(bulk_scan_id)
+
+        return {"status": "success", "message": f"Bulk scan {bulk_scan_id} cancelled"}
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to cancel bulk scan: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
