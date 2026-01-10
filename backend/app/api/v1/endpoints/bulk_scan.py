@@ -26,12 +26,20 @@ class BulkScanRequest(BaseModel):
     incremental: bool = Field(
         default=False, description="If True, only scan changed files"
     )
+    batch_size: int = Field(
+        default=50,
+        description="Number of repositories to process per batch (for enterprise-scale scanning)",
+        ge=1,
+        le=100,
+    )
 
 
 class BulkScanResponse(BaseModel):
     """Response model for bulk scan."""
 
     total_repositories: int
+    total_batches: int
+    batch_size: int
     spawned_tasks: int
     task_ids: list[dict[str, Any]]
     status: str
@@ -96,6 +104,7 @@ async def bulk_scan(
             "repository_ids": request.repository_ids,
             "tenant_id": tenant_id,
             "incremental": request.incremental,
+            "batch_size": request.batch_size,
         }
     )
 
@@ -114,6 +123,8 @@ async def bulk_scan(
 
     return BulkScanResponse(
         total_repositories=result["total_repositories"],
+        total_batches=result["total_batches"],
+        batch_size=result["batch_size"],
         spawned_tasks=result["spawned_tasks"],
         task_ids=result["task_ids"],
         status=result["status"],
