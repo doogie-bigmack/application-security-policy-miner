@@ -447,7 +447,7 @@
         "Confirm VPD (Virtual Private Database) policies detected",
         "Check evidence includes PL/SQL code"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "technical",

@@ -255,3 +255,78 @@ class RiskScoringService:
         )
 
         return min(overall, 100.0)
+
+    def calculate_risk_scores(
+        self,
+        subject: str,
+        resource: str,
+        action: str,
+        conditions: str,
+        code_snippet: str,
+        evidence_count: int = 1,
+    ) -> dict[str, float | str]:
+        """Calculate all risk scores and return as dictionary.
+
+        This is a convenience method that calls all individual scoring methods
+        and returns a complete risk assessment.
+
+        Args:
+            subject: Policy subject (who)
+            resource: Policy resource (what)
+            action: Policy action (how)
+            conditions: Policy conditions (when)
+            code_snippet: Code evidence snippet
+            evidence_count: Number of evidence items
+
+        Returns:
+            Dictionary with all risk scores and risk level
+        """
+        # Calculate individual scores
+        complexity_score = self.calculate_complexity_score(
+            subject=subject,
+            resource=resource,
+            action=action,
+            conditions=conditions,
+            code_snippet=code_snippet,
+        )
+
+        impact_score = self.calculate_impact_score(
+            subject=subject,
+            resource=resource,
+            action=action,
+            conditions=conditions,
+        )
+
+        confidence_score = self.calculate_confidence_score(
+            evidence_count=evidence_count,
+            code_snippet=code_snippet,
+            subject=subject,
+            resource=resource,
+            action=action,
+        )
+
+        historical_score = self.calculate_historical_score()
+
+        overall_risk_score = self.calculate_overall_risk_score(
+            complexity=complexity_score,
+            impact=impact_score,
+            confidence=confidence_score,
+            historical=historical_score,
+        )
+
+        # Determine risk level based on overall score
+        if overall_risk_score >= 70:
+            risk_level = "HIGH"
+        elif overall_risk_score >= 40:
+            risk_level = "MEDIUM"
+        else:
+            risk_level = "LOW"
+
+        return {
+            "complexity_score": complexity_score,
+            "impact_score": impact_score,
+            "confidence_score": confidence_score,
+            "historical_score": historical_score,
+            "overall_risk_score": overall_risk_score,
+            "risk_level": risk_level,
+        }
