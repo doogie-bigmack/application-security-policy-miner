@@ -430,6 +430,15 @@ class PolicyExportResponse(BaseModel):
     policy: str
 
 
+class MultiFormatExportResponse(BaseModel):
+    """Response model for multi-format policy export."""
+
+    rego: str
+    cedar: str
+    json: str
+    semantic_equivalence: dict[str, bool]
+
+
 @router.get("/{policy_id}/export/rego", response_model=PolicyExportResponse)
 async def export_policy_rego(policy_id: int, db: Session = Depends(get_db)) -> PolicyExportResponse:
     """Export a policy as OPA Rego format.
@@ -515,6 +524,64 @@ async def export_policy_json(policy_id: int, db: Session = Depends(get_db)) -> P
     except Exception as e:
         logger.error(f"Failed to export policy to JSON: {e}", extra={"policy_id": policy_id})
         raise HTTPException(status_code=500, detail=f"Failed to export policy to JSON: {str(e)}")
+
+
+@router.get("/{policy_id}/export/all", response_model=MultiFormatExportResponse)
+async def export_policy_all_formats(
+    policy_id: int, verify_equivalence: bool = True, db: Session = Depends(get_db)
+) -> MultiFormatExportResponse:
+    """Export a policy to all supported formats (Rego, Cedar, JSON) and optionally verify semantic equivalence.
+
+    Args:
+        policy_id: Policy ID
+        verify_equivalence: Whether to verify semantic equivalence between translations (default: True)
+        db: Database session
+
+    Returns:
+        Exported policy in all formats with semantic equivalence verification
+    """
+    policy = db.query(Policy).filter(Policy.id == policy_id).first()
+
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    try:
+        translation_service = TranslationService()
+
+        # Translate to all formats
+        translations = await translation_service.translate_to_all_formats(policy)
+
+        # Verify semantic equivalence if requested
+        if verify_equivalence:
+            equivalence = await translation_service.verify_semantic_equivalence(policy, translations)
+        else:
+            # Default to not verified
+            equivalence = {"rego": False, "cedar": False, "json": False}
+
+        logger.info(
+            f"Policy {policy_id} exported to all formats",
+            extra={
+                "policy_id": policy_id,
+                "verify_equivalence": verify_equivalence,
+                "equivalence": equivalence,
+            },
+        )
+
+        return MultiFormatExportResponse(
+            rego=translations["rego"],
+            cedar=translations["cedar"],
+            json=translations["json"],
+            semantic_equivalence=equivalence,
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Failed to export policy to all formats: {e}",
+            extra={"policy_id": policy_id},
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Failed to export policy to all formats: {str(e)}"
+        )
 
 
 @router.post("/evidence/{evidence_id}/validate")
