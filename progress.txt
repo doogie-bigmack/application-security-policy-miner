@@ -5596,3 +5596,104 @@ Requirements met:
 - Add WebSocket support for real-time updates (vs polling)
 - Store individual job IDs in BulkScan for granular tracking
 
+
+## 2026-01-10 - Phased Rollout Phase 2: Division-Based Migration Waves Complete
+
+### Summary
+Implemented Phase 2 of the phased rollout system, enabling migration waves to be organized by business divisions. This allows enterprises to migrate applications in logical business units (Finance, Manufacturing, IT, Regional) with full velocity tracking and comparison capabilities.
+
+### Backend Implementation
+
+**Division Filter for Applications:**
+- Added `division_id` parameter to `GET /api/v1/applications/` endpoint
+- Added `division_id` parameter to `GET /api/v1/applications/count` endpoint
+- Fixed query building to properly join BusinessUnit table when filtering by division
+- All 159 test applications belong to Finance Division for testing
+
+**Bulk Scan for Migration Waves:**
+- Added `POST /api/v1/migration-waves/{wave_id}/scan` endpoint
+- Triggers bulk scanning of all repositories for all applications in a wave
+- Auto-updates wave status from PLANNED to IN_PROGRESS
+- Returns task_id for monitoring, repository count, and application count
+- Integrates with existing Celery bulk scan infrastructure
+
+**Velocity Comparison:**
+- Added `GET /api/v1/migration-waves/velocity-comparison` endpoint
+- Returns list of waves with complete migration metrics
+- Sortable by completion time (most recent first)
+- Includes duration, app count, policy counts, and calculated velocity metrics
+
+### Frontend Implementation
+
+**Division Filtering:**
+- Added Division interface and state management
+- Created `fetchDivisions()` function to load divisions from organization
+- Added division filter dropdown in "Add Applications" modal
+- Shows: Finance, Manufacturing, IT, Regional divisions
+- Automatically updates application list when division filter changes
+- Resets to "All Divisions" when modal closes
+
+**Bulk Scan Functionality:**
+- Added "Start Bulk Scan" button to wave cards
+- Visible only for PLANNED or IN_PROGRESS waves with applications
+- Uses blue accent color to distinguish from other actions
+- Shows alert with scan details (app count, repo count, task ID)
+- Automatically refreshes waves list after scan starts
+
+**Migration Velocity Comparison:**
+- Added "Compare Velocity" button in page header
+- Opens modal showing up to 10 recent waves
+- Each wave card displays:
+  - Wave name and status badge
+  - Total duration (formatted as minutes or hours)
+  - Applications count
+  - Policies extracted (blue)
+  - Policies provisioned (green)
+  - Minutes per application metric (amber) - key velocity indicator
+  - Started and completed dates
+- Empty state when no wave data available
+- Sortable by completion time for trend analysis
+
+### API Endpoints Added
+1. `GET /api/v1/applications/?division_id={id}` - Filter apps by division
+2. `GET /api/v1/applications/count?division_id={id}` - Count apps by division
+3. `POST /api/v1/migration-waves/{wave_id}/scan` - Start bulk scan for wave
+4. `GET /api/v1/migration-waves/velocity-comparison?limit={n}` - Compare wave velocities
+
+### Testing
+- Backend API tests: Division filter returns correct counts (159 apps in Finance)
+- Velocity comparison endpoint returns empty array (no completed waves yet)
+- Bulk scan endpoint structure verified
+- Code linting passed (ruff check)
+- Git commit created and ready for PR
+
+### Files Modified
+- `backend/app/api/v1/endpoints/applications.py` - Added division filtering
+- `backend/app/api/v1/endpoints/migration_waves.py` - Added scan and velocity endpoints
+- `frontend/src/pages/MigrationWavesPage.tsx` - Added division filter, bulk scan, velocity comparison
+
+### User Flow Example
+
+**Creating Phase 2 - Finance Division Wave:**
+1. User clicks "Create Wave"
+2. Enters name: "Phase 2 - Finance Division"
+3. Clicks "Manage Apps" on new wave
+4. Selects "Finance" from division dropdown
+5. System shows all 159 Finance division applications
+6. User checks criticality filter = HIGH
+7. Selects top applications
+8. Clicks "Add X Applications"
+9. Clicks "Start Bulk Scan" on wave
+10. System queues scan tasks, shows task ID
+11. Later, clicks "Compare Velocity" to see Phase 1 vs Phase 2 speed
+
+**Creating Phase 3 - Manufacturing Division Wave:**
+1. Repeat above flow, selecting "Manufacturing" division instead
+2. Compare velocity metrics across all 3 phases
+
+### Next Steps
+- Test in browser (frontend container running on port 3333)
+- Create PR and merge to main
+- Use velocity comparison to optimize future migration waves
+- Track minutes/app metric to measure improvement over time
+
