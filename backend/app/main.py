@@ -1,7 +1,6 @@
 """
 Main FastAPI application entry point.
 """
-
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +13,7 @@ structlog.configure(
     processors=[
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.stdlib.add_log_level,
-        structlog.processors.JSONRenderer(),
+        structlog.processors.JSONRenderer()
     ],
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),
@@ -55,7 +54,7 @@ async def startup_event():
 
     # Create database tables
     from app.core.database import engine
-    from app.models import Base  # Import Base from models package
+    from app.models.repository import Base
 
     logger.info("creating_database_tables")
     Base.metadata.create_all(bind=engine)

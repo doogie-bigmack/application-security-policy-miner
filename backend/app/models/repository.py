@@ -1,5 +1,4 @@
 """Repository model."""
-
 from datetime import UTC, datetime
 from enum import Enum
 
@@ -25,15 +24,6 @@ class RepositoryStatus(str, Enum):
     CONNECTED = "connected"
     FAILED = "failed"
     SCANNING = "scanning"
-
-
-class DatabaseType(str, Enum):
-    """Supported database types."""
-
-    POSTGRESQL = "postgresql"
-    SQLSERVER = "sqlserver"
-    ORACLE = "oracle"
-    MYSQL = "mysql"
 
 
 class Repository(Base):
