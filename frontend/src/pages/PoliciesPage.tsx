@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit, Download, Wrench, GitCompare, AlertTriangle } from 'lucide-react'
+import { Shield, FileCode, CheckCircle, XCircle, Clock, Filter, Edit, Download, Wrench, Link as LinkIcon } from 'lucide-react'
 import logger from '../lib/logger'
 import PolicyDetailModal from '../components/PolicyDetailModal'
 import SourceFileViewer from '../components/SourceFileViewer'
@@ -48,7 +48,6 @@ export default function PoliciesPage() {
   const [exportingPolicyId, setExportingPolicyId] = useState<number | null>(null)
   const [generatingAdvisory, setGeneratingAdvisory] = useState<number | null>(null)
   const [viewingSimilarPolicyId, setViewingSimilarPolicyId] = useState<number | null>(null)
-  const [analyzingPolicy, setAnalyzingPolicy] = useState<number | null>(null)
 
   const fetchPolicies = async (sourceType?: SourceType | 'all') => {
     try {
@@ -192,38 +191,6 @@ export default function PoliciesPage() {
     }
   }
 
-  const handleAnalyzeForGaps = async (policyId: number) => {
-    try {
-      setAnalyzingPolicy(policyId)
-      const response = await fetch('/api/v1/policy-fixes/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ policy_id: policyId }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || 'Failed to analyze policy')
-      }
-
-      const result = await response.json()
-
-      if (result.has_gaps === false) {
-        logger.info('No security gaps found', { policyId })
-        alert('No security gaps detected! This policy appears to have complete authorization logic.')
-      } else {
-        logger.info('Security gaps detected', { fixId: result.id, policyId })
-        alert(`Security gaps detected! Severity: ${result.severity.toUpperCase()}. Check the Policy Fixes page to review the recommended fix.`)
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-      logger.error('Failed to analyze policy', { error: errorMessage, policyId })
-      alert(`Failed to analyze policy: ${errorMessage}`)
-    } finally {
-      setAnalyzingPolicy(null)
-    }
-  }
-
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -236,7 +203,7 @@ export default function PoliciesPage() {
       </div>
 
       {/* Source Type Filter */}
-      <div data-testid="policies-filter-source" className="flex items-center space-x-3">
+      <div className="flex items-center space-x-3">
         <Filter size={20} className="text-gray-600 dark:text-gray-400" />
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by Source:</span>
         <div className="flex space-x-2">
@@ -274,11 +241,10 @@ export default function PoliciesPage() {
           </p>
         </div>
       ) : (
-        <div data-testid="policies-table" className="grid gap-4">
+        <div className="grid gap-4">
           {policies.map((policy) => (
             <div
               key={policy.id}
-              data-testid="policy-row"
               className="border border-gray-200 dark:border-dark-border rounded-lg bg-white dark:bg-dark-surface p-6 hover:shadow-md transition"
             >
               <div className="flex items-start justify-between mb-4">
@@ -297,19 +263,19 @@ export default function PoliciesPage() {
                       </p>
                     )}
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div data-testid="policy-subject">
+                      <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300">Who (Subject):</span>
                         <span className="ml-2 text-gray-600 dark:text-gray-400">{policy.subject}</span>
                       </div>
-                      <div data-testid="policy-resource">
+                      <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300">What (Resource):</span>
                         <span className="ml-2 text-gray-600 dark:text-gray-400">{policy.resource}</span>
                       </div>
-                      <div data-testid="policy-action">
+                      <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300">How (Action):</span>
                         <span className="ml-2 text-gray-600 dark:text-gray-400">{policy.action}</span>
                       </div>
-                      <div data-testid="policy-conditions">
+                      <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300">When (Conditions):</span>
                         <span className="ml-2 text-gray-600 dark:text-gray-400">
                           {policy.conditions || 'None'}
@@ -384,7 +350,7 @@ export default function PoliciesPage() {
               )}
 
               {policy.evidence.length > 0 && (
-                <div data-testid="policy-evidence" className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border">
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border">
                   <button
                     onClick={() => setSelectedPolicy(selectedPolicy?.id === policy.id ? null : policy)}
                     className="inline-flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
@@ -427,7 +393,6 @@ export default function PoliciesPage() {
 
               <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-border flex items-center space-x-3">
                 <button
-                  data-testid="policy-btn-edit"
                   onClick={() => setEditingPolicy(policy)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm inline-flex items-center space-x-2"
                 >
@@ -435,15 +400,6 @@ export default function PoliciesPage() {
                   <span>Edit</span>
                 </button>
                 <button
-                  data-testid="policy-btn-find-similar"
-                  onClick={() => setViewingSimilarPolicyId(policy.id)}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-sm inline-flex items-center space-x-2"
-                >
-                  <GitCompare size={16} />
-                  <span>Find Similar</span>
-                </button>
-                <button
-                  data-testid="policies-btn-export"
                   onClick={() => setExportingPolicyId(policy.id)}
                   className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 text-sm inline-flex items-center space-x-2"
                 >
@@ -451,7 +407,13 @@ export default function PoliciesPage() {
                   <span>Export</span>
                 </button>
                 <button
-                  data-testid="policy-btn-generate-advisory"
+                  onClick={() => setViewingSimilarPolicyId(policy.id)}
+                  className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-sm inline-flex items-center space-x-2"
+                >
+                  <LinkIcon size={16} />
+                  <span>Find Similar</span>
+                </button>
+                <button
                   onClick={() => handleGenerateAdvisory(policy.id)}
                   disabled={generatingAdvisory === policy.id}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-sm inline-flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -459,26 +421,15 @@ export default function PoliciesPage() {
                   <Wrench size={16} />
                   <span>{generatingAdvisory === policy.id ? 'Generating...' : 'Generate Advisory'}</span>
                 </button>
-                <button
-                  data-testid="policy-btn-analyze-gaps"
-                  onClick={() => handleAnalyzeForGaps(policy.id)}
-                  disabled={analyzingPolicy === policy.id}
-                  className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-sm inline-flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <AlertTriangle size={16} />
-                  <span>{analyzingPolicy === policy.id ? 'Analyzing...' : 'Analyze for Gaps'}</span>
-                </button>
                 {policy.status === 'pending' && (
                   <>
                     <button
-                      data-testid="policy-btn-approve"
                       onClick={() => handleApprove(policy.id)}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-sm"
                     >
                       Approve
                     </button>
                     <button
-                      data-testid="policy-btn-reject"
                       onClick={() => handleReject(policy.id)}
                       className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-sm"
                     >
@@ -495,7 +446,6 @@ export default function PoliciesPage() {
       {/* Policy Detail Modal */}
       {editingPolicy && (
         <PolicyDetailModal
-          data-testid="policy-detail-view"
           policy={editingPolicy}
           onClose={() => setEditingPolicy(null)}
           onSave={() => {

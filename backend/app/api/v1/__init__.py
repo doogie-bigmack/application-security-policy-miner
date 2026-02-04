@@ -15,17 +15,12 @@ from app.api.v1.endpoints import (
     applications,
     audit_logs,
     code_advisories,
-    cross_application_conflicts,
-    duplicates,
-    inconsistent_enforcement,
     organizations,
     policies,
-    policy_fixes,
     repositories,
     risk,
     secrets,
     similarity,
-    translation_verification,
 )
 
 api_router = APIRouter()
@@ -48,8 +43,3 @@ api_router.include_router(risk.router, prefix="/risk", tags=["risk"])
 api_router.include_router(organizations.router, prefix="/organizations", tags=["organizations"])
 api_router.include_router(applications.router, prefix="/applications", tags=["applications"])
 api_router.include_router(similarity.router, prefix="/similarity", tags=["similarity"])
-api_router.include_router(translation_verification.router, prefix="/translation-verification", tags=["translation-verification"])
-api_router.include_router(policy_fixes.router, prefix="/policy-fixes", tags=["policy-fixes"])
-api_router.include_router(inconsistent_enforcement.router, prefix="/inconsistent-enforcement", tags=["inconsistent-enforcement"])
-api_router.include_router(duplicates.router, prefix="/duplicates", tags=["duplicates"])
-api_router.include_router(cross_application_conflicts.router, prefix="/cross-application-conflicts", tags=["cross-application-conflicts"])

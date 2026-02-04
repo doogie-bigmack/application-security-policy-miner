@@ -1,6 +1,8 @@
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
     environment:
       POSTGRES_USER: policy_miner
       POSTGRES_PASSWORD: dev_password
@@ -11,7 +13,6 @@ services:
       - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U policy_miner"]
       interval: 5s
@@ -68,7 +69,6 @@ services:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      TEST_MODE: ${TEST_MODE:-false}
     depends_on:
       postgres:
         condition: service_healthy
