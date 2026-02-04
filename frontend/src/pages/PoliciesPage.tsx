@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Shield, FileCode, AlertCircle } from 'lucide-react'
+import { Shield, FileCode, AlertCircle, Filter } from 'lucide-react'
 import logger from '../lib/logger'
 
 interface PolicyEvidence {
@@ -21,6 +21,7 @@ interface Policy {
   status: 'extracted' | 'approved' | 'rejected' | 'pending_review'
   risk_level: 'low' | 'medium' | 'high' | 'critical'
   risk_score: number
+  source_type: 'FRONTEND' | 'BACKEND' | 'DATABASE' | 'UNKNOWN'
   created_at: string
   evidence: PolicyEvidence[]
 }
@@ -30,12 +31,20 @@ export default function PoliciesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null)
+  const [sourceTypeFilter, setSourceTypeFilter] = useState<string>('all')
 
-  const fetchPolicies = async () => {
+  const fetchPolicies = async (sourceType?: string) => {
     try {
       setIsLoading(true)
       setError(null)
-      const response = await fetch('/api/v1/policies/')
+
+      const params = new URLSearchParams()
+      if (sourceType && sourceType !== 'all') {
+        params.append('source_type', sourceType)
+      }
+
+      const url = `/api/v1/policies/${params.toString() ? '?' + params.toString() : ''}`
+      const response = await fetch(url)
 
       if (!response.ok) {
         throw new Error('Failed to fetch policies')
@@ -43,7 +52,7 @@ export default function PoliciesPage() {
 
       const data = await response.json()
       setPolicies(data.policies)
-      logger.info('Policies fetched', { count: data.total })
+      logger.info('Policies fetched', { count: data.total, sourceType })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
       logger.error('Failed to fetch policies', { error: errorMessage })
@@ -55,8 +64,13 @@ export default function PoliciesPage() {
 
   useEffect(() => {
     logger.info('PoliciesPage mounted')
-    fetchPolicies()
-  }, [])
+    fetchPolicies(sourceTypeFilter)
+  }, [sourceTypeFilter])
+
+  const handleSourceTypeChange = (value: string) => {
+    setSourceTypeFilter(value)
+    logger.info('Source type filter changed', { value })
+  }
 
   const getRiskBadge = (riskLevel: string) => {
     const baseClasses = 'px-2 py-1 rounded text-xs font-medium'
@@ -89,10 +103,39 @@ export default function PoliciesPage() {
     }
   }
 
+  const getSourceTypeBadge = (sourceType: string) => {
+    const baseClasses = 'px-2 py-1 rounded text-xs font-medium'
+    switch (sourceType) {
+      case 'FRONTEND':
+        return <span className={`${baseClasses} bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400`}>Frontend</span>
+      case 'BACKEND':
+        return <span className={`${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400`}>Backend</span>
+      case 'DATABASE':
+        return <span className={`${baseClasses} bg-cyan-100 text-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-400`}>Database</span>
+      case 'UNKNOWN':
+      default:
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400`}>Unknown</span>
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-semibold">Policies</h2>
+        <div className="flex items-center space-x-2">
+          <Filter size={16} className="text-gray-600 dark:text-dark-text-secondary" />
+          <select
+            value={sourceTypeFilter}
+            onChange={(e) => handleSourceTypeChange(e.target.value)}
+            className="border border-gray-200 dark:border-dark-border rounded-lg px-3 py-2 bg-white dark:bg-dark-surface text-sm"
+          >
+            <option value="all">All Sources</option>
+            <option value="FRONTEND">Frontend Authorization</option>
+            <option value="BACKEND">Backend Authorization</option>
+            <option value="DATABASE">Database Authorization</option>
+            <option value="UNKNOWN">Unknown</option>
+          </select>
+        </div>
       </div>
 
       {error && (
@@ -148,6 +191,7 @@ export default function PoliciesPage() {
                   </div>
                 </div>
                 <div className="flex flex-col space-y-2 items-end">
+                  {getSourceTypeBadge(policy.source_type)}
                   {getRiskBadge(policy.risk_level)}
                   {getStatusBadge(policy.status)}
                 </div>
@@ -215,6 +259,7 @@ export default function PoliciesPage() {
               </div>
 
               <div className="flex items-center space-x-4">
+                {getSourceTypeBadge(selectedPolicy.source_type)}
                 {getRiskBadge(selectedPolicy.risk_level)}
                 {getStatusBadge(selectedPolicy.status)}
                 <span className="text-sm text-gray-600 dark:text-dark-text-secondary">
