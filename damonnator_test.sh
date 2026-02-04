@@ -1,196 +1,183 @@
 #!/bin/bash
 
-# damonnator_test.sh - Continuous E2E Testing Loop
+# damonnator_test.sh - Autonomous E2E Testing Loop for macOS
 # Usage: ./damonnator_test.sh [iterations]
-#
-# This script runs the E2E test suite continuously and:
-# 1. Executes e2e_runner.py to run tests from e2e-tests.json
-# 2. Parses test-results.json to extract test outcomes
-# 3. Updates prd.json with test_metadata (last_tested, status, failures)
-# 4. Creates GitHub issues when tests fail
-#
-# Three autonomous loops, three tracking files:
-# - damonnator.sh: builds product features from prd.json → progress.txt
-# - damonnator_infra.sh: builds test infrastructure from test-prd.json → test-progress.txt
-# - damonnator_test.sh: validates features using the test infrastructure → test-results.json
+# Purpose: Validate features marked as complete in prd.json using E2E tests
 
-ITERATIONS=${1:-10}
+ITERATIONS=${1:-50}
 REPO="https://github.com/doogie-bigmack/application-security-policy-miner"
 
-echo ""
-echo "=========================================="
-echo "🧪 Damonnator Test Runner"
-echo "=========================================="
-echo "Running E2E test suite from e2e-tests.json"
-echo "Repo: $REPO"
+echo "🧪 Damonnator Test Loop Starting..."
+echo "Will validate completed features with E2E tests"
 echo "Iterations: $ITERATIONS"
-echo ""
-
-# Ensure Docker services are running
-echo "🐳 Ensuring Docker services are running..."
-docker-compose up -d
-echo ""
-
-# Wait for services to be healthy
-echo "⏳ Waiting for services to be healthy..."
-sleep 5
 echo ""
 
 for ((i=1; i<=$ITERATIONS; i++)); do
     echo ""
-    echo "=========================================="
+    echo "========================================"
     echo "Test Iteration $i of $ITERATIONS"
-    echo "=========================================="
+    echo "========================================"
     echo ""
 
-    TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+    # Create temp output file
+    TEMP_OUTPUT=$(mktemp)
 
-    # Run E2E tests using the runner
-    echo "🧪 Running E2E test suite..."
-    echo ""
+    # Run claude with heredoc focused on testing
+    claude --dangerously-skip-permissions -p "@prd.json @e2e-tests.json @test-results.json @progress.txt" << 'PROMPT' | tee "$TEMP_OUTPUT"
+You are an autonomous E2E testing engineer. You validate features built by the development loop.
 
-    # Use virtual environment Python directly (avoid subshell issues with source)
-    if e2e/.venv/bin/python3 -m e2e.e2e_runner --test-suite e2e-tests.json --prd prd.json --output test-results.json; then
-        TEST_EXIT_CODE=0
+## REPO
+https://github.com/doogie-bigmack/application-security-policy-miner
+
+## YOUR MISSION
+Validate completed features with automated E2E tests using Claude's Chrome browser integration.
+
+## START EVERY SESSION
+1. Read prd.json - find stories with passes: true but test_metadata.test_status != "passed"
+2. Read e2e-tests.json - this contains test definitions
+3. Read test-results.json - see previous test run results
+4. Read progress.txt - understand recent changes
+5. Ensure services running: docker-compose up -d
+6. Wait 10 seconds for services to be ready
+
+## YOUR JOB
+1. **Identify Untested Features:**
+   - Find stories in prd.json where passes: true but test_metadata.test_status is "not_tested" or missing
+   - Prioritize critical stories first
+
+2. **Run E2E Tests:**
+   - Execute: python3 e2e/e2e_runner.py --test-suite e2e-tests.json --prd prd.json --output test-results.json
+   - Use Claude's Chrome browser integration to:
+     * Navigate to http://localhost:3333
+     * Execute test steps from e2e-tests.json
+     * Verify expected outcomes
+     * Take screenshots on failure
+
+3. **Analyze Results:**
+   - Read test-results.json
+   - If tests PASS:
+     * Update prd.json test_metadata for tested stories:
+       - Set test_status: "passed"
+       - Set last_tested: [current timestamp]
+       - Set failure_count: 0
+     * Document success in progress.txt
+
+   - If tests FAIL:
+     * DO NOT update passes field in prd.json
+     * Update test_metadata:
+       - Set test_status: "failed"
+       - Set last_tested: [current timestamp]
+       - Increment failure_count
+       - Set last_failure_reason: [error message]
+     * Create detailed failure report in progress.txt:
+       - What was tested
+       - What failed and why
+       - Screenshots captured
+       - Recommendations for fix
+     * Create GitHub issue with failure details and screenshots
+
+4. **Update Tracking:**
+   - Commit test results: git add test-results.json prd.json e2e/screenshots/
+   - Commit message: "test: E2E validation results for [story-id]"
+   - Push: git push origin main
+
+5. **Continuous Improvement:**
+   - If tests are missing for a story, ADD them to e2e-tests.json
+   - If selectors changed, UPDATE test definitions
+   - If new features added, CREATE new test cases
+
+## E2E TEST EXECUTION PATTERN
+
+For each untested story:
+
+1. **Load Test Definition** from e2e-tests.json
+2. **Execute Test Steps** using Claude Chrome tools:
+   ```
+   - mcp__claude-in-chrome__navigate(url)
+   - mcp__claude-in-chrome__computer(action="click", selector=...)
+   - mcp__claude-in-chrome__form_input(selector, value)
+   - mcp__claude-in-chrome__read_page() to verify elements
+   - mcp__claude-in-chrome__computer(action="screenshot") on failure
+   ```
+3. **Verify Outcomes** match expected results
+4. **Capture Diagnostics** on failure:
+   - Screenshot
+   - Console errors
+   - Network requests
+   - Page HTML snapshot
+
+## BROWSER VALIDATION EXAMPLES
+
+**Example 1: Test Add Repository**
+```
+1. Navigate to http://localhost:3333/repositories
+2. Click "Add Repository" button
+3. Verify modal opens
+4. Click "GitHub" integration button
+5. Verify GitHub auth flow or connection form appears
+6. Take screenshot if any step fails
+```
+
+**Example 2: Test Risk Dashboard**
+```
+1. Navigate to http://localhost:3333/risk
+2. Verify metrics cards display (Total Policies, Avg Risk, etc.)
+3. Verify risk distribution chart renders
+4. Check data is not empty or placeholder
+5. Screenshot entire dashboard
+```
+
+## RULES
+- Only test stories where passes: true in prd.json
+- Never modify application code - you only validate
+- If test fails, do NOT set passes: false (dev loop handles that)
+- Take screenshots on EVERY failure for debugging
+- Update test_metadata in prd.json after every test run
+- Document all results in progress.txt
+- If tests are flaky, run them 2-3 times to confirm
+- Always clean up test data after tests complete
+
+## ERROR HANDLING
+If E2E infrastructure missing (e2e/ directory doesn't exist):
+1. You need to implement Phase 1 first (GitHub issue #53)
+2. Create the core infrastructure:
+   - e2e/e2e_runner.py
+   - e2e/test_executor.py
+   - e2e-tests.json
+3. Then resume testing
+
+## COMPLETION
+When ALL stories in prd.json have test_metadata.test_status == "passed", output exactly:
+<promise>ALL_TESTS_COMPLETE</promise>
+
+Now start validating.
+PROMPT
+
+    # Check if complete
+    if grep -q "<promise>ALL_TESTS_COMPLETE</promise>" "$TEMP_OUTPUT"; then
         echo ""
-        echo "✅ All tests passed!"
-    else
-        TEST_EXIT_CODE=$?
-        echo ""
-        echo "❌ Some tests failed (exit code: $TEST_EXIT_CODE)"
+        echo "🎉 All E2E tests PASSED after $i iterations!"
+        rm -f "$TEMP_OUTPUT"
+        osascript -e 'display notification "All features validated!" with title "Damonnator Test" sound name "Glass"'
+        exit 0
     fi
 
-    echo ""
-
-    # Check if test-results.json was generated
-    if [ ! -f test-results.json ]; then
-        echo "⚠️  WARNING: test-results.json was not generated"
-        echo "Skipping result processing for this iteration"
-        continue
+    # Check for critical failures
+    if grep -q "CRITICAL_FAILURE" "$TEMP_OUTPUT"; then
+        echo ""
+        echo "❌ Critical test failure detected. Review logs."
+        osascript -e 'display notification "Critical test failure!" with title "Damonnator Test" sound name "Basso"'
+        # Don't exit - let it retry next iteration
     fi
 
-    # Parse test results and display summary
-    echo "📊 Test Results Summary:"
-    echo "---"
+    # Clean up temp file
+    rm -f "$TEMP_OUTPUT"
 
-    # Extract summary using jq
-    TOTAL_TESTS=$(jq -r '.summary.total_tests // 0' test-results.json)
-    PASSED=$(jq -r '.summary.passed // 0' test-results.json)
-    FAILED=$(jq -r '.summary.failed // 0' test-results.json)
-    SKIPPED=$(jq -r '.summary.skipped // 0' test-results.json)
-    PASS_RATE=$(jq -r '.summary.pass_rate // 0' test-results.json)
-
-    echo "Total Tests: $TOTAL_TESTS"
-    echo "Passed: $PASSED"
-    echo "Failed: $FAILED"
-    echo "Skipped: $SKIPPED"
-    echo "Pass Rate: $PASS_RATE%"
-    echo ""
-
-    # If there are failures, show details
-    if [ "$FAILED" -gt 0 ]; then
-        echo "❌ Failed Tests:"
-        jq -r '.test_results[] | select(.status == "failed") | "  - \(.test_id): \(.error.message // "Unknown error")"' test-results.json
-        echo ""
-
-        echo "💡 Recommendations:"
-        jq -r '.recommendations[]? // empty' test-results.json | sed 's/^/  - /'
-        echo ""
-
-        # Create GitHub issue for test failures
-        echo "🐛 Creating GitHub issue for test failures..."
-        ISSUE_TITLE="E2E Test Failures - $(date +"%Y-%m-%d %H:%M")"
-        ISSUE_BODY="## Test Failure Report
-
-**Test Run:** $TIMESTAMP
-**Failed Tests:** $FAILED / $TOTAL_TESTS
-**Pass Rate:** $PASS_RATE%
-
-### Failed Tests
-$(jq -r '.test_results[] | select(.status == "failed") | "- **\(.test_id)**: \(.error.message // "Unknown error")\n  - Error Type: \(.error.type // "unknown")\n  - Step: \(.error.step_index // "N/A") - \(.error.step_description // "N/A")\n"' test-results.json)
-
-### Recommendations
-$(jq -r '.recommendations[]? // "No recommendations available"' test-results.json | sed 's/^/- /')
-
-### Coverage Analysis
-- PRD Stories Tested: $(jq -r '.coverage_analysis.prd_stories_tested // 0' test-results.json)
-- Total PRD Stories: $(jq -r '.coverage_analysis.prd_stories_total // 0' test-results.json)
-- Coverage: $(jq -r '.coverage_analysis.coverage_percentage // 0' test-results.json)%
-
-### Untested Stories
-$(jq -r '.coverage_analysis.untested_stories[]? // "All stories covered"' test-results.json | sed 's/^/- /')
-
----
-Generated by damonnator_test.sh
-Test Results: test-results.json"
-
-        # Create issue (only if gh is available and we're in a git repo)
-        if command -v gh &> /dev/null && git rev-parse --is-inside-work-tree &> /dev/null; then
-            gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY" --label "e2e-test-failure,automated" 2>/dev/null || echo "⚠️  Could not create GitHub issue (may need authentication)"
-        else
-            echo "⚠️  GitHub CLI not available or not in a git repo, skipping issue creation"
-        fi
-        echo ""
-    fi
-
-    # Update prd.json with test metadata
-    echo "📝 Updating prd.json with test metadata..."
-
-    # Create a temporary file for the updated prd.json
-    TEMP_PRD=$(mktemp)
-
-    # Use jq to update prd.json with test metadata from test-results.json
-    jq --slurpfile results test-results.json '
-        .stories |= map(
-            . as $story |
-            ($results[0].test_results[] | select(.prd_story_id == $story.id)) as $test |
-            if $test then
-                . + {
-                    test_metadata: {
-                        last_tested: $results[0].metadata.started_at,
-                        test_status: $test.status,
-                        test_duration_seconds: $test.duration_seconds,
-                        last_failure: (if $test.status == "failed" then $test.error.message else null end)
-                    }
-                }
-            else
-                .
-            end
-        )
-    ' prd.json > "$TEMP_PRD"
-
-    # Replace prd.json with updated version
-    mv "$TEMP_PRD" prd.json
-    echo "✅ prd.json updated with test metadata"
-    echo ""
-
-    # Display coverage percentage
-    COVERAGE=$(jq -r '.coverage_analysis.coverage_percentage // 0' test-results.json)
-    echo "📈 PRD Coverage: $COVERAGE%"
-    echo ""
-
-    # Wait before next iteration (unless it's the last one)
-    if [ $i -lt $ITERATIONS ]; then
-        echo "⏳ Waiting 30 seconds before next iteration..."
-        sleep 30
-    fi
+    # Brief pause between iterations
+    sleep 5
 
 done
 
 echo ""
-echo "=========================================="
-echo "✅ Completed $ITERATIONS test iterations"
-echo "=========================================="
-echo ""
-
-# Show final status
-if [ -f test-results.json ]; then
-    FINAL_PASS_RATE=$(jq -r '.summary.pass_rate // 0' test-results.json)
-    echo "Final Pass Rate: $FINAL_PASS_RATE%"
-
-    if [ "$FINAL_PASS_RATE" == "100" ]; then
-        osascript -e 'display notification "All E2E tests passing!" with title "Damonnator Test" sound name "Glass"' 2>/dev/null || true
-    else
-        osascript -e 'display notification "Some tests are failing" with title "Damonnator Test" sound name "Ping"' 2>/dev/null || true
-    fi
-fi
+echo "Finished $ITERATIONS test iterations"
+osascript -e 'display notification "Test loop completed" with title "Damonnator Test" sound name "Ping"'
