@@ -1,10 +1,6 @@
 import { FormEvent, useState } from 'react'
-import { X, Github, GitlabIcon } from 'lucide-react'
+import { X } from 'lucide-react'
 import logger from '../lib/logger'
-import GitHubRepositoryBrowser from './GitHubRepositoryBrowser'
-import GitLabRepositoryBrowser from './GitLabRepositoryBrowser'
-import BitbucketRepositoryBrowser from './BitbucketRepositoryBrowser'
-import AzureDevOpsRepositoryBrowser from './AzureDevOpsRepositoryBrowser'
 
 interface AddRepositoryModalProps {
   isOpen: boolean
@@ -21,10 +17,8 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
   const [token, setToken] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  // Database-specific fields
+  // Database fields
   const [databaseType, setDatabaseType] = useState<'postgresql' | 'sqlserver' | 'oracle' | 'mysql'>('postgresql')
   const [dbHost, setDbHost] = useState('')
   const [dbPort, setDbPort] = useState('')
@@ -32,25 +26,8 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
   const [dbUsername, setDbUsername] = useState('')
   const [dbPassword, setDbPassword] = useState('')
 
-  // Mainframe-specific fields
-  const [connectionType, setConnectionType] = useState<'file_upload' | 'ftp' | 'sftp' | 'tn3270'>('file_upload')
-  const [mfHost, setMfHost] = useState('')
-  const [mfPort, setMfPort] = useState('')
-  const [mfUsername, setMfUsername] = useState('')
-  const [mfPassword, setMfPassword] = useState('')
-  const [securitySystem, setSecuritySystem] = useState<'racf' | 'topsecret' | 'acf2'>('racf')
-
-  // GitHub browser state
-  const [showGitHubBrowser, setShowGitHubBrowser] = useState(false)
-
-  // GitLab browser state
-  const [showGitLabBrowser, setShowGitLabBrowser] = useState(false)
-
-  // Bitbucket browser state
-  const [showBitbucketBrowser, setShowBitbucketBrowser] = useState(false)
-
-  // Azure DevOps browser state
-  const [showAzureDevOpsBrowser, setShowAzureDevOpsBrowser] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   if (!isOpen) return null
 
@@ -62,8 +39,9 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
     logger.info('Submitting repository', { name, sourceType, gitUrl })
 
     try {
-      let connectionConfig: Record<string, string | number> = {}
+      const connectionConfig: Record<string, string> = {}
 
+      // Handle Git authentication
       if (sourceType === 'git') {
         if (authType === 'token' && token) {
           connectionConfig.token = token
@@ -71,26 +49,17 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
           connectionConfig.username = username
           connectionConfig.password = password
         }
-      } else if (sourceType === 'database') {
-        connectionConfig = {
-          database_type: databaseType,
-          host: dbHost,
-          port: dbPort ? parseInt(dbPort, 10) : 0,
-          database: dbName,
-          username: dbUsername,
-          password: dbPassword,
-        }
-      } else if (sourceType === 'mainframe') {
-        connectionConfig = {
-          connection_type: connectionType,
-          security_system: securitySystem,
-        }
-        // Only add host/port/credentials if not file_upload
-        if (connectionType !== 'file_upload') {
-          connectionConfig.host = mfHost
-          connectionConfig.port = mfPort ? parseInt(mfPort, 10) : 0
-          connectionConfig.username = mfUsername
-          connectionConfig.password = mfPassword
+      }
+
+      // Handle Database connection
+      if (sourceType === 'database') {
+        connectionConfig.database_type = databaseType
+        connectionConfig.host = dbHost
+        connectionConfig.database = dbName
+        connectionConfig.username = dbUsername
+        connectionConfig.password = dbPassword
+        if (dbPort) {
+          connectionConfig.port = dbPort
         }
       }
 
@@ -103,7 +72,6 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
           name,
           description,
           repository_type: sourceType,
-          git_provider: sourceType === 'git' ? 'generic' : null,
           source_url: sourceType === 'git' ? gitUrl : null,
           connection_config: Object.keys(connectionConfig).length > 0 ? connectionConfig : null,
         }),
@@ -125,19 +93,13 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
       setToken('')
       setUsername('')
       setPassword('')
-      setSourceType('git')
       setDatabaseType('postgresql')
       setDbHost('')
       setDbPort('')
       setDbName('')
       setDbUsername('')
       setDbPassword('')
-      setConnectionType('file_upload')
-      setMfHost('')
-      setMfPort('')
-      setMfUsername('')
-      setMfPassword('')
-      setSecuritySystem('racf')
+      setSourceType('git')
 
       onSuccess()
       onClose()
@@ -150,258 +112,9 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
     }
   }
 
-  const handleGitHubRepositorySelect = async (repo: any, accessToken: string) => {
-    logger.info('GitHub repository selected', { repo: repo.full_name })
-
-    setShowGitHubBrowser(false)
-
-    // Pre-fill the form with GitHub repository data
-    setName(repo.name)
-    setDescription(repo.description || '')
-    setGitUrl(repo.clone_url)
-    setAuthType('token')
-    setToken(accessToken)
-    setSourceType('git')
-
-    // Auto-submit the form
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/v1/repositories/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: repo.name,
-          description: repo.description || '',
-          repository_type: 'git',
-          git_provider: 'github',
-          source_url: repo.clone_url,
-          connection_config: {
-            token: accessToken,
-          },
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to create repository')
-      }
-
-      const data = await response.json()
-      logger.info('GitHub repository imported successfully', { repositoryId: data.id })
-
-      // Reset form
-      setName('')
-      setDescription('')
-      setGitUrl('')
-      setAuthType('none')
-      setToken('')
-
-      onSuccess()
-      onClose()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-      logger.error('Failed to import GitHub repository', { error: errorMessage })
-      setError(errorMessage)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleGitLabRepositorySelect = async (repo: any, accessToken: string, baseUrl: string) => {
-    logger.info('GitLab repository selected', { repo: repo.full_name })
-
-    setShowGitLabBrowser(false)
-
-    // Pre-fill the form with GitLab repository data
-    setName(repo.name)
-    setDescription(repo.description || '')
-    setGitUrl(repo.clone_url)
-    setAuthType('token')
-    setToken(accessToken)
-    setSourceType('git')
-
-    // Auto-submit the form
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/v1/repositories/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: repo.name,
-          description: repo.description || '',
-          repository_type: 'git',
-          git_provider: 'gitlab',
-          source_url: repo.clone_url,
-          connection_config: {
-            token: accessToken,
-            base_url: baseUrl,
-          },
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to create repository')
-      }
-
-      const data = await response.json()
-      logger.info('GitLab repository imported successfully', { repositoryId: data.id })
-
-      // Reset form
-      setName('')
-      setDescription('')
-      setGitUrl('')
-      setAuthType('none')
-      setToken('')
-
-      onSuccess()
-      onClose()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-      logger.error('Failed to import GitLab repository', { error: errorMessage })
-      setError(errorMessage)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleBitbucketRepositorySelect = async (repo: any, bbUsername: string, appPassword: string) => {
-    logger.info('Bitbucket repository selected', { repo: repo.full_name })
-
-    setShowBitbucketBrowser(false)
-
-    // Pre-fill the form with Bitbucket repository data
-    setName(repo.name)
-    setDescription(repo.description || '')
-    setGitUrl(repo.clone_url)
-    setAuthType('usernamepassword')
-    setUsername(bbUsername)
-    setPassword(appPassword)
-    setSourceType('git')
-
-    // Auto-submit the form
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/v1/repositories/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: repo.name,
-          description: repo.description || '',
-          repository_type: 'git',
-          git_provider: 'bitbucket',
-          source_url: repo.clone_url,
-          connection_config: {
-            username: bbUsername,
-            password: appPassword,
-          },
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to create repository')
-      }
-
-      const data = await response.json()
-      logger.info('Bitbucket repository imported successfully', { repositoryId: data.id })
-
-      // Reset form
-      setName('')
-      setDescription('')
-      setGitUrl('')
-      setAuthType('none')
-      setUsername('')
-      setPassword('')
-
-      onSuccess()
-      onClose()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-      logger.error('Failed to import Bitbucket repository', { error: errorMessage })
-      setError(errorMessage)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleAzureDevOpsRepositorySelect = async (repo: any, organization: string, accessToken: string) => {
-    logger.info('Azure DevOps repository selected', { repo: repo.full_name })
-
-    setShowAzureDevOpsBrowser(false)
-
-    // Pre-fill the form with Azure DevOps repository data
-    setName(repo.name)
-    setDescription(repo.description || '')
-    setGitUrl(repo.clone_url)
-    setAuthType('token')
-    setToken(accessToken)
-    setSourceType('git')
-
-    // Auto-submit the form
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/v1/repositories/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: repo.name,
-          description: repo.description || '',
-          repository_type: 'git',
-          git_provider: 'azure-devops',
-          source_url: repo.clone_url,
-          connection_config: {
-            token: accessToken,
-            organization: organization,
-          },
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to create repository')
-      }
-
-      const data = await response.json()
-      logger.info('Azure DevOps repository imported successfully', { repositoryId: data.id })
-
-      // Reset form
-      setName('')
-      setDescription('')
-      setGitUrl('')
-      setAuthType('none')
-      setToken('')
-
-      onSuccess()
-      onClose()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-      logger.error('Failed to import Azure DevOps repository', { error: errorMessage })
-      setError(errorMessage)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div data-testid="add-repo-modal" className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-2xl mx-4">
+      <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-2xl mx-4">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-dark-border">
           <h3 className="text-xl font-semibold">Add Repository</h3>
@@ -416,7 +129,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {error && (
-            <div data-testid="add-repo-error-message" className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-800 dark:text-red-200">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-800 dark:text-red-200">
               {error}
             </div>
           )}
@@ -450,7 +163,6 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
             <input
               type="text"
               id="name"
-              data-testid="add-repo-input-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -477,64 +189,6 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
           {/* Git-specific fields */}
           {sourceType === 'git' && (
             <>
-              {/* Git Integration Buttons */}
-              <div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    data-testid="add-repo-btn-github"
-                    onClick={() => setShowGitHubBrowser(true)}
-                    className="px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-700 flex items-center justify-center space-x-2 transition"
-                  >
-                    <Github size={20} />
-                    <span>GitHub</span>
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="add-repo-btn-gitlab"
-                    onClick={() => setShowGitLabBrowser(true)}
-                    className="px-4 py-3 bg-orange-600 dark:bg-orange-700 text-white rounded-lg hover:bg-orange-700 dark:hover:bg-orange-600 flex items-center justify-center space-x-2 transition"
-                  >
-                    <GitlabIcon size={20} />
-                    <span>GitLab</span>
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="add-repo-btn-bitbucket"
-                    onClick={() => setShowBitbucketBrowser(true)}
-                    className="px-4 py-3 bg-blue-700 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-800 dark:hover:bg-blue-700 flex items-center justify-center space-x-2 transition"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M.778 1.211a.768.768 0 00-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 00.77-.646l3.27-20.03a.768.768 0 00-.768-.891zM14.52 15.528H9.522L8.17 8.464h7.561z"/>
-                    </svg>
-                    <span>Bitbucket</span>
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="add-repo-btn-azure-devops"
-                    onClick={() => setShowAzureDevOpsBrowser(true)}
-                    className="px-4 py-3 bg-sky-600 dark:bg-sky-700 text-white rounded-lg hover:bg-sky-700 dark:hover:bg-sky-600 flex items-center justify-center space-x-2 transition"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M0 10.625v5.584l4.89 2.598V22l6.858-5.03L20.97 20v-7.5l-3.28-1.875V6.25L11.25 2v5.625l-6.36 3.594v5.156l6.36-3.594V8.438L17.69 11.25v5.156l-6.36 3.594V14.844L4.89 12.25V8.438L11.25 11.844V6.25L4.89 2.5V6.25L0 10.625z"/>
-                    </svg>
-                    <span>Azure DevOps</span>
-                  </button>
-                </div>
-                <p className="mt-2 text-sm text-gray-600 dark:text-dark-text-secondary text-center">
-                  Or manually enter repository details below
-                </p>
-              </div>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white dark:bg-dark-surface text-gray-500">or</span>
-                </div>
-              </div>
-
               {/* Git URL */}
               <div>
                 <label htmlFor="gitUrl" className="block text-sm font-medium mb-2">
@@ -543,7 +197,6 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
                 <input
                   type="url"
                   id="gitUrl"
-                  data-testid="add-repo-input-url"
                   value={gitUrl}
                   onChange={(e) => setGitUrl(e.target.value)}
                   required
@@ -591,7 +244,6 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
                     <div className="ml-7">
                       <input
                         type="password"
-                        data-testid="add-repo-input-token"
                         value={token}
                         onChange={(e) => setToken(e.target.value)}
                         className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -642,86 +294,82 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
             <>
               {/* Database Type */}
               <div>
-                <label className="block text-sm font-medium mb-2">Database Type</label>
-                <div className="grid grid-cols-4 gap-3">
+                <label className="block text-sm font-medium mb-2">Database Type <span className="text-red-500">*</span></label>
+                <div className="grid grid-cols-2 gap-3">
                   {[
                     { value: 'postgresql', label: 'PostgreSQL' },
                     { value: 'sqlserver', label: 'SQL Server' },
                     { value: 'oracle', label: 'Oracle' },
-                    { value: 'mysql', label: 'MySQL' },
-                  ].map((type) => (
+                    { value: 'mysql', label: 'MySQL' }
+                  ].map((db) => (
                     <button
-                      key={type.value}
+                      key={db.value}
                       type="button"
-                      onClick={() => setDatabaseType(type.value as typeof databaseType)}
+                      onClick={() => setDatabaseType(db.value as 'postgresql' | 'sqlserver' | 'oracle' | 'mysql')}
                       className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
-                        databaseType === type.value
+                        databaseType === db.value
                           ? 'bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500'
                           : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400'
                       }`}
                     >
-                      {type.label}
+                      {db.label}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Host and Port */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2">
-                  <label htmlFor="dbHost" className="block text-sm font-medium mb-2">
-                    Host <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="dbHost"
-                    value={dbHost}
-                    onChange={(e) => setDbHost(e.target.value)}
-                    required
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="localhost or db.example.com"
-                  />
-                </div>
+              {/* Host */}
+              <div>
+                <label htmlFor="dbHost" className="block text-sm font-medium mb-2">
+                  Host <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="dbHost"
+                  value={dbHost}
+                  onChange={(e) => setDbHost(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="localhost or db.example.com"
+                />
+              </div>
+
+              {/* Port and Database Name */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="dbPort" className="block text-sm font-medium mb-2">
                     Port
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     id="dbPort"
                     value={dbPort}
                     onChange={(e) => setDbPort(e.target.value)}
                     className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={
-                      databaseType === 'postgresql'
-                        ? '5432'
-                        : databaseType === 'mysql'
-                          ? '3306'
-                          : databaseType === 'sqlserver'
-                            ? '1433'
-                            : '1521'
-                    }
+                    placeholder={databaseType === 'postgresql' ? '5432' : databaseType === 'mysql' ? '3306' : databaseType === 'sqlserver' ? '1433' : '1521'}
+                  />
+                  <p className="mt-1 text-xs text-gray-600 dark:text-dark-text-secondary">
+                    Leave empty for default
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="dbName" className="block text-sm font-medium mb-2">
+                    Database Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="dbName"
+                    value={dbName}
+                    onChange={(e) => setDbName(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="myapp_db"
                   />
                 </div>
               </div>
 
-              {/* Database Name */}
-              <div>
-                <label htmlFor="dbName" className="block text-sm font-medium mb-2">
-                  Database Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="dbName"
-                  value={dbName}
-                  onChange={(e) => setDbName(e.target.value)}
-                  required
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="myapp_db"
-                />
-              </div>
-
-              {/* Username */}
+              {/* Database Username */}
               <div>
                 <label htmlFor="dbUsername" className="block text-sm font-medium mb-2">
                   Username <span className="text-red-500">*</span>
@@ -737,7 +385,7 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
                 />
               </div>
 
-              {/* Password */}
+              {/* Database Password */}
               <div>
                 <label htmlFor="dbPassword" className="block text-sm font-medium mb-2">
                   Password <span className="text-red-500">*</span>
@@ -755,150 +403,17 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
             </>
           )}
 
-          {/* Mainframe-specific fields */}
+          {/* Mainframe-specific placeholder */}
           {sourceType === 'mainframe' && (
-            <>
-              {/* Security System */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Security System</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { value: 'racf', label: 'RACF' },
-                    { value: 'topsecret', label: 'Top Secret' },
-                    { value: 'acf2', label: 'ACF2' },
-                  ].map((system) => (
-                    <button
-                      key={system.value}
-                      type="button"
-                      onClick={() => setSecuritySystem(system.value as typeof securitySystem)}
-                      className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
-                        securitySystem === system.value
-                          ? 'bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500'
-                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400'
-                      }`}
-                    >
-                      {system.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Connection Type */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Connection Type</label>
-                <div className="grid grid-cols-4 gap-3">
-                  {[
-                    { value: 'file_upload', label: 'File Upload' },
-                    { value: 'ftp', label: 'FTP' },
-                    { value: 'sftp', label: 'SFTP' },
-                    { value: 'tn3270', label: 'TN3270' },
-                  ].map((type) => (
-                    <button
-                      key={type.value}
-                      type="button"
-                      onClick={() => setConnectionType(type.value as typeof connectionType)}
-                      className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
-                        connectionType === type.value
-                          ? 'bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500'
-                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400'
-                      }`}
-                    >
-                      {type.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* File Upload Note */}
-              {connectionType === 'file_upload' && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
-                    <strong>Note:</strong> After creating the repository, you'll be able to upload COBOL source files (.cbl, .cobol, .cob)
-                    for analysis. This is useful for analyzing COBOL code without requiring direct mainframe access.
-                  </p>
-                </div>
-              )}
-
-              {/* Connection Details (only for non-file-upload) */}
-              {connectionType !== 'file_upload' && (
-                <>
-                  {/* Info about future implementation */}
-                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                    <p className="text-sm text-amber-800 dark:text-amber-200">
-                      <strong>Coming Soon:</strong> Direct mainframe connections via {connectionType.toUpperCase()} will be available in a future update.
-                      For now, use File Upload to analyze COBOL code.
-                    </p>
-                  </div>
-
-                  {/* Host and Port */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="col-span-2">
-                      <label htmlFor="mfHost" className="block text-sm font-medium mb-2">
-                        Host
-                      </label>
-                      <input
-                        type="text"
-                        id="mfHost"
-                        value={mfHost}
-                        onChange={(e) => setMfHost(e.target.value)}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="mainframe.example.com"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="mfPort" className="block text-sm font-medium mb-2">
-                        Port
-                      </label>
-                      <input
-                        type="number"
-                        id="mfPort"
-                        value={mfPort}
-                        onChange={(e) => setMfPort(e.target.value)}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder={connectionType === 'tn3270' ? '3270' : connectionType === 'sftp' ? '22' : '21'}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Username */}
-                  <div>
-                    <label htmlFor="mfUsername" className="block text-sm font-medium mb-2">
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      id="mfUsername"
-                      value={mfUsername}
-                      onChange={(e) => setMfUsername(e.target.value)}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="mainframe_user"
-                    />
-                  </div>
-
-                  {/* Password */}
-                  <div>
-                    <label htmlFor="mfPassword" className="block text-sm font-medium mb-2">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      id="mfPassword"
-                      value={mfPassword}
-                      onChange={(e) => setMfPassword(e.target.value)}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                </>
-              )}
-            </>
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-amber-800 dark:text-amber-200">
+              Mainframe connection configuration will be available in a future update.
+            </div>
           )}
 
           {/* Actions */}
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-dark-border">
             <button
               type="button"
-              data-testid="add-repo-btn-cancel"
               onClick={onClose}
               className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
@@ -906,7 +421,6 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
             </button>
             <button
               type="submit"
-              data-testid="add-repo-btn-connect"
               disabled={isSubmitting}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -915,38 +429,6 @@ export default function AddRepositoryModal({ isOpen, onClose, onSuccess }: AddRe
           </div>
         </form>
       </div>
-
-      {/* GitHub Repository Browser */}
-      {showGitHubBrowser && (
-        <GitHubRepositoryBrowser
-          onSelectRepository={handleGitHubRepositorySelect}
-          onClose={() => setShowGitHubBrowser(false)}
-        />
-      )}
-
-      {/* GitLab Repository Browser */}
-      {showGitLabBrowser && (
-        <GitLabRepositoryBrowser
-          onSelectRepository={handleGitLabRepositorySelect}
-          onClose={() => setShowGitLabBrowser(false)}
-        />
-      )}
-
-      {/* Bitbucket Repository Browser */}
-      {showBitbucketBrowser && (
-        <BitbucketRepositoryBrowser
-          onSelectRepository={handleBitbucketRepositorySelect}
-          onClose={() => setShowBitbucketBrowser(false)}
-        />
-      )}
-
-      {/* Azure DevOps Repository Browser */}
-      {showAzureDevOpsBrowser && (
-        <AzureDevOpsRepositoryBrowser
-          onSelectRepository={handleAzureDevOpsRepositorySelect}
-          onClose={() => setShowAzureDevOpsBrowser(false)}
-        />
-      )}
     </div>
   )
 }

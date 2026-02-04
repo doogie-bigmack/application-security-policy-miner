@@ -115,34 +115,10 @@ export default function Layout({ children, darkMode, setDarkMode }: LayoutProps)
                 Duplicates
               </Link>
               <Link
-                to="/bulk-scan"
+                to="/cross-application-conflicts"
                 className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
               >
-                Bulk Scan
-              </Link>
-              <Link
-                to="/autoscaler"
-                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
-              >
-                Autoscaler
-              </Link>
-              <Link
-                to="/migration-waves"
-                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
-              >
-                Migration Waves
-              </Link>
-              <Link
-                to="/governance"
-                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
-              >
-                Governance
-              </Link>
-              <Link
-                to="/opa-verifications"
-                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary"
-              >
-                Lasagna
+                Cross-App Conflicts
               </Link>
               <Link
                 to="/audit-logs"

@@ -1,8 +1,6 @@
 """
 Main FastAPI application entry point.
 """
-import asyncio
-import os
 import time
 
 import structlog
@@ -103,26 +101,8 @@ async def startup_event():
     Base.metadata.create_all(bind=engine)
     logger.info("database_tables_created")
 
-    # Start autoscaler if enabled
-    if os.getenv("ENABLE_AUTOSCALER", "false").lower() == "true":
-        logger.info("starting_autoscaler_background_task")
-        from app.services.worker_autoscaler import get_autoscaler
-
-        autoscaler = get_autoscaler()
-        asyncio.create_task(autoscaler.start())
-        logger.info("autoscaler_background_task_started")
-
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Run on application shutdown."""
     logger.info("application_shutting_down")
-
-    # Stop autoscaler if running
-    if os.getenv("ENABLE_AUTOSCALER", "false").lower() == "true":
-        logger.info("stopping_autoscaler")
-        from app.services.worker_autoscaler import get_autoscaler
-
-        autoscaler = get_autoscaler()
-        autoscaler.stop()
-        logger.info("autoscaler_stopped")

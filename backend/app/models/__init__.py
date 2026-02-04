@@ -4,13 +4,16 @@ from app.models.audit_log import AuditEventType, AuditLog
 from app.models.auto_approval import AutoApprovalDecision, AutoApprovalSettings
 from app.models.code_advisory import AdvisoryStatus, CodeAdvisory
 from app.models.conflict import ConflictStatus, ConflictType, PolicyConflict
+from app.models.duplicate_policy_group import (
+    DuplicateGroupStatus,
+    DuplicatePolicyGroup,
+    DuplicatePolicyGroupMember,
+)
 from app.models.inconsistent_enforcement import (
     InconsistentEnforcement,
     InconsistentEnforcementSeverity,
     InconsistentEnforcementStatus,
 )
-from app.models.migration_wave import MigrationWave, MigrationWaveStatus
-from app.models.opa_verification import OPAVerification
 from app.models.organization import BusinessUnit, Division, Organization
 from app.models.policy import Evidence, Policy, PolicyStatus, RiskLevel, SourceType
 from app.models.policy_change import (
@@ -75,7 +78,7 @@ __all__ = [
     "InconsistentEnforcement",
     "InconsistentEnforcementStatus",
     "InconsistentEnforcementSeverity",
-    "MigrationWave",
-    "MigrationWaveStatus",
-    "OPAVerification",
+    "DuplicatePolicyGroup",
+    "DuplicatePolicyGroupMember",
+    "DuplicateGroupStatus",
 ]
