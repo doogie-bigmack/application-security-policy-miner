@@ -379,15 +379,15 @@ This test can be extended to test other provider types:
 For E2E testing, OPA is recommended as it's the simplest to set up locally.
 
 # Additional Context
-- Project root: /Users/damon.mcdougald/poalo_policy_miner
-- Screenshots directory: /Users/damon.mcdougald/poalo_policy_miner/e2e/screenshots
+- Project root: /workspace
+- Screenshots directory: /workspace
 - Test mode: ${TEST_MODE:-false}
 - Environment: Development/Testing
 
 # Execution Guidelines
 1. Read the test prompt carefully and understand all steps
 2. Use MCP browser tools (mcp__MCP_DOCKER__browser_*) for all browser interactions
-3. Take screenshots on failure and save to: /Users/damon.mcdougald/poalo_policy_miner/e2e/screenshots/
+3. Take screenshots on failure and save to: /workspace
 4. If a step fails, follow the failure handling instructions in the prompt
 5. Report clear success/failure status at the end
 6. Include any error messages or diagnostics in your response
